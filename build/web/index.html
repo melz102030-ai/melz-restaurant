@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <base href="/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="مطعم ميلز - اطلب أشهى المأكولات">
+  <meta name="theme-color" content="#6A0DAD">
+
+  <!-- PWA -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ميلز">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="مطعم ميلز">
+  <meta property="og:description" content="اطلب أشهى المأكولات بين يديك">
+  <meta property="og:type" content="website">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <title>ميلز | مطعم</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Preconnect to speed up external resources -->
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Cairo font preload -->
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap">
+
+  <!-- Firebase SDKs — deferred so they don't block rendering -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #0D0010;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    #loading {
+      text-align: center;
+      color: #B39DCA;
+      animation: fadeIn 0.6s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-circle {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6A0DAD, #800040);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 0 40px rgba(106,13,173,0.5);
+      font-size: 2.4rem;
+    }
+
+    #loading h1 {
+      color: #F5F0FF;
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      margin-bottom: 6px;
+    }
+
+    #loading p {
+      color: #7B6B8D;
+      font-size: 0.95rem;
+      margin-bottom: 32px;
+    }
+
+    /* Progress bar */
+    .progress-track {
+      width: 200px;
+      height: 4px;
+      background: #1E0030;
+      border-radius: 4px;
+      margin: 0 auto 12px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6A0DAD, #CC1100);
+      border-radius: 4px;
+      animation: progress 3s ease-in-out forwards;
+    }
+
+    @keyframes progress {
+      0%   { width: 5%; }
+      30%  { width: 40%; }
+      60%  { width: 65%; }
+      85%  { width: 85%; }
+      100% { width: 95%; }
+    }
+
+    .loading-text {
+      color: #4A3A5A;
+      font-size: 0.8rem;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 1; }
+    }
+
+    /* Fade out when Flutter is ready */
+    #loading.hide {
+      animation: fadeOut 0.4s ease forwards;
+    }
+
+    @keyframes fadeOut {
+      to { opacity: 0; transform: scale(0.95); }
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">
+    <div class="logo-circle">🍽️</div>
+    <h1>ميلز</h1>
+    <p>أشهى المأكولات بين يديك</p>
+    <div class="progress-track">
+      <div class="progress-fill"></div>
+    </div>
+    <span class="loading-text">جاري التحميل...</span>
+  </div>
+
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      const el = document.getElementById('loading');
+      el.classList.add('hide');
+      setTimeout(() => { el.style.display = 'none'; }, 420);
+    });
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>
