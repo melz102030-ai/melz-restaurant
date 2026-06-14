@@ -136,47 +136,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 24),
 
             // Stats
-            ordersAsync.when(
-              data: (orders) {
-                final completed = orders.where((o) => o.status == OrderStatus.delivered).length;
-                final totalSpent = orders
-                    .where((o) => o.status == OrderStatus.delivered)
-                    .fold(0.0, (sum, o) => sum + o.total);
-
-                return Row(
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        label: 'إجمالي الطلبات',
-                        value: '${orders.length}',
-                        icon: Icons.receipt_long,
-                        color: AppColors.purple,
-                      ),
+            Builder(builder: (_) {
+              final orders = ordersAsync;
+              final completed = orders.where((o) => o.status == OrderStatus.delivered).length;
+              final totalSpent = orders
+                  .where((o) => o.status == OrderStatus.delivered)
+                  .fold(0.0, (sum, o) => sum + o.total);
+              return Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      label: 'إجمالي الطلبات',
+                      value: '${orders.length}',
+                      icon: Icons.receipt_long,
+                      color: AppColors.purple,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatCard(
-                        label: 'طلبات مكتملة',
-                        value: '$completed',
-                        icon: Icons.check_circle,
-                        color: AppColors.success,
-                      ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      label: 'طلبات مكتملة',
+                      value: '$completed',
+                      icon: Icons.check_circle,
+                      color: AppColors.success,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatCard(
-                        label: 'إجمالي الإنفاق',
-                        value: '${totalSpent.toStringAsFixed(0)} ${AppStrings.sar}',
-                        icon: Icons.attach_money,
-                        color: AppColors.manjawi,
-                      ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _StatCard(
+                      label: 'إجمالي الإنفاق',
+                      value: '${totalSpent.toStringAsFixed(0)} ${AppStrings.sar}',
+                      icon: Icons.attach_money,
+                      color: AppColors.manjawi,
                     ),
-                  ],
-                );
-              },
-              loading: () => const LoadingWidget(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+                  ),
+                ],
+              );
+            }),
 
             const SizedBox(height: 24),
 
@@ -191,29 +187,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 12),
 
-            ordersAsync.when(
-              data: (orders) {
-                if (orders.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: Text(
-                        'لا توجد طلبات سابقة',
-                        style: TextStyle(color: AppColors.textHint),
-                      ),
+            Builder(builder: (_) {
+              final orders = ordersAsync;
+              if (orders.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Text(
+                      'لا توجد طلبات سابقة',
+                      style: TextStyle(color: AppColors.textHint),
                     ),
-                  );
-                }
-                return Column(
-                  children: orders
-                      .take(10)
-                      .map((order) => _OrderHistoryTile(order: order))
-                      .toList(),
+                  ),
                 );
-              },
-              loading: () => const LoadingWidget(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+              }
+              return Column(
+                children: orders
+                    .take(10)
+                    .map((order) => _OrderHistoryTile(order: order))
+                    .toList(),
+              );
+            }),
 
             const SizedBox(height: 24),
 

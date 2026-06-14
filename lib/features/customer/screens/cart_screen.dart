@@ -8,7 +8,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/models/order_model.dart';
-import '../../../core/services/order_service.dart';
+import '../../../core/providers/local_order_provider.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -30,79 +30,45 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     super.dispose();
   }
 
-  Future<void> _placeOrder() async {
+  void _placeOrder() {
     final user = ref.read(authProvider);
     final cart = ref.read(cartProvider);
     final settings = ref.read(settingsProvider);
     final cartTotal = ref.read(cartTotalProvider);
 
-    if (user == null) {
-      context.push('/login');
-      return;
-    }
-
+    if (user == null) { context.push('/login'); return; }
     if (cart.isEmpty) return;
 
     if (cartTotal < settings.minOrderAmount) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'الحد الأدنى للطلب ${settings.minOrderAmount.toStringAsFixed(0)} ${AppStrings.sar}',
-          ),
-          backgroundColor: AppColors.warning,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(
+          'الحد الأدنى للطلب ${settings.minOrderAmount.toStringAsFixed(0)} ${AppStrings.sar}'),
+        backgroundColor: AppColors.warning,
+      ));
       return;
     }
 
-    setState(() => _isPlacingOrder = true);
+    final subtotal = cartTotal;
+    final deliveryFee = settings.deliveryFee;
 
-    try {
-      final subtotal = cartTotal;
-      final deliveryFee = settings.deliveryFee;
-      final total = subtotal + deliveryFee;
+    final order = OrderModel(
+      id: '',
+      customerId: user.id,
+      customerName: user.name,
+      customerPhone: user.phone,
+      items: ref.read(cartProvider.notifier).toOrderItems(),
+      subtotal: subtotal,
+      deliveryFee: deliveryFee,
+      total: subtotal + deliveryFee,
+      status: OrderStatus.pending,
+      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
 
-      final order = OrderModel(
-        id: '',
-        customerId: user.id,
-        customerName: user.name,
-        customerPhone: user.phone,
-        items: ref.read(cartProvider.notifier).toOrderItems(),
-        subtotal: subtotal,
-        deliveryFee: deliveryFee,
-        total: total,
-        status: OrderStatus.pending,
-        notes: _notesController.text.trim().isEmpty
-            ? null
-            : _notesController.text.trim(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
-      final orderId = await OrderService.placeOrder(order);
-      ref.read(cartProvider.notifier).clear();
-
-      if (!mounted) return;
-      context.go('/track/$orderId');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تم تقديم طلبك بنجاح! 🎉'),
-          backgroundColor: AppColors.success,
-        ),
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ: ${e.toString()}'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isPlacingOrder = false);
-    }
+    final orderId = ref.read(localOrderProvider.notifier).addOrder(order);
+    ref.read(cartProvider.notifier).clear();
+    context.go('/track/$orderId');
   }
 
   @override

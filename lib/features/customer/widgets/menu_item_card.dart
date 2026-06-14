@@ -1,204 +1,198 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_group_model.dart';
 import '../../../core/providers/cart_provider.dart';
-import '../../../shared/widgets/gradient_container.dart';
 
-class MenuItemCard extends ConsumerWidget {
+// ── List card (used in CustomerHomeScreen) ────────────────────────────────────
+
+class MenuItemListCard extends ConsumerWidget {
   final MenuItemModel item;
-  final int index;
-
-  const MenuItemCard({super.key, required this.item, required this.index});
+  const MenuItemListCard({super.key, required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cartNotifier = ref.watch(cartProvider.notifier);
     final totalQty = ref.watch(cartProvider.select(
-      (c) => c.where((i) => i.item.id == item.id).fold(0, (s, c) => s + c.quantity),
+      (c) => c
+          .where((i) => i.item.id == item.id)
+          .fold(0, (s, c) => s + c.quantity),
     ));
 
-    return GlassMorphCard(
-      padding: EdgeInsets.zero,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Image
-          Expanded(
-            flex: 3,
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  item.imageUrl != null
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: totalQty > 0
+              ? AppColors.purple.withValues(alpha: 0.4)
+              : AppColors.surfaceLight,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: item.hasOptions
+            ? () => _showOptionsSheet(context, ref)
+            : null,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // Image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: item.imageUrl != null
                       ? Image.network(
                           item.imageUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholderImage(),
+                          errorBuilder: (_, __, ___) => _placeholder(),
                         )
-                      : _placeholderImage(),
-                  if (item.hasDiscount)
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.red,
-                          borderRadius: BorderRadius.circular(8),
+                      : _placeholder(),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (item.description.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        item.description,
+                        style: const TextStyle(
+                          color: AppColors.textHint,
+                          fontSize: 12,
                         ),
-                        child: Text(
-                          '-${item.discountPercent!.toInt()}%',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (item.hasDiscount) ...[
+                          Text(
+                            '${item.price.toStringAsFixed(0)} ${AppStrings.sar}',
+                            style: const TextStyle(
+                              color: AppColors.textHint,
+                              fontSize: 11,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Text(
+                          '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                            color: AppColors.purple,
                             fontWeight: FontWeight.bold,
+                            fontSize: 15,
                           ),
                         ),
-                      ),
-                    ),
-                  if (item.hasOptions)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Text(
-                          'قابل للتخصيص',
-                          style: TextStyle(color: Colors.white, fontSize: 10),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          // Content
-          Expanded(
-            flex: 4,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  if (item.description.isNotEmpty)
-                    Text(
-                      item.description,
-                      style: const TextStyle(color: AppColors.textHint, fontSize: 12),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  const Spacer(),
-
-                  Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (item.hasDiscount)
-                            Text(
-                              '${item.price.toStringAsFixed(0)} ${AppStrings.sar}',
-                              style: const TextStyle(
-                                color: AppColors.textHint,
-                                fontSize: 11,
-                                decoration: TextDecoration.lineThrough,
-                              ),
+                        if (item.hasDiscount) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: AppColors.red,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                          Text(
-                            '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
-                            style: const TextStyle(
-                              color: AppColors.purple,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                            child: Text(
+                              '-${item.discountPercent!.toInt()}%',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
-                      ),
-                      const Spacer(),
-
-                      // Add button / quantity badge
-                      if (!item.hasOptions) ...[
-                        // Simple +/- for items without options
-                        if (totalQty == 0)
-                          _AddButton(onTap: () => cartNotifier.addItem(item))
-                        else
-                          _SimpleQtyControl(
-                            qty: totalQty,
-                            onAdd: () => cartNotifier.addItem(item),
-                            onRemove: () {
-                              final entry = ref.read(cartProvider).firstWhere(
-                                  (c) => c.item.id == item.id,
-                                  orElse: () => CartItem(item: item, quantity: 0));
-                              cartNotifier.removeItem(entry.cartKey);
-                            },
+                        if (item.hasOptions) ...[
+                          const SizedBox(width: 6),
+                          const Text(
+                            'قابل للتخصيص',
+                            style: TextStyle(
+                                color: AppColors.textHint, fontSize: 10),
                           ),
-                      ] else ...[
-                        // Open options sheet
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            _AddButton(
-                              onTap: () => _showOptionsSheet(context, ref),
-                              icon: Icons.tune,
-                            ),
-                            if (totalQty > 0)
-                              Positioned(
-                                top: -6,
-                                left: -6,
-                                child: Container(
-                                  width: 20,
-                                  height: 20,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      '$totalQty',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
+                        ],
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+
+              const SizedBox(width: 8),
+
+              // Add control
+              if (!item.hasOptions)
+                totalQty == 0
+                    ? _AddBtn(onTap: () => cartNotifier.addItem(item))
+                    : _QtyRow(
+                        qty: totalQty,
+                        onAdd: () => cartNotifier.addItem(item),
+                        onRemove: () {
+                          final entry = ref.read(cartProvider).firstWhere(
+                              (c) => c.item.id == item.id,
+                              orElse: () =>
+                                  CartItem(item: item, quantity: 0));
+                          cartNotifier.removeItem(entry.cartKey);
+                        },
+                      )
+              else
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    _AddBtn(
+                      onTap: () => _showOptionsSheet(context, ref),
+                      icon: Icons.tune,
+                    ),
+                    if (totalQty > 0)
+                      Positioned(
+                        top: -5,
+                        left: -5,
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: const BoxDecoration(
+                            color: AppColors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '$totalQty',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+            ],
           ),
-        ],
+        ),
       ),
-    )
-        .animate(delay: Duration(milliseconds: index * 50))
-        .fadeIn()
-        .slideY(begin: 0.2);
+    );
   }
 
   void _showOptionsSheet(BuildContext context, WidgetRef ref) {
@@ -210,65 +204,47 @@ class MenuItemCard extends ConsumerWidget {
     );
   }
 
-  Widget _placeholderImage() {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppColors.cardGradient),
-      child: const Center(
-        child: Icon(Icons.restaurant, size: 48, color: AppColors.textHint),
-      ),
-    );
-  }
+  Widget _placeholder() => Container(
+        color: AppColors.surfaceLight,
+        child: const Icon(Icons.restaurant, color: AppColors.textHint, size: 32),
+      );
 }
 
-// ── Simple +/- for items without options ──────────────────────────────────────
+// ── Small reusable controls ───────────────────────────────────────────────────
 
-class _AddButton extends StatelessWidget {
+class _AddBtn extends StatelessWidget {
   final VoidCallback onTap;
   final IconData icon;
-
-  const _AddButton({required this.onTap, this.icon = Icons.add});
+  const _AddBtn({required this.onTap, this.icon = Icons.add});
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(10),
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
-        child: Icon(icon, color: Colors.white, size: 20),
-      ),
-    );
-  }
+      );
 }
 
-class _SimpleQtyControl extends StatelessWidget {
+class _QtyRow extends StatelessWidget {
   final int qty;
   final VoidCallback onAdd;
   final VoidCallback onRemove;
-
-  const _SimpleQtyControl({required this.qty, required this.onAdd, required this.onRemove});
+  const _QtyRow({required this.qty, required this.onAdd, required this.onRemove});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
+  Widget build(BuildContext context) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(
-            onPressed: onRemove,
-            icon: const Icon(Icons.remove, color: AppColors.red, size: 18),
-            padding: const EdgeInsets.all(4),
-            constraints: const BoxConstraints(),
-          ),
+          _CircleBtn(icon: Icons.remove, color: AppColors.red, onTap: onRemove),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               '$qty',
               style: const TextStyle(
@@ -278,24 +254,37 @@ class _SimpleQtyControl extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
-            onPressed: onAdd,
-            icon: const Icon(Icons.add, color: AppColors.purple, size: 18),
-            padding: const EdgeInsets.all(4),
-            constraints: const BoxConstraints(),
-          ),
+          _CircleBtn(icon: Icons.add, color: AppColors.purple, onTap: onAdd),
         ],
-      ),
-    );
-  }
+      );
 }
 
-// ── Options bottom sheet ───────────────────────────────────────────────────────
+class _CircleBtn extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _CircleBtn({required this.icon, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+      );
+}
+
+// ── Options bottom sheet ──────────────────────────────────────────────────────
 
 class _OptionsSheet extends StatefulWidget {
   final MenuItemModel item;
   final WidgetRef ref;
-
   const _OptionsSheet({required this.item, required this.ref});
 
   @override
@@ -303,15 +292,16 @@ class _OptionsSheet extends StatefulWidget {
 }
 
 class _OptionsSheetState extends State<_OptionsSheet> {
-  // groupId → selected option ids
   final Map<String, Set<String>> _selections = {};
+  int _qty = 1;
 
   @override
   void initState() {
     super.initState();
-    // Pre-select first option for single required groups
     for (final group in widget.item.optionGroups) {
-      if (group.type == OptionGroupType.single && group.required && group.options.isNotEmpty) {
+      if (group.type == OptionGroupType.single &&
+          group.required &&
+          group.options.isNotEmpty) {
         _selections[group.id] = {group.options.first.id};
       } else {
         _selections[group.id] = {};
@@ -337,12 +327,16 @@ class _OptionsSheetState extends State<_OptionsSheet> {
     return extra;
   }
 
+  double get _unitPrice => widget.item.finalPrice + _extraTotal;
+  double get _totalPrice => _unitPrice * _qty;
+
   void _addToCart() {
     final selectedGroups = <SelectedOptionGroup>[];
     for (final group in widget.item.optionGroups) {
       final selectedIds = _selections[group.id] ?? {};
       if (selectedIds.isEmpty) continue;
-      final selectedOpts = group.options.where((o) => selectedIds.contains(o.id)).toList();
+      final selectedOpts =
+          group.options.where((o) => selectedIds.contains(o.id)).toList();
       selectedGroups.add(SelectedOptionGroup(
         groupId: group.id,
         groupName: group.name,
@@ -351,26 +345,29 @@ class _OptionsSheetState extends State<_OptionsSheet> {
         totalExtra: selectedOpts.fold(0.0, (s, o) => s + o.priceAdjustment),
       ));
     }
-    widget.ref.read(cartProvider.notifier).addItem(widget.item, selectedGroups);
+
+    final notifier = widget.ref.read(cartProvider.notifier);
+    for (int i = 0; i < _qty; i++) {
+      notifier.addItem(widget.item, selectedGroups);
+    }
+
+    final messenger = ScaffoldMessenger.of(context);
+    final name = widget.item.name;
+    final qty = _qty;
     Navigator.pop(context);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('تمت الإضافة: ${widget.item.name}'),
-        backgroundColor: AppColors.success,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    messenger.showSnackBar(SnackBar(
+      content: Text('تمت إضافة $qty $name للسلة'),
+      backgroundColor: AppColors.success,
+      duration: const Duration(seconds: 2),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalPrice = widget.item.finalPrice + _extraTotal;
-
     return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
-      ),
+      constraints:
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
       decoration: const BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -380,17 +377,18 @@ class _OptionsSheetState extends State<_OptionsSheet> {
         children: [
           // Handle
           Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
+            margin: const EdgeInsets.only(top: 10),
+            width: 36,
             height: 4,
             decoration: BoxDecoration(
               color: AppColors.surfaceLight,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
+
           // Header
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
             child: Row(
               children: [
                 Expanded(
@@ -401,15 +399,18 @@ class _OptionsSheetState extends State<_OptionsSheet> {
                         widget.item.name,
                         style: const TextStyle(
                           color: AppColors.textPrimary,
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (widget.item.description.isNotEmpty)
-                        Text(
-                          widget.item.description,
-                          style: const TextStyle(color: AppColors.textHint, fontSize: 13),
+                      Text(
+                        '${widget.item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
+                        style: const TextStyle(
+                          color: AppColors.purple,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
+                      ),
                     ],
                   ),
                 ),
@@ -421,65 +422,197 @@ class _OptionsSheetState extends State<_OptionsSheet> {
             ),
           ),
 
-          const Divider(color: AppColors.surfaceLight, height: 1),
+          const Divider(color: AppColors.surfaceLight, height: 16),
 
-          // Option groups
+          // Options
           Flexible(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               shrinkWrap: true,
               children: widget.item.optionGroups.map((group) {
-                return _OptionGroupWidget(
-                  group: group,
-                  selections: _selections[group.id] ?? {},
-                  onChanged: (id, selected) {
-                    setState(() {
-                      if (group.type == OptionGroupType.single) {
-                        _selections[group.id] = selected ? {id} : {};
-                      } else {
-                        final set = Set<String>.from(_selections[group.id] ?? {});
-                        selected ? set.add(id) : set.remove(id);
-                        _selections[group.id] = set;
-                      }
-                    });
-                  },
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            group.name,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: group.required
+                                ? AppColors.manjawi.withValues(alpha: 0.15)
+                                : AppColors.surfaceLight,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            group.required ? 'إجباري' : 'اختياري',
+                            style: TextStyle(
+                              color: group.required
+                                  ? AppColors.manjawi
+                                  : AppColors.textHint,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...group.options.map((opt) {
+                      final selected =
+                          _selections[group.id]?.contains(opt.id) ?? false;
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          if (group.type == OptionGroupType.single) {
+                            _selections[group.id] = selected ? {} : {opt.id};
+                          } else {
+                            final s =
+                                Set<String>.from(_selections[group.id] ?? {});
+                            selected ? s.remove(opt.id) : s.add(opt.id);
+                            _selections[group.id] = s;
+                          }
+                        }),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 11),
+                          decoration: BoxDecoration(
+                            color: selected
+                                ? AppColors.purple.withValues(alpha: 0.1)
+                                : AppColors.cardBackground,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: selected
+                                  ? AppColors.purple
+                                  : AppColors.surfaceLight,
+                              width: selected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                group.type == OptionGroupType.single
+                                    ? (selected
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_unchecked)
+                                    : (selected
+                                        ? Icons.check_box
+                                        : Icons.check_box_outline_blank),
+                                color: selected
+                                    ? AppColors.purple
+                                    : AppColors.textHint,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  opt.name,
+                                  style: TextStyle(
+                                    color: selected
+                                        ? AppColors.textPrimary
+                                        : AppColors.textSecondary,
+                                    fontWeight: selected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              if (opt.priceAdjustment != 0)
+                                Text(
+                                  '${opt.priceAdjustment > 0 ? '+' : ''}${opt.priceAdjustment.toStringAsFixed(0)} ${AppStrings.sar}',
+                                  style: TextStyle(
+                                    color: opt.priceAdjustment > 0
+                                        ? AppColors.success
+                                        : AppColors.textHint,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 8),
+                  ],
                 );
               }).toList(),
             ),
           ),
 
-          // Footer
+          // Footer: qty + add button
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
             decoration: const BoxDecoration(
               color: AppColors.surface,
-              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 12, offset: Offset(0, -4))],
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, -3))
+              ],
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Qty selector
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('الإجمالي', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
-                    Text(
-                      '${totalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
-                      style: const TextStyle(
-                        color: AppColors.purple,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                    _CircleBtn(
+                      icon: Icons.remove,
+                      color: AppColors.red,
+                      onTap: () {
+                        if (_qty > 1) setState(() => _qty--);
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        '$_qty',
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
+                    ),
+                    _CircleBtn(
+                      icon: Icons.add,
+                      color: AppColors.purple,
+                      onTap: () => setState(() => _qty++),
                     ),
                   ],
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
+                const SizedBox(height: 12),
+                // Add button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
                     onPressed: _canAdd ? _addToCart : null,
-                    icon: const Icon(Icons.add_shopping_cart),
-                    label: const Text('أضف للسلة'),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: _canAdd ? AppColors.purple : AppColors.textHint,
+                      backgroundColor:
+                          _canAdd ? AppColors.purple : AppColors.textHint,
+                    ),
+                    child: Text(
+                      _canAdd
+                          ? 'أضف للسلة — ${_totalPrice.toStringAsFixed(0)} ${AppStrings.sar}'
+                          : 'اختر الخيارات الإجبارية',
+                      style: const TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -488,124 +621,6 @@ class _OptionsSheetState extends State<_OptionsSheet> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _OptionGroupWidget extends StatelessWidget {
-  final OptionGroup group;
-  final Set<String> selections;
-  final void Function(String id, bool selected) onChanged;
-
-  const _OptionGroupWidget({
-    required this.group,
-    required this.selections,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                group.name,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: group.required
-                    ? AppColors.manjawi.withValues(alpha: 0.2)
-                    : AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                group.required ? 'إجباري' : 'اختياري',
-                style: TextStyle(
-                  color: group.required ? AppColors.manjawi : AppColors.textHint,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                group.type == OptionGroupType.single ? 'اختر واحداً' : 'اختر متعدد',
-                style: const TextStyle(color: AppColors.textHint, fontSize: 11),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        ...group.options.map((opt) {
-          final selected = selections.contains(opt.id);
-          return GestureDetector(
-            onTap: () => onChanged(opt.id, !selected),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: selected ? AppColors.purple.withValues(alpha: 0.15) : AppColors.cardBackground,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: selected ? AppColors.purple : AppColors.surfaceLight,
-                  width: selected ? 1.5 : 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    group.type == OptionGroupType.single
-                        ? (selected ? Icons.radio_button_checked : Icons.radio_button_unchecked)
-                        : (selected ? Icons.check_box : Icons.check_box_outline_blank),
-                    color: selected ? AppColors.purple : AppColors.textHint,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      opt.name,
-                      style: TextStyle(
-                        color: selected ? AppColors.textPrimary : AppColors.textSecondary,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                  if (opt.priceAdjustment != 0)
-                    Text(
-                      opt.priceAdjustment > 0
-                          ? '+${opt.priceAdjustment.toStringAsFixed(0)} ${AppStrings.sar}'
-                          : '${opt.priceAdjustment.toStringAsFixed(0)} ${AppStrings.sar}',
-                      style: TextStyle(
-                        color: opt.priceAdjustment > 0 ? AppColors.success : AppColors.textHint,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        }),
-        const Divider(color: AppColors.surfaceLight),
-      ],
     );
   }
 }

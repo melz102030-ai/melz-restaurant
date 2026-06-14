@@ -10,6 +10,8 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/orders_provider.dart';
+// ignore: unused_import
+import '../../../core/providers/local_order_provider.dart';
 
 class OrderTrackingScreen extends ConsumerWidget {
   final String orderId;
@@ -17,7 +19,7 @@ class OrderTrackingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final orderAsync = ref.watch(trackOrderProvider(orderId));
+    final order = ref.watch(trackOrderProvider(orderId));
 
     return Scaffold(
       appBar: AppBar(
@@ -27,26 +29,14 @@ class OrderTrackingScreen extends ConsumerWidget {
           onPressed: () => context.go('/home'),
         ),
       ),
-      body: orderAsync.when(
-        loading: () => const LoadingWidget(message: 'جاري تحميل الطلب...'),
-        error: (e, _) => EmptyState(
-          message: 'خطأ في تحميل الطلب',
-          icon: Icons.error_outline,
-          actionLabel: 'عودة',
-          onAction: () => context.go('/home'),
-        ),
-        data: (order) {
-          if (order == null) {
-            return EmptyState(
+      body: order == null
+          ? EmptyState(
               message: 'الطلب غير موجود',
               icon: Icons.search_off,
               actionLabel: 'عودة',
               onAction: () => context.go('/home'),
-            );
-          }
-          return _OrderTrackingContent(order: order);
-        },
-      ),
+            )
+          : _OrderTrackingContent(order: order),
     );
   }
 }

@@ -4,34 +4,27 @@ import '../../../core/models/menu_item_model.dart';
 import '../../../core/services/menu_service.dart';
 import '../../../core/data/local_menu_data.dart';
 
-// يحاول Firebase أولاً، فإن فشل يرجع البيانات المحلية
 final categoriesStreamProvider = StreamProvider<List<CategoryModel>>((ref) async* {
+  // يظهر البيانات المحلية فوراً بدون انتظار
+  yield LocalMenuData.categories;
   try {
-    await for (final cats in MenuService.streamCategories()) {
-      if (cats.isEmpty) {
-        yield LocalMenuData.categories;
-      } else {
-        yield cats;
-      }
+    await for (final cats in MenuService.streamCategories()
+        .timeout(const Duration(seconds: 6))) {
+      if (cats.isNotEmpty) yield cats;
     }
-  } catch (_) {
-    yield LocalMenuData.categories;
-  }
+  } catch (_) {}
 });
 
 final menuItemsStreamProvider =
     StreamProvider.family<List<MenuItemModel>, String?>((ref, categoryId) async* {
+  // يظهر البيانات المحلية فوراً
+  yield LocalMenuData.itemsByCategory(categoryId);
   try {
-    await for (final items in MenuService.streamAvailableItems(categoryId: categoryId)) {
-      if (items.isEmpty) {
-        yield LocalMenuData.itemsByCategory(categoryId);
-      } else {
-        yield items;
-      }
+    await for (final items in MenuService.streamAvailableItems(categoryId: categoryId)
+        .timeout(const Duration(seconds: 6))) {
+      if (items.isNotEmpty) yield items;
     }
-  } catch (_) {
-    yield LocalMenuData.itemsByCategory(categoryId);
-  }
+  } catch (_) {}
 });
 
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);
