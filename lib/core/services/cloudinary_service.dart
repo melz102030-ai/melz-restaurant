@@ -4,9 +4,9 @@ import 'dart:convert';
 
 class CloudinaryService {
   // TODO: Replace with your Cloudinary credentials
-  static const String cloudName = 'YOUR_CLOUD_NAME';
-  static const String uploadPreset = 'YOUR_UPLOAD_PRESET'; // unsigned preset
-  static const String apiKey = 'YOUR_API_KEY';
+  static const String cloudName = 'dwbzohzt9';
+  static const String uploadPreset = 'melz_upload';
+  static const String apiKey = '';
   static const String folder = 'melz_restaurant';
 
   static Future<String?> uploadImage(Uint8List imageBytes, String fileName) async {

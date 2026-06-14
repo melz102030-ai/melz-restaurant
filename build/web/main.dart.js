@@ -34996,10 +34996,10 @@ yL(a,b){return A.bgf(a,b)},
 bgf(a,b){var s=0,r=A.G(t.E),q,p=2,o=[],n,m,l,k,j,i,h,g,f,e
 var $async$yL=A.z(function(c,d){if(c===1){o.push(d)
 s=p}for(;;)switch(s){case 0:p=4
-n=A.dD("https://api.cloudinary.com/v1_1/YOUR_CLOUD_NAME/image/upload",0,null)
+n=A.dD("https://api.cloudinary.com/v1_1/dwbzohzt9/image/upload",0,null)
 i=A.bjG("POST",n)
 h=i.x
-h.m(0,"upload_preset","YOUR_UPLOAD_PRESET")
+h.m(0,"upload_preset","melz_upload")
 h.m(0,"folder","melz_restaurant")
 h.m(0,"public_id",""+Date.now()+"_"+b)
 h=A.b1i(new A.lk(A.b77(a,t.Cm)))
