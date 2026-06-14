@@ -26,12 +26,12 @@ class DefaultFirebaseOptions {
   // ─── WEB ──────────────────────────────────────────────────────────────────
   // TODO: Fill these values from Firebase Console → Project Settings → Web App
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_WEB_API_KEY',
-    appId: 'YOUR_WEB_APP_ID',
-    messagingSenderId: 'YOUR_SENDER_ID',
-    projectId: 'YOUR_PROJECT_ID',
-    authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-    storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+    apiKey: 'AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0',
+    appId: '1:576056016616:web:54675719dc0de0da22535d',
+    messagingSenderId: '576056016616',
+    projectId: 'melz-restaurant',
+    authDomain: 'melz-restaurant.firebaseapp.com',
+    storageBucket: 'melz-restaurant.firebasestorage.app',
   );
 
   // ─── ANDROID ──────────────────────────────────────────────────────────────
