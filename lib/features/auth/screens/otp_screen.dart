@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,11 +8,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/models/user_model.dart';
 import '../../../shared/widgets/app_button.dart';
-import '../../../shared/widgets/gradient_container.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String phone;
@@ -28,14 +27,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   bool _isLoading = false;
   bool _isSending = false;
-  String? _devOtp; // For development only
   int _resendSeconds = 60;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    _sendOtp();
+    _startTimer();
   }
 
   @override
@@ -50,6 +48,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     _resendSeconds = 60;
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) { t.cancel(); return; }
       if (_resendSeconds <= 0) {
         t.cancel();
       } else {
@@ -58,31 +57,25 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     });
   }
 
-  Future<void> _sendOtp() async {
+  Future<void> _resendOtp() async {
     setState(() => _isSending = true);
-    final settings = ref.read(settingsProvider);
     try {
-      final otp = await AuthService.sendOtp(
-        widget.phone,
-        settings.whatsappNumber,
-      );
-      // Dev only: show OTP
-      setState(() => _devOtp = otp);
+      await AuthService.sendOtp(widget.phone);
       _startTimer();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: ${e.toString()}')),
-        );
-      }
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(_firebaseError(e.code)),
+        backgroundColor: AppColors.error,
+      ));
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
   }
 
   Future<void> _verify() async {
-    final otp = _controllers.map((c) => c.text).join();
-    if (otp.length < 6) {
+    final code = _controllers.map((c) => c.text).join();
+    if (code.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('أدخل رمز التحقق كاملاً')),
       );
@@ -91,30 +84,22 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final valid = await AuthService.verifyOtp(widget.phone, otp);
-      if (!valid) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('رمز التحقق غير صحيح أو منتهي الصلاحية'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-        return;
-      }
-
-      final user = await AuthService.getOrCreateUser(widget.phone);
+      final user = await AuthService.verifyOtp(code);
       await ref.read(authProvider.notifier).login(user);
-
       if (!mounted) return;
       _navigateByRole(user.role);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(_firebaseError(e.code)),
+        backgroundColor: AppColors.error,
+      ));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: ${e.toString()}')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('خطأ: $e'),
+        backgroundColor: AppColors.error,
+      ));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -122,32 +107,28 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   void _navigateByRole(UserRole role) {
     switch (role) {
-      case UserRole.admin:
-        context.go('/admin');
-        break;
-      case UserRole.kitchen:
-        context.go('/kitchen');
-        break;
-      case UserRole.customer:
-        context.go('/home');
-        break;
+      case UserRole.admin:   context.go('/admin');   break;
+      case UserRole.kitchen: context.go('/kitchen'); break;
+      case UserRole.customer: context.go('/home');   break;
     }
   }
 
   void _onDigitEntered(int index, String value) {
     if (value.length == 6) {
-      // Handle paste
-      for (int i = 0; i < 6; i++) {
-        _controllers[i].text = value[i];
-      }
+      for (int i = 0; i < 6; i++) _controllers[i].text = value[i];
       _verify();
       return;
     }
-    if (value.isNotEmpty && index < 5) {
-      _focusNodes[index + 1].requestFocus();
-    }
-    if (value.isEmpty && index > 0) {
-      _focusNodes[index - 1].requestFocus();
+    if (value.isNotEmpty && index < 5) { _focusNodes[index + 1].requestFocus(); }
+    if (value.isEmpty && index > 0)    { _focusNodes[index - 1].requestFocus(); }
+  }
+
+  String _firebaseError(String code) {
+    switch (code) {
+      case 'invalid-verification-code': return 'رمز التحقق غير صحيح';
+      case 'session-expired':           return 'انتهت صلاحية الرمز، أعد الإرسال';
+      case 'too-many-requests':         return 'طلبات كثيرة، حاول لاحقاً';
+      default:                          return 'خطأ: $code';
     }
   }
 
@@ -170,23 +151,20 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // WhatsApp icon
+                // Icon
                 Container(
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF25D366).withOpacity(0.1),
+                    color: AppColors.purple.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: const Color(0xFF25D366).withOpacity(0.3),
+                      color: AppColors.purple.withValues(alpha: 0.3),
                       width: 2,
                     ),
                   ),
-                  child: const Icon(
-                    Icons.chat,
-                    color: Color(0xFF25D366),
-                    size: 40,
-                  ),
+                  child: const Icon(Icons.sms_outlined,
+                      color: AppColors.purple, size: 40),
                 ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
 
                 const SizedBox(height: 24),
@@ -199,9 +177,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
                 const SizedBox(height: 12),
 
-                Text(
-                  'تم إرسال رمز التحقق عبر واتساب إلى',
-                  style: const TextStyle(color: AppColors.textSecondary),
+                const Text(
+                  'تم إرسال رمز التحقق عبر SMS إلى',
+                  style: TextStyle(color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ).animate().fadeIn(delay: 100.ms),
 
@@ -217,41 +195,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   ),
                 ).animate().fadeIn(delay: 200.ms),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 40),
 
-                // Dev OTP display
-                if (_devOtp != null)
-                  GlassMorphCard(
-                    borderColor: AppColors.warning.withOpacity(0.3),
-                    child: Column(
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.developer_mode, color: AppColors.warning, size: 18),
-                            SizedBox(width: 8),
-                            Text(
-                              'وضع التطوير - رمز التحقق:',
-                              style: TextStyle(color: AppColors.warning, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _devOtp!,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 8,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ).animate().fadeIn(),
-
-                const SizedBox(height: 24),
-
-                // OTP Input boxes
+                // OTP boxes
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(6, (i) {
@@ -285,9 +231,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(
-                              color: AppColors.purple,
-                              width: 2,
-                            ),
+                              color: AppColors.purple, width: 2),
                           ),
                         ),
                         onChanged: (v) => _onDigitEntered(i, v),
@@ -298,7 +242,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
                 const SizedBox(height: 32),
 
-                // Verify button
                 AppButton(
                   label: AppStrings.verifyOtp,
                   onPressed: _verify,
@@ -309,7 +252,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
                 const SizedBox(height: 24),
 
-                // Resend
+                // Resend timer
                 if (_resendSeconds > 0)
                   Text(
                     'إعادة الإرسال بعد $_resendSeconds ثانية',
@@ -317,7 +260,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   )
                 else
                   TextButton.icon(
-                    onPressed: _isSending ? null : _sendOtp,
+                    onPressed: _isSending ? null : _resendOtp,
                     icon: _isSending
                         ? const SizedBox(
                             width: 16,
@@ -327,20 +270,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                         : const Icon(Icons.refresh),
                     label: const Text(AppStrings.resendOtp),
                     style: TextButton.styleFrom(
-                      foregroundColor: AppColors.purple,
-                    ),
+                        foregroundColor: AppColors.purple),
                   ),
-
-                const SizedBox(height: 16),
-
-                // Open WhatsApp
-                AppButton(
-                  label: AppStrings.openWhatsapp,
-                  onPressed: _sendOtp,
-                  isOutlined: true,
-                  icon: Icons.chat,
-                  color: const Color(0xFF25D366),
-                ).animate().fadeIn(delay: 500.ms),
               ],
             ),
           ),

@@ -7,6 +7,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/settings_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
@@ -45,55 +46,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       final phone = '$_selectedCountryCode${_phoneController.text.trim()}';
-
-      // فحص وجود حساب مسبق بنفس الرقم
-      final exists = await AuthService.phoneExists(phone);
-      if (!mounted) return;
-
-      if (exists) {
-        // إبلاغ المستخدم أن لديه حساباً موجوداً
-        final proceed = await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Row(
-              children: [
-                Icon(Icons.info_outline, color: AppColors.purple),
-                SizedBox(width: 10),
-                Text(
-                  'حساب موجود',
-                  style: TextStyle(color: AppColors.textPrimary),
-                ),
-              ],
-            ),
-            content: Text(
-              'يوجد حساب مسجّل مسبقاً بالرقم $phone\n\nهل تريد تسجيل الدخول إلى حسابك؟',
-              style: const TextStyle(color: AppColors.textSecondary),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text(
-                  'إلغاء',
-                  style: TextStyle(color: AppColors.textHint),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.purple),
-                child: const Text('تسجيل الدخول'),
-              ),
-            ],
-          ),
-        );
-        if (proceed != true) return;
-      }
-
+      await AuthService.sendOtp(phone);
       if (!mounted) return;
       context.push('/otp', extra: phone);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(_firebaseError(e.code)),
+        backgroundColor: AppColors.error,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('خطأ: $e'),
+        backgroundColor: AppColors.error,
+      ));
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  String _firebaseError(String code) {
+    switch (code) {
+      case 'invalid-phone-number':
+        return 'رقم الجوال غير صحيح';
+      case 'too-many-requests':
+        return 'طلبات كثيرة، حاول لاحقاً';
+      case 'network-request-failed':
+        return 'تحقق من اتصال الإنترنت';
+      default:
+        return 'خطأ: $code';
     }
   }
 

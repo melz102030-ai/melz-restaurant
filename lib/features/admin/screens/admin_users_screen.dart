@@ -286,8 +286,8 @@ class _AddStaffDialogState extends State<_AddStaffDialog> {
         createdAt: DateTime.now(),
       );
       // Add staff user to Firestore with password
-      final staffUser = await AuthService.getOrCreateUser(_phoneCtrl.text.trim());
-      await AuthService.changeUserRole(staffUser.id, _selectedRole);
+      await AuthService.createStaffUser(
+          _phoneCtrl.text.trim(), _nameCtrl.text.trim(), _selectedRole);
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSaving = false);
