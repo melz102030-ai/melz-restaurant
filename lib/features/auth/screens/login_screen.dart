@@ -279,7 +279,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     const SizedBox(width: 12),
                                     const Expanded(
                                       child: Text(
-                                        'سيتم إرسال رمز التحقق عبر واتساب',
+                                        'سيتم إرسال رمز التحقق عبر SMS',
                                         style: TextStyle(
                                           color: AppColors.textSecondary,
                                           fontSize: 13,
