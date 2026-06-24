@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../shared/widgets/brand_text.dart';
+import '../../../core/providers/settings_provider.dart';
 
 class AdminShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -29,6 +29,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width > 768;
     final user = ref.watch(authProvider);
+    final logoUrl = ref.watch(settingsStreamProvider).valueOrNull?.logoUrl;
 
     if (isWide) {
       return Scaffold(
@@ -46,19 +47,28 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                     decoration: const BoxDecoration(
                       gradient: AppColors.primaryGradient,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        const BrandText(
-                          text: 'Meals',
-                          fontSize: 26,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user?.name ?? 'الإدارة',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
+                        if (logoUrl != null)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              logoUrl,
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                            ),
+                          ),
+                        if (logoUrl != null) const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            user?.name ?? 'الإدارة',
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],

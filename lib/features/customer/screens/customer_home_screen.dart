@@ -10,7 +10,6 @@ import '../../../core/providers/settings_provider.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/menu_item_card.dart';
-import '../../../shared/widgets/brand_text.dart';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -51,44 +50,34 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
                   logoUrl,
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                 ),
               ),
               const SizedBox(width: 10),
             ],
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            Row(
               children: [
-                BrandText(
-                  text: settings.restaurantName,
-                  fontSize: 22,
-                  color: AppColors.textPrimary,
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: BoxDecoration(
+                    color: settings.isOpen ? AppColors.success : AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
                 ),
-                Row(
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: settings.isOpen ? AppColors.success : AppColors.error,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      settings.isOpen
-                          ? 'مفتوح · ${settings.estimatedPrepTime} دقيقة'
-                          : 'مغلق حالياً',
-                      style: TextStyle(
-                        color: settings.isOpen ? AppColors.success : AppColors.error,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
+                const SizedBox(width: 5),
+                Text(
+                  settings.isOpen
+                      ? 'مفتوح · ${settings.estimatedPrepTime} دقيقة'
+                      : 'مغلق حالياً',
+                  style: TextStyle(
+                    color: settings.isOpen ? AppColors.success : AppColors.error,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),

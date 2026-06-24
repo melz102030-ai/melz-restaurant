@@ -10,7 +10,6 @@ import '../../../core/providers/settings_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
-import '../../../shared/widgets/brand_text.dart';
 import '../../../shared/widgets/gradient_container.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -102,11 +101,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   children: [
                     const SizedBox(height: 40),
                     _buildLogo(large: true),
-                    const SizedBox(height: 24),
-                    BrandText(
-                      text: settings.restaurantName,
-                      fontSize: 52,
-                    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
                     const SizedBox(height: 12),
                     Text(
                       settings.welcomeMessage ?? AppStrings.appTagline,
@@ -141,18 +135,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       children: [
                         if (!isWide) ...[
                           Center(child: _buildLogo()),
-                          const SizedBox(height: 16),
-                          Center(
-                            child: BrandText(
-                              text: settings.restaurantName,
-                              fontSize: 36,
-                              color: AppColors.purple,
-                            ),
-                          ),
                           const SizedBox(height: 32),
                         ],
                         Text(
-                          'مرحباً بك! 👋',
+                          'مرحباً بك!',
                           style: Theme.of(context).textTheme.headlineMedium,
                         ).animate().fadeIn(),
                         const SizedBox(height: 8),
