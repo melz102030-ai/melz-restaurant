@@ -38,6 +38,7 @@ dependencies:
   equatable: ^2.0.5
   timeago: ^3.6.1
   file_picker: ^8.0.3
+  excel: ^4.0.6
 
   cupertino_icons: ^1.0.8
 

@@ -20,7 +20,7 @@ class MenuService {
             snap.docs.map((d) => CategoryModel.fromMap(d.data(), d.id)).toList());
   }
 
-  static Future<void> addCategory(CategoryModel cat) async {
+  static Future<String> addCategory(CategoryModel cat) async {
     final ref = _db.collection(_colCategories).doc();
     await ref.set(CategoryModel(
       id: ref.id,
@@ -29,6 +29,7 @@ class MenuService {
       sortOrder: cat.sortOrder,
       isActive: cat.isActive,
     ).toMap());
+    return ref.id;
   }
 
   static Future<void> updateCategory(CategoryModel cat) async {

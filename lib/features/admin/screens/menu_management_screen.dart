@@ -11,6 +11,7 @@ import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_group_model.dart';
 import '../../../core/services/menu_service.dart';
 import '../../../core/services/cloudinary_service.dart';
+import '../../../core/services/excel_import_service.dart';
 import '../../../features/customer/providers/menu_provider.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
@@ -59,6 +60,16 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
             tooltip: 'إضافة عنصر',
           ),
           IconButton(
+            onPressed: () => ExcelImportService.downloadTemplate(),
+            icon: const Icon(Icons.download),
+            tooltip: 'تنزيل قالب Excel',
+          ),
+          IconButton(
+            onPressed: () => _importFromExcel(context),
+            icon: const Icon(Icons.upload_file),
+            tooltip: 'استيراد من Excel',
+          ),
+          IconButton(
             onPressed: () => MenuService.seedInitialData(),
             icon: const Icon(Icons.auto_awesome),
             tooltip: 'تحميل بيانات أولية',
@@ -73,6 +84,77 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
         ],
       ),
     );
+  }
+
+  Future<void> _importFromExcel(BuildContext context) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['xlsx', 'xls'],
+      withData: true,
+    );
+    if (result == null || result.files.single.bytes == null) return;
+
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const AlertDialog(
+        content: Row(children: [
+          CircularProgressIndicator(),
+          SizedBox(width: 16),
+          Text('جاري الاستيراد...'),
+        ]),
+      ),
+    );
+
+    try {
+      final importResult =
+          await ExcelImportService.importFromBytes(result.files.single.bytes!);
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('اكتمل الاستيراد ✓'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('✅ أصناف مضافة: ${importResult.itemsAdded}'),
+              Text('📁 فئات جديدة: ${importResult.catsAdded}'),
+              if (importResult.errors.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                const Text('تحذيرات:', style: TextStyle(color: Colors.orange)),
+                ...importResult.errors.map((e) => Text('• $e',
+                    style: const TextStyle(fontSize: 12, color: Colors.orange))),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('حسناً'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context);
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('خطأ في الاستيراد'),
+          content: Text(e.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('حسناً'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _showAddItemDialog(BuildContext context) {
