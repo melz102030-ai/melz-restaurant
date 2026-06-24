@@ -14,8 +14,11 @@ class CloudinaryService {
       'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
     );
 
+    final nameWithoutExt = fileName.contains('.')
+        ? fileName.substring(0, fileName.lastIndexOf('.'))
+        : fileName;
     final safeId = '${DateTime.now().millisecondsSinceEpoch}_'
-        '${fileName.replaceAll(RegExp(r'[^\w\-.]'), '_')}';
+        '${nameWithoutExt.replaceAll(RegExp(r'[^\w\-]'), '_')}';
 
     final request = http.MultipartRequest('POST', url)
       ..fields['upload_preset'] = uploadPreset
