@@ -14,10 +14,13 @@ class CloudinaryService {
       'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
     );
 
+    final safeId = '${DateTime.now().millisecondsSinceEpoch}_'
+        '${fileName.replaceAll(RegExp(r'[^\w\-.]'), '_')}';
+
     final request = http.MultipartRequest('POST', url)
       ..fields['upload_preset'] = uploadPreset
       ..fields['folder'] = folder
-      ..fields['public_id'] = '${DateTime.now().millisecondsSinceEpoch}_$fileName'
+      ..fields['public_id'] = safeId
       ..files.add(http.MultipartFile.fromBytes(
         'file',
         imageBytes,
