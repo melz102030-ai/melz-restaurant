@@ -361,6 +361,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   String? _imageUrl;
   Uint8List? _imageBytes;
   List<OptionGroup> _optionGroups = [];
+  String? _saveError;
 
   late TabController _tabCtrl;
 
@@ -434,10 +435,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       }
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('خطأ: $e')));
-      }
+      if (mounted) setState(() => _saveError = e.toString());
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -492,6 +490,21 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                   ],
                 ),
               ),
+              // Error message
+              if (_saveError != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
+                    ),
+                    child: Text(_saveError!,
+                        style: const TextStyle(color: Colors.red, fontSize: 12)),
+                  ),
+                ),
               // Save button
               Padding(
                 padding: const EdgeInsets.all(16),
