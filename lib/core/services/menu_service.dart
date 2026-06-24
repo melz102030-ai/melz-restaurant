@@ -222,11 +222,11 @@ class MenuService {
 
     // ── Categories ──
     final categories = [
-      {'name': 'الساندوتشات', 'icon': '🌯', 'sortOrder': 0},
-      {'name': 'البرجر', 'icon': '🍔', 'sortOrder': 1},
-      {'name': 'الصحون', 'icon': '🍽️', 'sortOrder': 2},
-      {'name': 'الطلبات الجانبية', 'icon': '🍟', 'sortOrder': 3},
-      {'name': 'المشروبات', 'icon': '🥤', 'sortOrder': 4},
+      {'name': 'الساندوتشات', 'icon': null, 'sortOrder': 0},
+      {'name': 'البرجر', 'icon': null, 'sortOrder': 1},
+      {'name': 'الصحون', 'icon': null, 'sortOrder': 2},
+      {'name': 'الطلبات الجانبية', 'icon': null, 'sortOrder': 3},
+      {'name': 'المشروبات', 'icon': null, 'sortOrder': 4},
     ];
 
     final batch = _db.batch();

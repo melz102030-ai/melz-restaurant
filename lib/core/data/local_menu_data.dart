@@ -90,11 +90,11 @@ class LocalMenuData {
       );
 
   static List<CategoryModel> get categories => [
-        const CategoryModel(id: 'cat1', name: 'الساندوتشات', icon: '🌯', sortOrder: 0, isActive: true),
-        const CategoryModel(id: 'cat2', name: 'البرجر', icon: '🍔', sortOrder: 1, isActive: true),
-        const CategoryModel(id: 'cat3', name: 'الصحون', icon: '🍽️', sortOrder: 2, isActive: true),
-        const CategoryModel(id: 'cat4', name: 'الطلبات الجانبية', icon: '🍟', sortOrder: 3, isActive: true),
-        const CategoryModel(id: 'cat5', name: 'المشروبات', icon: '🥤', sortOrder: 4, isActive: true),
+        const CategoryModel(id: 'cat1', name: 'الساندوتشات', icon: null, sortOrder: 0, isActive: true),
+        const CategoryModel(id: 'cat2', name: 'البرجر', icon: null, sortOrder: 1, isActive: true),
+        const CategoryModel(id: 'cat3', name: 'الصحون', icon: null, sortOrder: 2, isActive: true),
+        const CategoryModel(id: 'cat4', name: 'الطلبات الجانبية', icon: null, sortOrder: 3, isActive: true),
+        const CategoryModel(id: 'cat5', name: 'المشروبات', icon: null, sortOrder: 4, isActive: true),
       ];
 
   static List<MenuItemModel> get items => [

@@ -86,7 +86,7 @@ class ExcelImportService {
         final newId = await MenuService.addCategory(CategoryModel(
           id: '',
           name: catName,
-          icon: '🍽️',
+          icon: null,
           sortOrder: catSortOrder++,
           isActive: true,
         ));

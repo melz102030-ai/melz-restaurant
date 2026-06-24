@@ -118,13 +118,13 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
       showDialog(
         context: context,
         builder: (_) => AlertDialog(
-          title: const Text('اكتمل الاستيراد ✓'),
+          title: const Text('اكتمل الاستيراد'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('✅ أصناف مضافة: ${importResult.itemsAdded}'),
-              Text('📁 فئات جديدة: ${importResult.catsAdded}'),
+              Text('أصناف مضافة: ${importResult.itemsAdded}'),
+              Text('فئات جديدة: ${importResult.catsAdded}'),
               if (importResult.errors.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 const Text('تحذيرات:', style: TextStyle(color: Colors.orange)),
@@ -403,7 +403,7 @@ class _CategoryTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (cat.icon != null) Text(cat.icon!, style: const TextStyle(fontSize: 28)),
+          const Icon(Icons.label_outline, color: AppColors.purple, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(cat.name,
@@ -890,7 +890,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         groups: List.from(_optionGroups),
       ));
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حفظ القالب ✓')),
+        const SnackBar(content: Text('تم حفظ القالب')),
       );
     }
   }
@@ -1421,12 +1421,6 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
             controller: _nameCtrl,
             style: const TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'اسم الفئة *'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _iconCtrl,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 24),
-            decoration: const InputDecoration(labelText: 'الأيقونة (إيموجي)', hintText: '🍔'),
           ),
         ],
       ),

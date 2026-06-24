@@ -463,7 +463,7 @@ class _ImagePicker extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              bytes != null ? 'صورة جديدة (لم تُحفظ بعد)' : 'محفوظة ✓',
+              bytes != null ? 'صورة جديدة - اضغط حفظ' : 'محفوظة',
               style: TextStyle(
                 color: bytes != null ? AppColors.warning : AppColors.success,
                 fontSize: 10,
