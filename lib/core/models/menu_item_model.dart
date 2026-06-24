@@ -75,6 +75,7 @@ class MenuItemModel {
   }
 
   MenuItemModel copyWith({
+    String? id,
     String? name,
     String? description,
     String? categoryId,
@@ -88,7 +89,7 @@ class MenuItemModel {
     List<OptionGroup>? optionGroups,
   }) {
     return MenuItemModel(
-      id: id,
+      id: id ?? this.id,
       name: name ?? this.name,
       description: description ?? this.description,
       categoryId: categoryId ?? this.categoryId,

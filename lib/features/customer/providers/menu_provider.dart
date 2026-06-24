@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/category_model.dart';
 import '../../../core/models/menu_item_model.dart';
+import '../../../core/models/option_template_model.dart';
 import '../../../core/services/menu_service.dart';
 import '../../../core/data/local_menu_data.dart';
 
@@ -34,6 +35,10 @@ final adminMenuItemsProvider = StreamProvider<List<MenuItemModel>>((ref) {
 
 final adminCategoriesProvider = StreamProvider<List<CategoryModel>>((ref) {
   return MenuService.streamCategories();
+});
+
+final adminOptionTemplatesProvider = StreamProvider<List<OptionTemplateModel>>((ref) {
+  return MenuService.streamOptionTemplates();
 });
 
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);

@@ -9,6 +9,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/models/category_model.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_group_model.dart';
+import '../../../core/models/option_template_model.dart';
 import '../../../core/services/menu_service.dart';
 import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/excel_import_service.dart';
@@ -31,7 +32,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -51,6 +52,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
           tabs: const [
             Tab(text: 'عناصر القائمة'),
             Tab(text: 'الفئات'),
+            Tab(text: 'القوالب'),
           ],
         ),
         actions: [
@@ -81,6 +83,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
         children: [
           _MenuItemsTab(),
           _CategoriesTab(),
+          const _TemplatesTab(),
         ],
       ),
     );
@@ -180,10 +183,17 @@ class _MenuItemsTab extends ConsumerWidget {
             icon: Icons.restaurant_menu,
           );
         }
-        return ListView.builder(
+        return ReorderableListView.builder(
           padding: const EdgeInsets.all(16),
+          onReorder: (oldIndex, newIndex) {
+            if (newIndex > oldIndex) newIndex--;
+            final reordered = List<MenuItemModel>.from(items);
+            final item = reordered.removeAt(oldIndex);
+            reordered.insert(newIndex, item);
+            MenuService.reorderMenuItems(reordered);
+          },
           itemCount: items.length,
-          itemBuilder: (_, i) => _MenuItemTile(item: items[i], index: i),
+          itemBuilder: (_, i) => _MenuItemTile(key: ValueKey(items[i].id), item: items[i], index: i),
         );
       },
       loading: () => const LoadingWidget(message: 'تحميل القائمة...'),
@@ -195,7 +205,7 @@ class _MenuItemsTab extends ConsumerWidget {
 class _MenuItemTile extends ConsumerWidget {
   final MenuItemModel item;
   final int index;
-  const _MenuItemTile({required this.item, required this.index});
+  const _MenuItemTile({super.key, required this.item, required this.index});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -278,7 +288,24 @@ class _MenuItemTile extends ConsumerWidget {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    onPressed: () => showDialog(
+                      context: context,
+                      builder: (_) => _MenuItemDialog(
+                        item: item.copyWith(
+                          id: '',
+                          name: '${item.name} (نسخة)',
+                        ),
+                        isDuplicate: true,
+                      ),
+                    ),
+                    icon: const Icon(Icons.copy, color: AppColors.purple, size: 18),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    tooltip: 'نسخ',
+                  ),
+                  const SizedBox(width: 4),
                   IconButton(
                     onPressed: () => _confirmDelete(context, item),
                     icon: const Icon(Icons.delete, color: AppColors.error, size: 18),
@@ -332,10 +359,17 @@ class _CategoriesTab extends ConsumerWidget {
           if (cats.isEmpty) {
             return const EmptyState(message: 'لا توجد فئات\nاضغط + لإضافة فئة', icon: Icons.category);
           }
-          return ListView.builder(
+          return ReorderableListView.builder(
             padding: const EdgeInsets.all(16),
+            onReorder: (oldIndex, newIndex) {
+              if (newIndex > oldIndex) newIndex--;
+              final reordered = List<CategoryModel>.from(cats);
+              final cat = reordered.removeAt(oldIndex);
+              reordered.insert(newIndex, cat);
+              MenuService.reorderCategories(reordered);
+            },
             itemCount: cats.length,
-            itemBuilder: (_, i) => _CategoryTile(cat: cats[i], index: i),
+            itemBuilder: (_, i) => _CategoryTile(key: ValueKey(cats[i].id), cat: cats[i], index: i),
           );
         },
         loading: () => const LoadingWidget(),
@@ -355,7 +389,7 @@ class _CategoriesTab extends ConsumerWidget {
 class _CategoryTile extends StatelessWidget {
   final CategoryModel cat;
   final int index;
-  const _CategoryTile({required this.cat, required this.index});
+  const _CategoryTile({super.key, required this.cat, required this.index});
 
   @override
   Widget build(BuildContext context) {
@@ -424,7 +458,8 @@ class _CategoryTile extends StatelessWidget {
 
 class _MenuItemDialog extends ConsumerStatefulWidget {
   final MenuItemModel? item;
-  const _MenuItemDialog({this.item});
+  final bool isDuplicate;
+  const _MenuItemDialog({this.item, this.isDuplicate = false});
 
   @override
   ConsumerState<_MenuItemDialog> createState() => _MenuItemDialogState();
@@ -510,7 +545,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
             : double.tryParse(_discountCtrl.text),
         optionGroups: _optionGroups,
       );
-      if (widget.item != null) {
+      if (widget.item != null && !widget.isDuplicate) {
         await MenuService.updateMenuItem(newItem);
       } else {
         await MenuService.addMenuItem(newItem);
@@ -542,7 +577,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                 child: Row(
                   children: [
                     Text(
-                      widget.item != null ? AppStrings.editItem : AppStrings.addItem,
+                      widget.isDuplicate ? 'نسخة صنف' : widget.item != null ? AppStrings.editItem : AppStrings.addItem,
                       style: const TextStyle(
                           color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
@@ -730,6 +765,19 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                     fontSize: 15),
               ),
               const Spacer(),
+              IconButton(
+                onPressed: () => _applyTemplate(context),
+                icon: const Icon(Icons.library_books_outlined, size: 20),
+                tooltip: 'تطبيق قالب',
+                color: AppColors.purple,
+              ),
+              if (_optionGroups.isNotEmpty)
+                IconButton(
+                  onPressed: () => _saveAsTemplate(context),
+                  icon: const Icon(Icons.bookmark_add_outlined, size: 20),
+                  tooltip: 'حفظ كقالب',
+                  color: AppColors.purple,
+                ),
               TextButton.icon(
                 onPressed: _addOptionGroup,
                 icon: const Icon(Icons.add, size: 18),
@@ -752,8 +800,9 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
           Expanded(
             child: ReorderableListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              onReorderItem: (oldIdx, newIdx) {
+              onReorder: (oldIdx, newIdx) {
                 setState(() {
+                  if (newIdx > oldIdx) newIdx--;
                   final g = _optionGroups.removeAt(oldIdx);
                   _optionGroups.insert(newIdx, g);
                 });
@@ -788,6 +837,62 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       builder: (_) => _OptionGroupDialog(group: _optionGroups[index]),
     );
     if (result != null) setState(() => _optionGroups[index] = result);
+  }
+
+  Future<void> _applyTemplate(BuildContext context) async {
+    final templates = await MenuService.streamOptionTemplates().first;
+    if (!context.mounted) return;
+    if (templates.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا توجد قوالب محفوظة')),
+      );
+      return;
+    }
+    final selected = await showDialog<OptionTemplateModel>(
+      context: context,
+      builder: (_) => _PickTemplateDialog(templates: templates),
+    );
+    if (selected != null) {
+      setState(() {
+        for (final g in selected.groups) {
+          if (_optionGroups.every((e) => e.id != g.id)) {
+            _optionGroups.add(g);
+          }
+        }
+      });
+    }
+  }
+
+  Future<void> _saveAsTemplate(BuildContext context) async {
+    final nameCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حفظ كقالب'),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'اسم القالب',
+            hintText: 'مثال: مشروبات + إضافات',
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حفظ')),
+        ],
+      ),
+    );
+    if (confirmed == true && nameCtrl.text.trim().isNotEmpty && context.mounted) {
+      await MenuService.addOptionTemplate(OptionTemplateModel(
+        id: '',
+        name: nameCtrl.text.trim(),
+        groups: List.from(_optionGroups),
+      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم حفظ القالب ✓')),
+      );
+    }
   }
 }
 
@@ -1331,6 +1436,221 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
           onPressed: _isSaving ? null : _save,
           child: Text(widget.cat != null ? AppStrings.save : AppStrings.add),
         ),
+      ],
+    );
+  }
+}
+
+// ── Templates Tab ─────────────────────────────────────────────────────────────
+
+class _TemplatesTab extends ConsumerWidget {
+  const _TemplatesTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final templatesAsync = ref.watch(adminOptionTemplatesProvider);
+    return Scaffold(
+      body: templatesAsync.when(
+        data: (templates) {
+          if (templates.isEmpty) {
+            return const EmptyState(
+              message: 'لا توجد قوالب خيارات\nأضف مجموعات خيارات لصنف ثم احفظها كقالب',
+              icon: Icons.library_books_outlined,
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: templates.length,
+            itemBuilder: (_, i) => _TemplateTile(template: templates[i]),
+          );
+        },
+        loading: () => const LoadingWidget(),
+        error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error),
+      ),
+    );
+  }
+}
+
+class _TemplateTile extends StatelessWidget {
+  final OptionTemplateModel template;
+  const _TemplateTile({required this.template});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.purpleDark.withValues(alpha: 0.3)),
+      ),
+      child: ListTile(
+        leading: const Icon(Icons.library_books, color: AppColors.purple),
+        title: Text(template.name, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        subtitle: Text('${template.groups.length} مجموعة خيارات',
+            style: const TextStyle(color: AppColors.textHint, fontSize: 12)),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
+              onPressed: () => showDialog(
+                context: context,
+                builder: (_) => _EditTemplateDialog(template: template),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: AppColors.error, size: 18),
+              onPressed: () => _confirmDelete(context),
+            ),
+          ],
+        ),
+        onTap: () => showDialog(
+          context: context,
+          builder: (_) => _TemplateGroupsPreview(template: template),
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حذف القالب'),
+        content: Text('هل تريد حذف قالب "${template.name}"؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () {
+              MenuService.deleteOptionTemplate(template.id);
+              Navigator.pop(context);
+            },
+            child: const Text('حذف', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TemplateGroupsPreview extends StatelessWidget {
+  final OptionTemplateModel template;
+  const _TemplateGroupsPreview({required this.template});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(template.name),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView(
+          shrinkWrap: true,
+          children: template.groups.map((g) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(g.name, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.purple)),
+              const SizedBox(height: 4),
+              ...g.options.map((o) => Padding(
+                padding: const EdgeInsets.only(right: 12, bottom: 2),
+                child: Text(
+                  '• ${o.name}${o.priceAdjustment != 0 ? ' (+${o.priceAdjustment.toStringAsFixed(0)} ر.س)' : ''}',
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                ),
+              )),
+              const Divider(),
+            ],
+          )).toList(),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إغلاق')),
+      ],
+    );
+  }
+}
+
+class _EditTemplateDialog extends StatefulWidget {
+  final OptionTemplateModel template;
+  const _EditTemplateDialog({required this.template});
+
+  @override
+  State<_EditTemplateDialog> createState() => _EditTemplateDialogState();
+}
+
+class _EditTemplateDialogState extends State<_EditTemplateDialog> {
+  late TextEditingController _nameCtrl;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.template.name);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('تعديل اسم القالب'),
+      content: TextField(
+        controller: _nameCtrl,
+        autofocus: true,
+        decoration: const InputDecoration(labelText: 'اسم القالب'),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        ElevatedButton(
+          onPressed: _saving ? null : () async {
+            if (_nameCtrl.text.trim().isEmpty) return;
+            setState(() => _saving = true);
+            await MenuService.updateOptionTemplate(OptionTemplateModel(
+              id: widget.template.id,
+              name: _nameCtrl.text.trim(),
+              groups: widget.template.groups,
+            ));
+            if (context.mounted) Navigator.pop(context);
+          },
+          child: const Text('حفظ'),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Pick Template Dialog ──────────────────────────────────────────────────────
+
+class _PickTemplateDialog extends StatelessWidget {
+  final List<OptionTemplateModel> templates;
+  const _PickTemplateDialog({required this.templates});
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('اختر قالباً'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.builder(
+          shrinkWrap: true,
+          itemCount: templates.length,
+          itemBuilder: (_, i) {
+            final t = templates[i];
+            return ListTile(
+              leading: const Icon(Icons.library_books, color: AppColors.purple),
+              title: Text(t.name),
+              subtitle: Text('${t.groups.length} مجموعة'),
+              onTap: () => Navigator.pop(context, t),
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
       ],
     );
   }

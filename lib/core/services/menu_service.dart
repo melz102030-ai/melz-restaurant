@@ -3,11 +3,13 @@ import 'package:uuid/uuid.dart';
 import '../models/category_model.dart';
 import '../models/menu_item_model.dart';
 import '../models/option_group_model.dart';
+import '../models/option_template_model.dart';
 
 class MenuService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _colCategories = 'categories';
   static const String _colItems = 'menu_items';
+  static const String _colTemplates = 'option_templates';
   static const _uuid = Uuid();
 
   // ─── Categories ───────────────────────────────────────────────
@@ -93,6 +95,48 @@ class MenuService {
       counts[catId] = (counts[catId] ?? 0) + 1;
     }
     return counts;
+  }
+
+  // ─── Reorder ──────────────────────────────────────────────────
+  static Future<void> reorderMenuItems(List<MenuItemModel> items) async {
+    final batch = _db.batch();
+    for (int i = 0; i < items.length; i++) {
+      batch.update(_db.collection(_colItems).doc(items[i].id), {'sortOrder': i});
+    }
+    await batch.commit();
+  }
+
+  static Future<void> reorderCategories(List<CategoryModel> cats) async {
+    final batch = _db.batch();
+    for (int i = 0; i < cats.length; i++) {
+      batch.update(_db.collection(_colCategories).doc(cats[i].id), {'sortOrder': i});
+    }
+    await batch.commit();
+  }
+
+  // ─── Option Templates ─────────────────────────────────────────
+  static Stream<List<OptionTemplateModel>> streamOptionTemplates() {
+    return _db
+        .collection(_colTemplates)
+        .orderBy('name')
+        .snapshots()
+        .map((s) => s.docs
+            .map((d) => OptionTemplateModel.fromMap(d.data(), d.id))
+            .toList());
+  }
+
+  static Future<String> addOptionTemplate(OptionTemplateModel t) async {
+    final ref = _db.collection(_colTemplates).doc();
+    await ref.set(t.toMap());
+    return ref.id;
+  }
+
+  static Future<void> updateOptionTemplate(OptionTemplateModel t) async {
+    await _db.collection(_colTemplates).doc(t.id).update(t.toMap());
+  }
+
+  static Future<void> deleteOptionTemplate(String id) async {
+    await _db.collection(_colTemplates).doc(id).delete();
   }
 
   // ─── Seed real Melz menu data ─────────────────────────────────
