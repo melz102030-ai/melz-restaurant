@@ -14,7 +14,7 @@ class RestaurantSettings {
   final bool allowOrders;
 
   const RestaurantSettings({
-    this.restaurantName = 'ميلز',
+    this.restaurantName = 'Meals',
     this.logoUrl,
     this.coverUrl,
     this.isOpen = true,
@@ -31,7 +31,7 @@ class RestaurantSettings {
 
   factory RestaurantSettings.fromMap(Map<String, dynamic> map) {
     return RestaurantSettings(
-      restaurantName: map['restaurantName'] ?? 'ميلز',
+      restaurantName: map['restaurantName'] ?? 'Meals',
       logoUrl: map['logoUrl'],
       coverUrl: map['coverUrl'],
       isOpen: map['isOpen'] ?? true,

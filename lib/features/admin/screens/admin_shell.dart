@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../shared/widgets/brand_text.dart';
 
 class AdminShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -48,13 +49,9 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'ميلز',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        const BrandText(
+                          text: 'Meals',
+                          fontSize: 26,
                         ),
                         const SizedBox(height: 4),
                         Text(

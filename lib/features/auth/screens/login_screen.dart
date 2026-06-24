@@ -10,6 +10,7 @@ import '../../../core/providers/settings_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../../../shared/widgets/brand_text.dart';
 import '../../../shared/widgets/gradient_container.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -102,14 +103,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 40),
                     _buildLogo(large: true),
                     const SizedBox(height: 24),
-                    Text(
-                      settings.restaurantName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
+                    BrandText(
+                      text: settings.restaurantName,
+                      fontSize: 52,
                     ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2),
                     const SizedBox(height: 12),
                     Text(
@@ -147,13 +143,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Center(child: _buildLogo()),
                           const SizedBox(height: 16),
                           Center(
-                            child: Text(
-                              settings.restaurantName,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: BrandText(
+                              text: settings.restaurantName,
+                              fontSize: 36,
+                              color: AppColors.purple,
                             ),
                           ),
                           const SizedBox(height: 32),

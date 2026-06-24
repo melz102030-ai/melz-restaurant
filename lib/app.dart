@@ -173,7 +173,7 @@ class MelzApp extends ConsumerWidget {
     final user = ref.watch(authProvider);
 
     return MaterialApp.router(
-      title: 'ميلز',
+      title: 'Meals',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       routerConfig: _buildRouter(user),

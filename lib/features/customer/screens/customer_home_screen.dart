@@ -10,6 +10,7 @@ import '../../../core/providers/settings_provider.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/menu_item_card.dart';
+import '../../../shared/widgets/brand_text.dart';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -61,13 +62,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  settings.restaurantName,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                BrandText(
+                  text: settings.restaurantName,
+                  fontSize: 22,
+                  color: AppColors.textPrimary,
                 ),
                 Row(
                   children: [

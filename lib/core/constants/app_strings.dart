@@ -1,6 +1,6 @@
 class AppStrings {
   // App Info
-  static const String appName = 'ميلز';
+  static const String appName = 'Meals';
   static const String appTagline = 'أشهى المأكولات بين يديك';
 
   // Auth
