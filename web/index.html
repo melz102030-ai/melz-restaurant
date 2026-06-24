@@ -6,23 +6,23 @@
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="مطعم ميلز - اطلب أشهى المأكولات">
+  <meta name="description" content="Meals - اطلب أشهى المأكولات">
   <meta name="theme-color" content="#6A0DAD">
 
   <!-- PWA -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ميلز">
+  <meta name="apple-mobile-web-app-title" content="Meals">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Open Graph -->
-  <meta property="og:title" content="مطعم ميلز">
+  <meta property="og:title" content="Meals">
   <meta property="og:description" content="اطلب أشهى المأكولات بين يديك">
   <meta property="og:type" content="website">
 
   <link rel="icon" type="image/png" href="favicon.png"/>
-  <title>ميلز | مطعم</title>
+  <title>Meals</title>
   <link rel="manifest" href="manifest.json">
 
   <!-- Preconnect to speed up external resources -->
@@ -30,11 +30,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <!-- Cairo font preload -->
+  <!-- Fonts preload -->
   <link rel="preload" as="style"
-    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap">
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Pacifico&display=swap">
   <link rel="stylesheet"
-    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap">
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Pacifico&display=swap">
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -68,17 +68,12 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 20px;
+      margin: 0 auto 28px;
       box-shadow: 0 0 40px rgba(106,13,173,0.5);
-      font-size: 2.4rem;
-    }
-
-    #loading h1 {
-      color: #F5F0FF;
-      font-size: 2.2rem;
-      font-weight: 900;
-      letter-spacing: 2px;
-      margin-bottom: 6px;
+      font-family: 'Pacifico', cursive;
+      font-size: 2.6rem;
+      color: #fff;
+      letter-spacing: 0;
     }
 
     #loading p {
@@ -135,8 +130,7 @@
 </head>
 <body>
   <div id="loading">
-    <div class="logo-circle">🍽️</div>
-    <h1>ميلز</h1>
+    <div class="logo-circle">M</div>
     <p>أشهى المأكولات بين يديك</p>
     <div class="progress-track">
       <div class="progress-fill"></div>
