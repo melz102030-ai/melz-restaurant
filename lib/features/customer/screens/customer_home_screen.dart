@@ -40,37 +40,54 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         centerTitle: false,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        title: Row(
           children: [
-            Text(
-              settings.restaurantName,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            if (settings.logoUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  settings.logoUrl!,
+                  width: 36,
+                  height: 36,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
               ),
-            ),
-            Row(
+              const SizedBox(width: 10),
+            ],
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: settings.isOpen ? AppColors.success : AppColors.error,
-                    shape: BoxShape.circle,
+                Text(
+                  settings.restaurantName,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 5),
-                Text(
-                  settings.isOpen
-                      ? 'مفتوح · ${settings.estimatedPrepTime} دقيقة'
-                      : 'مغلق حالياً',
-                  style: TextStyle(
-                    color: settings.isOpen ? AppColors.success : AppColors.error,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: settings.isOpen ? AppColors.success : AppColors.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      settings.isOpen
+                          ? 'مفتوح · ${settings.estimatedPrepTime} دقيقة'
+                          : 'مغلق حالياً',
+                      style: TextStyle(
+                        color: settings.isOpen ? AppColors.success : AppColors.error,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -166,6 +183,18 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                     const Icon(Icons.chevron_left, color: Colors.white, size: 20),
                   ],
                 ),
+              ),
+            ),
+
+          // Cover image
+          if (settings.coverUrl != null)
+            SizedBox(
+              width: double.infinity,
+              height: 140,
+              child: Image.network(
+                settings.coverUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ),
 

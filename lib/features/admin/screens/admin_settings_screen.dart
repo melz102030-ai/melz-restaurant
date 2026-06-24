@@ -35,6 +35,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   bool _isLoaded = false;
   Uint8List? _logoBytes;
   Uint8List? _coverBytes;
+  String? _currentLogoUrl;
+  String? _currentCoverUrl;
 
   @override
   void initState() {
@@ -57,6 +59,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _welcomeMsgCtrl.text = settings.welcomeMessage ?? '';
         _isOpen = settings.isOpen;
         _allowOrders = settings.allowOrders;
+        _currentLogoUrl = settings.logoUrl;
+        _currentCoverUrl = settings.coverUrl;
         _isLoaded = true;
       });
     }
@@ -127,6 +131,12 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
       await SettingsService.updateSettings(settings);
 
       if (mounted) {
+        setState(() {
+          _currentLogoUrl = logoUrl;
+          _currentCoverUrl = coverUrl;
+          _logoBytes = null;
+          _coverBytes = null;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('تم حفظ الإعدادات بنجاح'),
@@ -167,6 +177,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                   child: _ImagePicker(
                     label: 'شعار المطعم',
                     bytes: _logoBytes,
+                    networkUrl: _currentLogoUrl,
                     onPick: () => _pickImage(true),
                   ),
                 ),
@@ -175,6 +186,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                   child: _ImagePicker(
                     label: 'صورة الغلاف',
                     bytes: _coverBytes,
+                    networkUrl: _currentCoverUrl,
                     onPick: () => _pickImage(false),
                     aspectRatio: 2,
                   ),
@@ -399,18 +411,21 @@ class _SwitchRow extends StatelessWidget {
 class _ImagePicker extends StatelessWidget {
   final String label;
   final Uint8List? bytes;
+  final String? networkUrl;
   final VoidCallback onPick;
   final double aspectRatio;
 
   const _ImagePicker({
     required this.label,
     this.bytes,
+    this.networkUrl,
     required this.onPick,
     this.aspectRatio = 1,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasImage = bytes != null || networkUrl != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -424,25 +439,47 @@ class _ImagePicker extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceLight,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.purpleDark),
+                border: Border.all(
+                  color: hasImage ? AppColors.purple : AppColors.purpleDark,
+                  width: hasImage ? 2 : 1,
+                ),
               ),
-              child: bytes != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.memory(bytes!, fit: BoxFit.cover),
-                    )
-                  : const Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add_photo_alternate, color: AppColors.textHint, size: 32),
-                        SizedBox(height: 4),
-                        Text('رفع صورة', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
-                      ],
-                    ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11),
+                child: bytes != null
+                    ? Image.memory(bytes!, fit: BoxFit.cover)
+                    : networkUrl != null
+                        ? Image.network(
+                            networkUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _placeholder(),
+                          )
+                        : _placeholder(),
+              ),
             ),
           ),
         ),
+        if (hasImage)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              bytes != null ? 'صورة جديدة (لم تُحفظ بعد)' : 'محفوظة ✓',
+              style: TextStyle(
+                color: bytes != null ? AppColors.warning : AppColors.success,
+                fontSize: 10,
+              ),
+            ),
+          ),
       ],
     );
   }
+
+  Widget _placeholder() => const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.add_photo_alternate, color: AppColors.textHint, size: 32),
+          SizedBox(height: 4),
+          Text('رفع صورة', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+        ],
+      );
 }
