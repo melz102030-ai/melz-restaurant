@@ -48,21 +48,22 @@ class OrderService {
             snap.exists ? OrderModel.fromMap(snap.data()!, snap.id) : null);
   }
 
-  // Stream all orders (admin)
+  // Stream all orders (admin) — الترتيب في Dart لتجنب Composite Index
   static Stream<List<OrderModel>> streamAllOrders({OrderStatus? status}) {
     Query<Map<String, dynamic>> query = _db.collection(_colOrders);
     if (status != null) {
       query = query.where('status', isEqualTo: status.name);
     }
-    return query
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => OrderModel.fromMap(d.data(), d.id))
-            .toList());
+    return query.snapshots().map((snap) {
+      final orders = snap.docs
+          .map((d) => OrderModel.fromMap(d.data(), d.id))
+          .toList();
+      orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return orders;
+    });
   }
 
-  // Stream active kitchen orders (pending, confirmed, preparing, ready)
+  // Stream active kitchen orders — الترتيب في Dart لتجنب Composite Index
   static Stream<List<OrderModel>> streamKitchenOrders() {
     return _db
         .collection(_colOrders)
@@ -72,11 +73,14 @@ class OrderService {
           OrderStatus.preparing.name,
           OrderStatus.ready.name,
         ])
-        .orderBy('createdAt')
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => OrderModel.fromMap(d.data(), d.id))
-            .toList());
+        .map((snap) {
+          final orders = snap.docs
+              .map((d) => OrderModel.fromMap(d.data(), d.id))
+              .toList();
+          orders.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          return orders;
+        });
   }
 
   // Update order status
