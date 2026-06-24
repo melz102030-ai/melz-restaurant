@@ -30,7 +30,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
+    final settingsAsync = ref.watch(settingsStreamProvider);
     final settings = ref.watch(settingsProvider);
+    final logoUrl = settingsAsync.valueOrNull?.logoUrl;
+    final coverUrl = settingsAsync.valueOrNull?.coverUrl;
     final cartCount = ref.watch(cartItemCountProvider);
     final activeOrder = ref.watch(activeOrderProvider);
 
@@ -42,11 +45,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         centerTitle: false,
         title: Row(
           children: [
-            if (settings.logoUrl != null) ...[
+            if (logoUrl != null) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.network(
-                  settings.logoUrl!,
+                  logoUrl,
                   width: 36,
                   height: 36,
                   fit: BoxFit.cover,
@@ -186,13 +189,13 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               ),
             ),
 
-          // Cover image
-          if (settings.coverUrl != null)
+          // Cover image — لا تعرض شيئاً أثناء التحميل لتجنب الوميض
+          if (coverUrl != null)
             SizedBox(
               width: double.infinity,
               height: 140,
               child: Image.network(
-                settings.coverUrl!,
+                coverUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),

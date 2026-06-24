@@ -335,7 +335,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildLogo({bool large = false}) {
     final size = large ? 100.0 : 72.0;
-    final logoUrl = ref.watch(settingsProvider).logoUrl;
+    final settingsAsync = ref.watch(settingsStreamProvider);
+    // أثناء التحميل نخفي المحتوى تماماً حتى لا يظهر M ثم الصورة
+    final logoUrl = settingsAsync.valueOrNull?.logoUrl;
+    final isLoading = settingsAsync.isLoading;
+
     return Container(
       width: size,
       height: size,
@@ -351,13 +355,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ],
       ),
       child: ClipOval(
-        child: logoUrl != null
-            ? Image.network(
-                logoUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _logoFallback(large),
-              )
-            : _logoFallback(large),
+        child: isLoading
+            ? const SizedBox.shrink()
+            : logoUrl != null
+                ? Image.network(
+                    logoUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _logoFallback(large),
+                  )
+                : _logoFallback(large),
       ),
     ).animate().scale(duration: 600.ms, curve: Curves.elasticOut);
   }
