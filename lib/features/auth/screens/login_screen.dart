@@ -99,9 +99,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 40),
                     _buildLogo(large: true),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 20),
                     Text(
                       settings.welcomeMessage ?? AppStrings.appTagline,
                       style: TextStyle(
@@ -135,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       children: [
                         if (!isWide) ...[
                           Center(child: _buildLogo()),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 40),
                         ],
                         Text(
                           'مرحباً بك!',
@@ -313,48 +312,67 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildLogo({bool large = false}) {
-    final size = large ? 100.0 : 72.0;
+    final size = large ? 220.0 : 130.0;
     final settingsAsync = ref.watch(settingsStreamProvider);
-    // أثناء التحميل نخفي المحتوى تماماً حتى لا يظهر M ثم الصورة
     final logoUrl = settingsAsync.valueOrNull?.logoUrl;
     final isLoading = settingsAsync.isLoading;
 
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: AppColors.heroGradient,
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.purple.withOpacity(0.4),
-            blurRadius: 20,
-            spreadRadius: 4,
+    if (isLoading) return SizedBox(width: size, height: size);
+
+    if (logoUrl != null) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(large ? 28 : 20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.purple.withOpacity(0.55),
+              blurRadius: large ? 48 : 28,
+              spreadRadius: large ? 8 : 4,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(large ? 28 : 20),
+          child: Image.network(
+            logoUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _logoFallback(large, size),
           ),
-        ],
-      ),
-      child: ClipOval(
-        child: isLoading
-            ? const SizedBox.shrink()
-            : logoUrl != null
-                ? Image.network(
-                    logoUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _logoFallback(large),
-                  )
-                : _logoFallback(large),
-      ),
-    ).animate().scale(duration: 600.ms, curve: Curves.elasticOut);
+        ),
+      ).animate().scale(duration: 700.ms, curve: Curves.elasticOut);
+    }
+
+    return _logoFallback(large, size)
+        .animate()
+        .scale(duration: 600.ms, curve: Curves.elasticOut);
   }
 
-  Widget _logoFallback(bool large) => Center(
-        child: Text(
-          'M',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: large ? 48 : 36,
-            fontWeight: FontWeight.bold,
-            fontFamily: 'serif',
+  Widget _logoFallback(bool large, double size) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(large ? 28 : 20),
+          gradient: AppColors.heroGradient,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.purple.withOpacity(0.4),
+              blurRadius: 24,
+              spreadRadius: 4,
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            'M',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: large ? 80 : 48,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'serif',
+            ),
           ),
         ),
       );
