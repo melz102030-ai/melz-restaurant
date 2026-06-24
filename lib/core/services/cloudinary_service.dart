@@ -10,32 +10,31 @@ class CloudinaryService {
   static const String folder = 'melz_restaurant';
 
   static Future<String?> uploadImage(Uint8List imageBytes, String fileName) async {
-    try {
-      final url = Uri.parse(
-        'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
-      );
+    final url = Uri.parse(
+      'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+    );
 
-      final request = http.MultipartRequest('POST', url)
-        ..fields['upload_preset'] = uploadPreset
-        ..fields['folder'] = folder
-        ..fields['public_id'] = '${DateTime.now().millisecondsSinceEpoch}_$fileName'
-        ..files.add(http.MultipartFile.fromBytes(
-          'file',
-          imageBytes,
-          filename: fileName,
-        ));
+    final request = http.MultipartRequest('POST', url)
+      ..fields['upload_preset'] = uploadPreset
+      ..fields['folder'] = folder
+      ..fields['public_id'] = '${DateTime.now().millisecondsSinceEpoch}_$fileName'
+      ..files.add(http.MultipartFile.fromBytes(
+        'file',
+        imageBytes,
+        filename: fileName,
+      ));
 
-      final response = await request.send();
-      final responseBody = await response.stream.bytesToString();
+    final response = await request.send();
+    final responseBody = await response.stream.bytesToString();
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(responseBody) as Map<String, dynamic>;
-        return json['secure_url'] as String?;
-      }
-      return null;
-    } catch (e) {
-      return null;
+    if (response.statusCode == 200) {
+      final json = jsonDecode(responseBody) as Map<String, dynamic>;
+      return json['secure_url'] as String?;
     }
+
+    final errorJson = jsonDecode(responseBody) as Map<String, dynamic>?;
+    final msg = errorJson?['error']?['message'] ?? 'HTTP ${response.statusCode}';
+    throw Exception('Cloudinary: $msg');
   }
 
   static Future<bool> deleteImage(String publicId) async {
