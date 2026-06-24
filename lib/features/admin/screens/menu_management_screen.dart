@@ -89,7 +89,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
 class _MenuItemsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final itemsAsync = ref.watch(menuItemsStreamProvider(null));
+    final itemsAsync = ref.watch(adminMenuItemsProvider);
     return itemsAsync.when(
       data: (items) {
         if (items.isEmpty) {
@@ -243,7 +243,7 @@ class _MenuItemTile extends ConsumerWidget {
 class _CategoriesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final catsAsync = ref.watch(categoriesStreamProvider);
+    final catsAsync = ref.watch(adminCategoriesProvider);
     return Scaffold(
       body: catsAsync.when(
         data: (cats) {
@@ -443,7 +443,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
 
   @override
   Widget build(BuildContext context) {
-    final catsAsync = ref.watch(categoriesStreamProvider);
+    final catsAsync = ref.watch(adminCategoriesProvider);
     return Dialog(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 560, maxHeight: 780),

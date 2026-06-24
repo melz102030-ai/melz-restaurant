@@ -27,6 +27,15 @@ final menuItemsStreamProvider =
   } catch (_) {}
 });
 
+// Admin providers — Firestore مباشرة بدون بيانات محلية
+final adminMenuItemsProvider = StreamProvider<List<MenuItemModel>>((ref) {
+  return MenuService.streamMenuItems();
+});
+
+final adminCategoriesProvider = StreamProvider<List<CategoryModel>>((ref) {
+  return MenuService.streamCategories();
+});
+
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
