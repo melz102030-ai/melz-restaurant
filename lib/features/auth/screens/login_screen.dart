@@ -365,14 +365,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ],
         ),
         child: Center(
-          child: Text(
-            'M',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: large ? 80 : 48,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'serif',
-            ),
+          child: Icon(
+            Icons.restaurant,
+            color: Colors.white,
+            size: large ? 80 : 48,
           ),
         ),
       );
@@ -444,7 +440,7 @@ class _DevLoginButtons extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A1A),
+        color: Colors.amber.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: Colors.amber.withValues(alpha: 0.4),

@@ -175,7 +175,7 @@ class MelzApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Meals',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       routerConfig: _buildRouter(user),
       builder: (context, child) {
         return Directionality(

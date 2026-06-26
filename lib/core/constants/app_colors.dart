@@ -15,15 +15,15 @@ class AppColors {
   static const Color redDark = Color(0xFF8B0000);
 
   // Background Colors
-  static const Color background = Color(0xFF0D0010);
-  static const Color surface = Color(0xFF1A0025);
-  static const Color surfaceLight = Color(0xFF2A0038);
-  static const Color cardBackground = Color(0xFF200030);
+  static const Color background = Color(0xFFF8F5FF);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceLight = Color(0xFFEDE7F6);
+  static const Color cardBackground = Color(0xFFFFFFFF);
 
   // Text Colors
-  static const Color textPrimary = Color(0xFFF5F0FF);
-  static const Color textSecondary = Color(0xFFB39DCA);
-  static const Color textHint = Color(0xFF7B6B8D);
+  static const Color textPrimary = Color(0xFF1A0030);
+  static const Color textSecondary = Color(0xFF5B4A75);
+  static const Color textHint = Color(0xFF9B8BAD);
 
   // Status Colors
   static const Color success = Color(0xFF4CAF50);
@@ -47,7 +47,7 @@ class AppColors {
   );
 
   static const LinearGradient cardGradient = LinearGradient(
-    colors: [Color(0xFF2A0038), Color(0xFF1A0025)],
+    colors: [Color(0xFFF3EEF9), Color(0xFFFFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

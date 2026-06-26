@@ -3,11 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
 class AppTheme {
-  static ThemeData get darkTheme {
+  static ThemeData get lightTheme {
     return ThemeData(
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       useMaterial3: true,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: AppColors.purple,
         secondary: AppColors.manjawi,
         tertiary: AppColors.red,
@@ -35,15 +35,18 @@ class AppTheme {
           labelLarge: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
         ),
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,
+        shadowColor: AppColors.purple.withValues(alpha: 0.08),
+        surfaceTintColor: Colors.transparent,
         centerTitle: true,
       ),
       cardTheme: CardThemeData(
         color: AppColors.cardBackground,
-        elevation: 4,
+        elevation: 2,
+        shadowColor: AppColors.purple.withValues(alpha: 0.12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(

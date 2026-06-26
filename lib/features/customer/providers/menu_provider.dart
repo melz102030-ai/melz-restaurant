@@ -3,29 +3,14 @@ import '../../../core/models/category_model.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_template_model.dart';
 import '../../../core/services/menu_service.dart';
-import '../../../core/data/local_menu_data.dart';
 
-final categoriesStreamProvider = StreamProvider<List<CategoryModel>>((ref) async* {
-  // يظهر البيانات المحلية فوراً بدون انتظار
-  yield LocalMenuData.categories;
-  try {
-    await for (final cats in MenuService.streamCategories()
-        .timeout(const Duration(seconds: 6))) {
-      if (cats.isNotEmpty) yield cats;
-    }
-  } catch (_) {}
+final categoriesStreamProvider = StreamProvider<List<CategoryModel>>((ref) {
+  return MenuService.streamCategories();
 });
 
 final menuItemsStreamProvider =
-    StreamProvider.family<List<MenuItemModel>, String?>((ref, categoryId) async* {
-  // يظهر البيانات المحلية فوراً
-  yield LocalMenuData.itemsByCategory(categoryId);
-  try {
-    await for (final items in MenuService.streamAvailableItems(categoryId: categoryId)
-        .timeout(const Duration(seconds: 6))) {
-      if (items.isNotEmpty) yield items;
-    }
-  } catch (_) {}
+    StreamProvider.family<List<MenuItemModel>, String?>((ref, categoryId) {
+  return MenuService.streamAvailableItems(categoryId: categoryId);
 });
 
 // Admin providers — Firestore مباشرة بدون بيانات محلية

@@ -45,41 +45,24 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         centerTitle: false,
         title: Row(
           children: [
-            if (logoUrl != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  logoUrl,
-                  width: 40,
-                  height: 40,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
+            Container(
+              width: 7,
+              height: 7,
+              decoration: BoxDecoration(
+                color: settings.isOpen ? AppColors.success : AppColors.error,
+                shape: BoxShape.circle,
               ),
-              const SizedBox(width: 10),
-            ],
-            Row(
-              children: [
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: settings.isOpen ? AppColors.success : AppColors.error,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 5),
-                Text(
-                  settings.isOpen
-                      ? 'مفتوح · ${settings.estimatedPrepTime} دقيقة'
-                      : 'مغلق حالياً',
-                  style: TextStyle(
-                    color: settings.isOpen ? AppColors.success : AppColors.error,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            ),
+            const SizedBox(width: 5),
+            Text(
+              settings.isOpen
+                  ? 'مفتوح · ${settings.estimatedPrepTime} دقيقة'
+                  : 'مغلق حالياً',
+              style: TextStyle(
+                color: settings.isOpen ? AppColors.success : AppColors.error,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -143,6 +126,27 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       ),
       body: Column(
         children: [
+          // Logo as full-width horizontal banner
+          if (logoUrl != null)
+            Container(
+              width: double.infinity,
+              height: 170,
+              color: Colors.white,
+              child: Image.network(
+                logoUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 170,
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.heroGradient,
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.restaurant, color: Colors.white, size: 72),
+                  ),
+                ),
+              ),
+            ),
+
           // Active order banner
           if (activeOrder != null)
             GestureDetector(
