@@ -61,8 +61,8 @@
     }
 
     .logo-circle {
-      width: 90px;
-      height: 90px;
+      width: 110px;
+      height: 110px;
       border-radius: 50%;
       background: linear-gradient(135deg, #6A0DAD, #800040);
       display: flex;
@@ -70,11 +70,12 @@
       justify-content: center;
       margin: 0 auto 28px;
       box-shadow: 0 0 40px rgba(106,13,173,0.3);
+      overflow: hidden;
     }
 
     .logo-circle svg {
-      width: 48px;
-      height: 48px;
+      width: 56px;
+      height: 56px;
       fill: #fff;
     }
 
@@ -132,8 +133,8 @@
 </head>
 <body>
   <div id="loading">
-    <div class="logo-circle">
-      <!-- restaurant icon -->
+    <div class="logo-circle" id="logo-circle">
+      <!-- filled by JS with actual logo -->
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
       </svg>
@@ -146,6 +147,27 @@
   </div>
 
   <script>
+    // Load actual restaurant logo from Firestore
+    (async function () {
+      try {
+        const res = await fetch(
+          'https://firestore.googleapis.com/v1/projects/melz-restaurant/databases/(default)/documents/settings/restaurant?key=AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0'
+        );
+        const data = await res.json();
+        const logoUrl = data?.fields?.logoUrl?.stringValue;
+        if (logoUrl) {
+          const circle = document.getElementById('logo-circle');
+          circle.innerHTML = '';
+          circle.style.padding = '0';
+          circle.style.overflow = 'hidden';
+          const img = document.createElement('img');
+          img.src = logoUrl;
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+          circle.appendChild(img);
+        }
+      } catch (e) {}
+    })();
+
     window.addEventListener('flutter-first-frame', function () {
       const el = document.getElementById('loading');
       el.classList.add('hide');

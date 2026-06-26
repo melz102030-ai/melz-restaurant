@@ -178,16 +178,13 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               ),
             ),
 
-          // Cover image — لا تعرض شيئاً أثناء التحميل لتجنب الوميض
+          // Cover image — full width, natural height to show full logo
           if (coverUrl != null)
-            SizedBox(
+            Image.network(
+              coverUrl,
               width: double.infinity,
-              height: 140,
-              child: Image.network(
-                coverUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
+              fit: BoxFit.fitWidth,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
 
           // Search
