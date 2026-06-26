@@ -519,8 +519,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
 
   Future<void> _save(List<CategoryModel> categories) async {
     if (_nameCtrl.text.isEmpty || _priceCtrl.text.isEmpty || _selectedCategoryId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('يرجى ملء جميع الحقول المطلوبة')));
+      setState(() => _saveError = 'يرجى ملء جميع الحقول المطلوبة');
       return;
     }
     setState(() => _isSaving = true);
@@ -843,9 +842,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
     final templates = await MenuService.streamOptionTemplates().first;
     if (!context.mounted) return;
     if (templates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا توجد قوالب محفوظة')),
-      );
+      setState(() => _saveError = 'لا توجد قوالب محفوظة بعد');
       return;
     }
     final selected = await showDialog<OptionTemplateModel>(
@@ -889,9 +886,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         name: nameCtrl.text.trim(),
         groups: List.from(_optionGroups),
       ));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم حفظ القالب')),
-      );
+      setState(() => _saveError = null); // clear any previous error on success
     }
   }
 }
@@ -1005,6 +1000,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
   OptionGroupType _type = OptionGroupType.single;
   bool _required = false;
   List<ItemOption> _options = [];
+  String? _error;
 
   @override
   void initState() {
@@ -1025,8 +1021,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
 
   void _save() {
     if (_nameCtrl.text.isEmpty || _options.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('أضف اسم المجموعة وخياراً واحداً على الأقل')));
+      setState(() => _error = 'أضف اسم المجموعة وخياراً واحداً على الأقل');
       return;
     }
     Navigator.pop(
@@ -1153,6 +1148,21 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                 ),
               ),
             ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.withValues(alpha: 0.35)),
+                  ),
+                  child: Text(_error!,
+                      style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ),
+              ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: ElevatedButton(
