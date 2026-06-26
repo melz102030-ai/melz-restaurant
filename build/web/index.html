@@ -52,11 +52,22 @@
     #loading {
       text-align: center;
       color: #5B4A75;
-      animation: fadeIn 0.5s ease;
+      width: 100%;
+      padding: 0 24px;
     }
 
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(16px); }
+    /* Spring pop-in — mirrors Curves.elasticOut from the Flutter login screen */
+    @keyframes popIn {
+      0%   { opacity: 0; transform: scale(0.45); }
+      55%  { opacity: 1; transform: scale(1.07); }
+      72%  { transform: scale(0.96); }
+      86%  { transform: scale(1.03); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Subtle slide-up for text elements */
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
 
@@ -72,6 +83,7 @@
       margin: 0 auto 28px;
       box-shadow: 0 8px 32px rgba(106,13,173,0.25);
       overflow: hidden;
+      animation: popIn 0.75s ease-out forwards;
     }
 
     .logo-banner img {
@@ -87,15 +99,11 @@
       fill: rgba(255,255,255,0.85);
     }
 
-    #loading {
-      width: 100%;
-      padding: 0 24px;
-    }
-
     #loading p {
       color: #5B4A75;
       font-size: 0.95rem;
       margin-bottom: 28px;
+      animation: fadeSlide 0.4s ease 0.3s both;
     }
 
     /* Progress bar */
@@ -106,6 +114,7 @@
       border-radius: 4px;
       margin: 0 auto 12px;
       overflow: hidden;
+      animation: fadeSlide 0.4s ease 0.35s both;
     }
 
     .progress-fill {
@@ -126,7 +135,7 @@
     .loading-text {
       color: #9B8BAD;
       font-size: 0.8rem;
-      animation: blink 1.5s ease-in-out infinite;
+      animation: fadeSlide 0.4s ease 0.4s both, blink 1.5s 0.8s ease-in-out infinite;
     }
 
     @keyframes blink {
