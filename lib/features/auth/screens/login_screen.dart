@@ -88,43 +88,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Scaffold(
       body: Row(
         children: [
-          // Left panel (shown on wide screens)
+          // Left panel (shown on wide screens) — dark gradient + floating bubbles
           if (isWide)
             Expanded(
               flex: 5,
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: AppColors.heroGradient,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildLogo(large: true),
-                    const SizedBox(height: 20),
-                    Text(
-                      settings.welcomeMessage ?? AppStrings.appTagline,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 18,
-                      ),
-                    ).animate().fadeIn(delay: 400.ms),
-                    const SizedBox(height: 60),
-                    _buildFeatureRow(Icons.restaurant_menu, 'قائمة طعام متنوعة'),
-                    const SizedBox(height: 16),
-                    _buildFeatureRow(Icons.delivery_dining, 'توصيل سريع'),
-                    const SizedBox(height: 16),
-                    _buildFeatureRow(Icons.track_changes, 'تتبع طلبك لحظة بلحظة'),
-                  ],
-                ),
+              child: Stack(
+                children: [
+                  Positioned.fill(child: Container(
+                    decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+                  )),
+                  const Positioned.fill(child: _AnimatedBubbles(isDark: true)),
+                  Positioned.fill(child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildLogo(large: true),
+                      const SizedBox(height: 20),
+                      Text(
+                        settings.welcomeMessage ?? AppStrings.appTagline,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 18,
+                        ),
+                      ).animate().fadeIn(delay: 400.ms),
+                      const SizedBox(height: 60),
+                      _buildFeatureRow(Icons.restaurant_menu, 'قائمة طعام متنوعة'),
+                      const SizedBox(height: 16),
+                      _buildFeatureRow(Icons.delivery_dining, 'توصيل سريع'),
+                      const SizedBox(height: 16),
+                      _buildFeatureRow(Icons.track_changes, 'تتبع طلبك لحظة بلحظة'),
+                    ],
+                  )),
+                ],
               ),
             ),
 
-          // Right panel - login form
+          // Right panel - login form (subtle bubbles on mobile)
           Expanded(
             flex: isWide ? 4 : 10,
-            child: Container(
-              color: AppColors.background,
-              child: Center(
+            child: Stack(
+              children: [
+                Positioned.fill(child: Container(color: AppColors.background)),
+                if (!isWide) const Positioned.fill(child: _AnimatedBubbles(isDark: false)),
+                Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(32),
                   child: ConstrainedBox(
@@ -304,6 +309,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ),
+              ],
             ),
           ),
         ],
@@ -537,4 +543,98 @@ class _DevBtn extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Floating ambient bubbles ─────────────────────────────────────────────────
+class _AnimatedBubbles extends StatefulWidget {
+  final bool isDark;
+  const _AnimatedBubbles({required this.isDark});
+
+  @override
+  State<_AnimatedBubbles> createState() => _AnimatedBubblesState();
+}
+
+class _AnimatedBubblesState extends State<_AnimatedBubbles>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) => CustomPaint(
+        painter: _BubblesPainter(_ctrl.value, widget.isDark),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class _BubblesPainter extends CustomPainter {
+  final double t;
+  final bool isDark;
+
+  // [x_fraction, diameter, speed, phase_offset]
+  static const _defs = <List<double>>[
+    [0.08, 28, 0.55, 0.00],
+    [0.22, 16, 0.80, 0.12],
+    [0.38, 40, 0.45, 0.28],
+    [0.53, 22, 0.70, 0.42],
+    [0.67, 14, 0.90, 0.57],
+    [0.81, 32, 0.60, 0.68],
+    [0.15, 18, 0.75, 0.80],
+    [0.46, 12, 0.50, 0.35],
+    [0.72, 36, 0.65, 0.15],
+    [0.92, 20, 0.85, 0.90],
+    [0.30, 24, 0.55, 0.55],
+    [0.60, 10, 0.95, 0.73],
+  ];
+
+  _BubblesPainter(this.t, this.isDark);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final colors = isDark
+        ? [Colors.white, const Color(0xFFFFD700), const Color(0xFFFF69B4)]
+        : [const Color(0xFF6A0DAD), const Color(0xFF800040), const Color(0xFF9C4DCA)];
+    final maxOpacity = isDark ? 0.22 : 0.07;
+
+    for (int i = 0; i < _defs.length; i++) {
+      final d = _defs[i];
+      final x = d[0];
+      final radius = d[1] / 2;
+      final speed = d[2];
+      final phase = d[3];
+
+      final y = 1.0 - ((t * speed + phase) % 1.0);
+
+      double opacity = maxOpacity;
+      if (y > 0.85) opacity *= (1.0 - y) / 0.15;
+      else if (y < 0.10) opacity *= y / 0.10;
+
+      final paint = Paint()
+        ..color = colors[i % colors.length].withValues(alpha: opacity)
+        ..style = PaintingStyle.fill;
+
+      canvas.drawCircle(Offset(x * size.width, y * size.height), radius, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BubblesPainter old) => old.t != t;
 }

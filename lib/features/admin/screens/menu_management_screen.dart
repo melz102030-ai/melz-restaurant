@@ -71,11 +71,6 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
             icon: const Icon(Icons.upload_file),
             tooltip: 'استيراد من Excel',
           ),
-          IconButton(
-            onPressed: () => MenuService.seedInitialData(),
-            icon: const Icon(Icons.auto_awesome),
-            tooltip: 'تحميل بيانات أولية',
-          ),
         ],
       ),
       body: TabBarView(
