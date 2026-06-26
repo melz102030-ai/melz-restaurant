@@ -126,8 +126,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       ),
       body: Column(
         children: [
-          // Logo as full-width horizontal banner
-          if (logoUrl != null)
+          // Logo as full-width horizontal banner — only when no cover image
+          if (logoUrl != null && coverUrl == null)
             Container(
               width: double.infinity,
               height: 170,
@@ -137,9 +137,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => Container(
                   height: 170,
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.heroGradient,
-                  ),
+                  decoration: const BoxDecoration(gradient: AppColors.heroGradient),
                   child: const Center(
                     child: Icon(Icons.restaurant, color: Colors.white, size: 72),
                   ),

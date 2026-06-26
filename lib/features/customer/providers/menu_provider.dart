@@ -5,12 +5,18 @@ import '../../../core/models/option_template_model.dart';
 import '../../../core/services/menu_service.dart';
 
 final categoriesStreamProvider = StreamProvider<List<CategoryModel>>((ref) {
-  return MenuService.streamCategories();
+  return MenuService.streamCategories()
+      .map((cats) => cats.where((c) => c.isActive).toList());
 });
 
 final menuItemsStreamProvider =
     StreamProvider.family<List<MenuItemModel>, String?>((ref, categoryId) {
-  return MenuService.streamAvailableItems(categoryId: categoryId);
+  // stream all items ordered by sortOrder, filter in Dart to avoid composite index
+  return MenuService.streamMenuItems().map((items) => items
+      .where((i) =>
+          i.isAvailable &&
+          (categoryId == null || i.categoryId == categoryId))
+      .toList());
 });
 
 // Admin providers — Firestore مباشرة بدون بيانات محلية
