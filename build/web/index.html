@@ -52,7 +52,7 @@
     #loading {
       text-align: center;
       color: #5B4A75;
-      animation: fadeIn 0.6s ease;
+      animation: fadeIn 0.5s ease;
     }
 
     @keyframes fadeIn {
@@ -60,29 +60,42 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    .logo-circle {
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #6A0DAD, #800040);
+    /* Banner shape — matches in-app cover proportions */
+    .logo-banner {
+      width: min(88vw, 380px);
+      height: min(75vw, 323px);
+      border-radius: 20px;
+      background: linear-gradient(135deg, #4A0080, #800040, #8B0000);
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto 28px;
-      box-shadow: 0 0 40px rgba(106,13,173,0.3);
+      box-shadow: 0 8px 32px rgba(106,13,173,0.25);
       overflow: hidden;
     }
 
-    .logo-circle svg {
-      width: 56px;
-      height: 56px;
-      fill: #fff;
+    .logo-banner img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .logo-banner svg {
+      width: 80px;
+      height: 80px;
+      fill: rgba(255,255,255,0.85);
+    }
+
+    #loading {
+      width: 100%;
+      padding: 0 24px;
     }
 
     #loading p {
       color: #5B4A75;
       font-size: 0.95rem;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
 
     /* Progress bar */
@@ -133,9 +146,9 @@
 </head>
 <body>
   <div id="loading">
-    <div class="logo-circle" id="logo-circle">
-      <!-- filled by JS with actual logo -->
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <div class="logo-banner" id="logo-banner">
+      <!-- Fallback icon until logo loads; replaced instantly on cached visits -->
+      <svg id="logo-fallback" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
         <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
       </svg>
     </div>
@@ -147,31 +160,50 @@
   </div>
 
   <script>
-    // Load actual restaurant logo from Firestore
-    (async function () {
-      try {
-        const res = await fetch(
-          'https://firestore.googleapis.com/v1/projects/melz-restaurant/databases/(default)/documents/settings/restaurant?key=AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0'
-        );
-        const data = await res.json();
-        const logoUrl = data?.fields?.logoUrl?.stringValue;
-        if (logoUrl) {
-          const circle = document.getElementById('logo-circle');
-          circle.innerHTML = '';
-          circle.style.padding = '0';
-          circle.style.overflow = 'hidden';
-          const img = document.createElement('img');
-          img.src = logoUrl;
-          img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
-          circle.appendChild(img);
-        }
-      } catch (e) {}
+    (function () {
+      var banner = document.getElementById('logo-banner');
+      var shownFromCache = false;
+
+      function showLogo(url) {
+        var img = document.createElement('img');
+        img.alt = 'Meals';
+        img.src = url;
+        // Insert immediately — browser HTTP cache makes this near-instant on repeat visits
+        banner.style.background = 'none';
+        banner.innerHTML = '';
+        banner.appendChild(img);
+        img.onerror = function () {
+          // Restore gradient + icon if image fails to load
+          banner.style.background = 'linear-gradient(135deg,#4A0080,#800040,#8B0000)';
+          banner.innerHTML = '<svg viewBox="0 0 24 24" fill="rgba(255,255,255,.85)" width="80" height="80"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>';
+        };
+      }
+
+      // Show cached URL immediately (no network needed — logo appears from frame 1)
+      var cached = localStorage.getItem('mlz_logo');
+      if (cached) {
+        shownFromCache = true;
+        showLogo(cached);
+      }
+
+      // Fetch fresh URL in background and update cache for next visit
+      fetch('https://firestore.googleapis.com/v1/projects/melz-restaurant/databases/(default)/documents/settings/restaurant?key=AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var url = data && data.fields && data.fields.logoUrl && data.fields.logoUrl.stringValue;
+          if (url) {
+            localStorage.setItem('mlz_logo', url);
+            // Only update DOM if we didn't already show the cached logo
+            if (!shownFromCache) showLogo(url);
+          }
+        })
+        .catch(function () {});
     })();
 
     window.addEventListener('flutter-first-frame', function () {
-      const el = document.getElementById('loading');
+      var el = document.getElementById('loading');
       el.classList.add('hide');
-      setTimeout(() => { el.style.display = 'none'; }, 420);
+      setTimeout(function () { el.style.display = 'none'; }, 420);
     });
   </script>
 
