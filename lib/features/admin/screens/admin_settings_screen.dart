@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/settings_model.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/settings_service.dart';
 import '../../../core/services/cloudinary_service.dart';
@@ -296,6 +298,50 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
               isLoading: _isSaving,
               icon: Icons.save,
               width: double.infinity,
+            ),
+
+            const SizedBox(height: 16),
+            const Divider(color: AppColors.surfaceLight),
+            const SizedBox(height: 16),
+
+            // Logout button
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('تسجيل الخروج'),
+                      content: const Text('هل أنت متأكد من تسجيل الخروج؟'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('إلغاء'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                          child: const Text('خروج'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true && mounted) {
+                    await ref.read(authProvider.notifier).logout();
+                    if (mounted) context.go('/login');
+                  }
+                },
+                icon: const Icon(Icons.logout, color: AppColors.error),
+                label: const Text('تسجيل الخروج',
+                    style: TextStyle(color: AppColors.error)),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.error),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
             ),
 
             const SizedBox(height: 32),
