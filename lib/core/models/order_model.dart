@@ -136,6 +136,8 @@ class OrderModel {
   final DateTime updatedAt;
   final String? estimatedTime;
   final String? kitchenNotes;
+  final int? estimatedMinutes;
+  final DateTime? estimatedSetAt;
 
   const OrderModel({
     required this.id,
@@ -152,7 +154,16 @@ class OrderModel {
     required this.updatedAt,
     this.estimatedTime,
     this.kitchenNotes,
+    this.estimatedMinutes,
+    this.estimatedSetAt,
   });
+
+  // الوقت المتبقي حتى الجاهزية (سالب = تأخير)
+  Duration? get remainingTime {
+    if (estimatedMinutes == null || estimatedSetAt == null) return null;
+    final endTime = estimatedSetAt!.add(Duration(minutes: estimatedMinutes!));
+    return endTime.difference(DateTime.now());
+  }
 
   factory OrderModel.fromMap(Map<String, dynamic> map, String id) {
     return OrderModel(
@@ -179,6 +190,10 @@ class OrderModel {
           : DateTime.now(),
       estimatedTime: map['estimatedTime'],
       kitchenNotes: map['kitchenNotes'],
+      estimatedMinutes: map['estimatedMinutes'] as int?,
+      estimatedSetAt: map['estimatedSetAt'] is Timestamp
+          ? (map['estimatedSetAt'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -197,6 +212,10 @@ class OrderModel {
       'updatedAt': Timestamp.fromDate(updatedAt),
       'estimatedTime': estimatedTime,
       'kitchenNotes': kitchenNotes,
+      'estimatedMinutes': estimatedMinutes,
+      'estimatedSetAt': estimatedSetAt != null
+          ? Timestamp.fromDate(estimatedSetAt!)
+          : null,
     };
   }
 
@@ -204,6 +223,8 @@ class OrderModel {
     OrderStatus? status,
     String? estimatedTime,
     String? kitchenNotes,
+    int? estimatedMinutes,
+    DateTime? estimatedSetAt,
   }) {
     return OrderModel(
       id: id,
@@ -220,6 +241,8 @@ class OrderModel {
       updatedAt: DateTime.now(),
       estimatedTime: estimatedTime ?? this.estimatedTime,
       kitchenNotes: kitchenNotes ?? this.kitchenNotes,
+      estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
+      estimatedSetAt: estimatedSetAt ?? this.estimatedSetAt,
     );
   }
 }

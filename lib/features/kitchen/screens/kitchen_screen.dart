@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:js' as js;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -322,16 +324,37 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
   final _timeCtrl = TextEditingController();
   bool _isUpdating = false;
   bool _expanded = false;
+  Timer? _ticker;
 
   @override
   void initState() {
     super.initState();
-    _timeCtrl.text = widget.order.estimatedTime ?? '';
+    final mins = widget.order.estimatedMinutes;
+    _timeCtrl.text = mins != null ? '$mins' : '';
     _notesCtrl.text = widget.order.kitchenNotes ?? '';
+    if (widget.order.estimatedMinutes != null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_KitchenOrderCard old) {
+    super.didUpdateWidget(old);
+    // عند وصول estimatedMinutes من Firestore لأول مرة ابدأ المؤقت
+    if (old.order.estimatedMinutes == null &&
+        widget.order.estimatedMinutes != null &&
+        _ticker == null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   @override
   void dispose() {
+    _ticker?.cancel();
     _notesCtrl.dispose();
     _timeCtrl.dispose();
     super.dispose();
@@ -340,15 +363,27 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
   Future<void> _updateStatus(OrderStatus newStatus) async {
     setState(() => _isUpdating = true);
     try {
+      final mins = int.tryParse(_timeCtrl.text.trim());
       await OrderService.updateOrderStatus(
         widget.order.id,
         newStatus,
-        estimatedTime: _timeCtrl.text.trim().isEmpty ? null : _timeCtrl.text.trim(),
+        estimatedTime: mins != null ? '$mins دقيقة' : null,
         kitchenNotes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
+        estimatedMinutes: mins,
       );
     } finally {
       if (mounted) setState(() => _isUpdating = false);
     }
+  }
+
+  String _fmtCountdown(Duration d) {
+    if (d.isNegative) {
+      final over = d.abs();
+      return 'تأخر ${over.inMinutes} د ${over.inSeconds % 60} ث';
+    }
+    final m = d.inMinutes.toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   Color get _statusColor {
@@ -450,10 +485,11 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                   ),
                 ),
 
-                // Time elapsed
+                // Time elapsed + countdown
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    // Elapsed since order placed
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -482,11 +518,52 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      DateFormat('hh:mm a').format(order.createdAt),
-                      style: const TextStyle(color: AppColors.textHint, fontSize: 10),
-                    ),
+                    const SizedBox(height: 4),
+                    // Countdown pill (shown only when estimatedMinutes is set)
+                    if (order.estimatedMinutes != null) ...[
+                      Builder(builder: (_) {
+                        final remaining = order.remainingTime!;
+                        final isLate = remaining.isNegative;
+                        final isNear = !isLate && remaining.inMinutes < 3;
+                        final color = isLate
+                            ? AppColors.error
+                            : isNear
+                                ? AppColors.warning
+                                : AppColors.success;
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: color.withOpacity(0.4)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isLate ? Icons.warning_amber : Icons.hourglass_bottom,
+                                size: 12,
+                                color: color,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _fmtCountdown(remaining),
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  fontFeatures: const [FontFeature.tabularFigures()],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ] else
+                      Text(
+                        DateFormat('hh:mm a').format(order.createdAt),
+                        style: const TextStyle(color: AppColors.textHint, fontSize: 10),
+                      ),
                   ],
                 ),
               ],
@@ -573,11 +650,14 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                 children: [
                   TextField(
                     controller: _timeCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     style: const TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(
-                      labelText: 'الوقت المتوقع (للعميل)',
-                      hintText: 'مثال: 20-30 دقيقة',
-                      prefixIcon: Icon(Icons.access_time),
+                      labelText: 'وقت التحضير (دقائق)',
+                      hintText: 'مثال: 20',
+                      prefixIcon: Icon(Icons.timer_outlined),
+                      suffixText: 'دقيقة',
                     ),
                   ),
                   const SizedBox(height: 10),

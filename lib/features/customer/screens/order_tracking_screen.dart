@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -48,9 +51,56 @@ class OrderTrackingScreen extends ConsumerWidget {
   }
 }
 
-class _OrderTrackingContent extends StatelessWidget {
+class _OrderTrackingContent extends StatefulWidget {
   final OrderModel order;
   const _OrderTrackingContent({required this.order});
+
+  @override
+  State<_OrderTrackingContent> createState() => _OrderTrackingContentState();
+}
+
+class _OrderTrackingContentState extends State<_OrderTrackingContent> {
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.order.estimatedMinutes != null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_OrderTrackingContent old) {
+    super.didUpdateWidget(old);
+    if (old.order.estimatedMinutes == null &&
+        widget.order.estimatedMinutes != null &&
+        _ticker == null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  OrderModel get order => widget.order;
+
+  String _fmtCountdown(Duration d) {
+    if (d.isNegative) {
+      final over = d.abs();
+      return 'تأخر ${over.inMinutes} د ${over.inSeconds % 60} ث';
+    }
+    final m = d.inMinutes.toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
 
   Color _getStatusColor(OrderStatus s) {
     switch (s) {
@@ -71,7 +121,7 @@ class _OrderTrackingContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isCancelled = order.status == OrderStatus.cancelled;
+    final isCancelled = widget.order.status == OrderStatus.cancelled;
     final isDelivered = order.status == OrderStatus.delivered;
     final statusColor = _getStatusColor(order.status);
 
@@ -116,7 +166,56 @@ class _OrderTrackingContent extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ).animate().fadeIn(),
-                if (order.estimatedTime != null) ...[
+                if (order.estimatedMinutes != null) ...[
+                  const SizedBox(height: 12),
+                  Builder(builder: (_) {
+                    final remaining = order.remainingTime!;
+                    final isLate = remaining.isNegative;
+                    final isNear = !isLate && remaining.inMinutes < 3;
+                    final chipColor = isLate
+                        ? AppColors.error
+                        : isNear
+                            ? AppColors.warning
+                            : AppColors.success;
+                    return Column(
+                      children: [
+                        Text(
+                          isLate ? 'تجاوز الوقت المتوقع' : 'الوقت المتبقي',
+                          style: TextStyle(
+                            color: chipColor.withOpacity(0.8),
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: chipColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: chipColor.withOpacity(0.4)),
+                          ),
+                          child: Text(
+                            _fmtCountdown(remaining),
+                            style: TextStyle(
+                              color: chipColor,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'إجمالي وقت التحضير: ${order.estimatedMinutes} دقيقة',
+                          style: const TextStyle(
+                            color: AppColors.textHint,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    );
+                  }),
+                ] else if (order.estimatedTime != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     'الوقت المتوقع: ${order.estimatedTime}',

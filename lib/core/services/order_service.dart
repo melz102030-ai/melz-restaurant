@@ -98,13 +98,19 @@ class OrderService {
     OrderStatus status, {
     String? estimatedTime,
     String? kitchenNotes,
+    int? estimatedMinutes,
   }) async {
+    final now = DateTime.now();
     final update = <String, dynamic>{
       'status': status.name,
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
+      'updatedAt': Timestamp.fromDate(now),
     };
     if (estimatedTime != null) update['estimatedTime'] = estimatedTime;
     if (kitchenNotes != null) update['kitchenNotes'] = kitchenNotes;
+    if (estimatedMinutes != null) {
+      update['estimatedMinutes'] = estimatedMinutes;
+      update['estimatedSetAt'] = Timestamp.fromDate(now);
+    }
     await _db.collection(_colOrders).doc(orderId).update(update);
   }
 
