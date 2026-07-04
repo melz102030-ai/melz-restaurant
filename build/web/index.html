@@ -333,6 +333,31 @@
       } catch (e) {}
     }
 
+    // ── PWA Install Prompt ────────────────────────────────────────────
+    var _pwaInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();           // منع ظهور البانر التلقائي للمتصفح
+      _pwaInstallPrompt = e;
+      window._pwaInstallReady = true;
+    });
+
+    // تُستدعى من Flutter عند ضغط المستخدم على زر التحميل
+    window.showPwaInstallPrompt = function() {
+      if (!_pwaInstallPrompt) return;
+      _pwaInstallPrompt.prompt();
+      _pwaInstallPrompt.userChoice.then(function() {
+        _pwaInstallPrompt = null;
+        window._pwaInstallReady = false;
+      });
+    };
+
+    // إخفاء البانر بعد التثبيت الفعلي
+    window.addEventListener('appinstalled', function() {
+      _pwaInstallPrompt = null;
+      window._pwaInstallReady = false;
+    });
+
     // تهيئة تلقائية عند أول تفاعل في أي مكان بالصفحة
     // (يضمن أن الصوت جاهز قبل وصول المستخدم لشاشة المطبخ)
     function _onFirstGesture() {
