@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/user_model.dart';
@@ -401,47 +402,80 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-// ─── أزرار الدخول السريع للمعاينة (مؤقتة - تُحذف قبل الإطلاق) ─────────────
-class _DevLoginButtons extends ConsumerWidget {
+// ─── أزرار الدخول السريع للمعاينة ─────────────────────────────────────────────
+class _DevLoginButtons extends ConsumerStatefulWidget {
   const _DevLoginButtons();
 
-  Future<void> _loginAs(BuildContext context, WidgetRef ref, UserRole role) async {
-    final names = {
+  @override
+  ConsumerState<_DevLoginButtons> createState() => _DevLoginButtonsState();
+}
+
+class _DevLoginButtonsState extends ConsumerState<_DevLoginButtons> {
+  UserRole? _loadingRole;
+
+  Future<void> _loginAs(UserRole role) async {
+    if (_loadingRole != null) return;
+    setState(() => _loadingRole = role);
+
+    const names = {
       UserRole.customer: 'عميل تجريبي',
       UserRole.admin: 'مدير النظام',
       UserRole.kitchen: 'موظف مطبخ',
     };
 
-    // Sign in anonymously so Firestore writes are authenticated
-    final anonResult = await FirebaseAuth.instance.signInAnonymously();
-    final uid = anonResult.user?.uid ?? 'dev_${role.name}';
+    try {
+      // محاولة تسجيل الدخول المجهول للحصول على Firebase Auth token
+      String uid = 'dev_${role.name}';
+      try {
+        final anonResult = await FirebaseAuth.instance.signInAnonymously();
+        if (anonResult.user != null) uid = anonResult.user!.uid;
+      } catch (_) {
+        // Anonymous Auth غير مفعّل — نكمل بـ uid ثابت
+      }
 
-    final user = UserModel(
-      id: uid,
-      phone: 'dev_${role.name}',
-      name: names[role]!,
-      role: role,
-      createdAt: DateTime.now(),
-    );
+      final user = UserModel(
+        id: uid,
+        phone: 'dev_${role.name}',
+        name: names[role]!,
+        role: role,
+        createdAt: DateTime.now(),
+      );
 
-    await ref.read(authProvider.notifier).login(user);
+      // حفظ في Firestore حتى يُعرف الدور بعد إعادة التحميل
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .set(user.toMap(), SetOptions(merge: true));
+      } catch (_) {}
 
-    if (!context.mounted) return;
-    switch (role) {
-      case UserRole.customer:
-        context.go('/home');
-        break;
-      case UserRole.admin:
-        context.go('/admin');
-        break;
-      case UserRole.kitchen:
-        context.go('/kitchen');
-        break;
+      await ref.read(authProvider.notifier).login(user);
+
+      if (!mounted) return;
+      switch (role) {
+        case UserRole.customer:
+          context.go('/home');
+          break;
+        case UserRole.admin:
+          context.go('/admin');
+          break;
+        case UserRole.kitchen:
+          context.go('/kitchen');
+          break;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('خطأ في الدخول التجريبي: $e'),
+        backgroundColor: AppColors.error,
+      ));
+    } finally {
+      if (mounted) setState(() => _loadingRole = null);
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -459,7 +493,7 @@ class _DevLoginButtons extends ConsumerWidget {
               const Icon(Icons.developer_mode, color: Colors.amber, size: 16),
               const SizedBox(width: 6),
               const Text(
-                'معاينة سريعة — مؤقت',
+                'معاينة سريعة',
                 style: TextStyle(
                   color: Colors.amber,
                   fontSize: 12,
@@ -487,21 +521,24 @@ class _DevLoginButtons extends ConsumerWidget {
                 label: 'عميل',
                 icon: Icons.person,
                 color: AppColors.purple,
-                onTap: () => _loginAs(context, ref, UserRole.customer),
+                isLoading: _loadingRole == UserRole.customer,
+                onTap: () => _loginAs(UserRole.customer),
               ),
               const SizedBox(width: 8),
               _DevBtn(
                 label: 'مطبخ',
                 icon: Icons.restaurant,
                 color: AppColors.manjawi,
-                onTap: () => _loginAs(context, ref, UserRole.kitchen),
+                isLoading: _loadingRole == UserRole.kitchen,
+                onTap: () => _loginAs(UserRole.kitchen),
               ),
               const SizedBox(width: 8),
               _DevBtn(
                 label: 'إدارة',
                 icon: Icons.admin_panel_settings,
                 color: AppColors.red,
-                onTap: () => _loginAs(context, ref, UserRole.admin),
+                isLoading: _loadingRole == UserRole.admin,
+                onTap: () => _loginAs(UserRole.admin),
               ),
             ],
           ),
@@ -516,29 +553,46 @@ class _DevBtn extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
+  final bool isLoading;
 
   const _DevBtn({
     required this.label,
     required this.icon,
     required this.color,
     required this.onTap,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 16),
-        label: Text(label),
+      child: ElevatedButton(
+        onPressed: isLoading ? null : onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: color.withValues(alpha: 0.15),
           foregroundColor: color,
+          disabledBackgroundColor: color.withValues(alpha: 0.08),
           side: BorderSide(color: color.withValues(alpha: 0.4)),
           padding: const EdgeInsets.symmetric(vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           elevation: 0,
         ),
+        child: isLoading
+            ? SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                    strokeWidth: 2, color: color),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 15),
+                  const SizedBox(width: 4),
+                  Text(label, style: const TextStyle(fontSize: 13)),
+                ],
+              ),
       ),
     );
   }
