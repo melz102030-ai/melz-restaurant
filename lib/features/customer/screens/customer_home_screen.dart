@@ -278,20 +278,17 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           // Cover / logo banner — scrolls away when user scrolls down
           if (coverImageUrl != null)
             SliverToBoxAdapter(
-              child: SizedBox(
+              child: Image.network(
+                coverImageUrl,
                 width: screenWidth,
-                // Crop to ~85% of square height to remove purple border above/below logo
-                height: screenWidth * 0.85,
-                child: Image.network(
-                  coverImageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    decoration: const BoxDecoration(
-                        gradient: AppColors.heroGradient),
-                    child: const Center(
-                      child: Icon(Icons.restaurant,
-                          color: Colors.white, size: 72),
-                    ),
+                fit: BoxFit.fitWidth,
+                errorBuilder: (_, __, ___) => Container(
+                  height: screenWidth * 0.55,
+                  decoration: const BoxDecoration(
+                      gradient: AppColors.heroGradient),
+                  child: const Center(
+                    child: Icon(Icons.restaurant,
+                        color: Colors.white, size: 72),
                   ),
                 ),
               ),
