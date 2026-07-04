@@ -1,3 +1,5 @@
+import 'dart:js' as js;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,11 +29,33 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   final Map<String, GlobalKey> _sectionKeys = {};
   String? _highlightedCatId;
   bool _suppressScrollDetection = false;
+  bool _showInstallBanner = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    // تحقق من توفر زر التثبيت بعد تحميل الصفحة
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkInstallPrompt();
+      Future.delayed(const Duration(seconds: 4), _checkInstallPrompt);
+    });
+  }
+
+  void _checkInstallPrompt() {
+    try {
+      final ready = js.context['_pwaInstallReady'] == true;
+      if (mounted && ready != _showInstallBanner) {
+        setState(() => _showInstallBanner = ready);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _triggerInstall() async {
+    try {
+      js.context.callMethod('showPwaInstallPrompt', []);
+    } catch (_) {}
+    setState(() => _showInstallBanner = false);
   }
 
   @override
@@ -253,6 +277,15 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         slivers: [
+          // بانر تثبيت التطبيق (PWA)
+          if (_showInstallBanner)
+            SliverToBoxAdapter(
+              child: _InstallBanner(
+                onInstall: _triggerInstall,
+                onDismiss: () => setState(() => _showInstallBanner = false),
+              ),
+            ),
+
           // Active order banner (scrolls away with content)
           if (activeOrder != null)
             SliverToBoxAdapter(
@@ -608,6 +641,97 @@ class _StickyBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_StickyBarDelegate old) =>
       old.child != child || old.height != height;
+}
+
+// ── PWA Install Banner ────────────────────────────────────────────────────────
+
+class _InstallBanner extends StatelessWidget {
+  final VoidCallback onInstall;
+  final VoidCallback onDismiss;
+  const _InstallBanner({required this.onInstall, required this.onDismiss});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF4A0080), Color(0xFF800040)],
+          begin: Alignment.centerRight,
+          end: Alignment.centerLeft,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.purple.withOpacity(0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.install_mobile, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'حمّل تطبيق Meals',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'أضفه لشاشتك الرئيسية للوصول السريع',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: onInstall,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: AppColors.purple,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+              child: const Text('تحميل',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            ),
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onDismiss,
+              child: Icon(Icons.close, color: Colors.white.withOpacity(0.7), size: 18),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────
