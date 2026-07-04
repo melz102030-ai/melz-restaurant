@@ -663,19 +663,39 @@ class _BubblesPainter extends CustomPainter {
   _BubblesPainter(this.t, this.isDark);
 
   void _drawHeart(Canvas canvas, Offset center, double size, Paint paint) {
-    final s = size;
     final path = Path();
-    path.moveTo(center.dx, center.dy + s * 0.3);
+    final cx = center.dx;
+    final cy = center.dy;
+    final s = size;
+
+    // الطرف السفلي المدبب
+    path.moveTo(cx, cy + s * 0.85);
+
+    // صعود الجانب الأيسر إلى الحافة اليسرى
     path.cubicTo(
-      center.dx - s * 1.0, center.dy - s * 0.4,
-      center.dx - s * 1.0, center.dy - s * 1.2,
-      center.dx,            center.dy - s * 0.5,
+      cx - s * 0.1, cy + s * 0.55,
+      cx - s,       cy + s * 0.10,
+      cx - s,       cy - s * 0.15,
     );
+    // الانتفاخ الأيسر العلوي ← إلى المنتصف (الوادي)
     path.cubicTo(
-      center.dx + s * 1.0, center.dy - s * 1.2,
-      center.dx + s * 1.0, center.dy - s * 0.4,
-      center.dx,            center.dy + s * 0.3,
+      cx - s,       cy - s * 0.75,
+      cx - s * 0.3, cy - s * 0.95,
+      cx,           cy - s * 0.55,
     );
+    // من المنتصف ← الانتفاخ الأيمن العلوي
+    path.cubicTo(
+      cx + s * 0.3, cy - s * 0.95,
+      cx + s,       cy - s * 0.75,
+      cx + s,       cy - s * 0.15,
+    );
+    // نزول الجانب الأيمن إلى الطرف السفلي
+    path.cubicTo(
+      cx + s,       cy + s * 0.10,
+      cx + s * 0.1, cy + s * 0.55,
+      cx,           cy + s * 0.85,
+    );
+
     path.close();
     canvas.drawPath(path, paint);
   }
