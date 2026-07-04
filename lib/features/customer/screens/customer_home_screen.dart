@@ -155,23 +155,39 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         title: Row(
           children: [
             Container(
-              width: 7,
-              height: 7,
+              width: 8,
+              height: 8,
               decoration: BoxDecoration(
-                color: settings.isOpen ? AppColors.success : AppColors.error,
+                color: settings.effectivelyOpen
+                    ? AppColors.success
+                    : AppColors.error,
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 5),
-            Text(
-              settings.isOpen
-                  ? 'مفتوح · ${settings.estimatedPrepTime} دقيقة'
-                  : 'مغلق حالياً',
-              style: TextStyle(
-                color: settings.isOpen ? AppColors.success : AppColors.error,
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  settings.effectivelyOpen ? 'مفتوح الآن' : 'مغلق حالياً',
+                  style: TextStyle(
+                    color: settings.effectivelyOpen
+                        ? AppColors.success
+                        : AppColors.error,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  settings.effectivelyOpen
+                      ? 'يغلق ${settings.closeTimeLabel}'
+                      : 'يفتح ${settings.openTimeLabel}',
+                  style: const TextStyle(
+                    color: AppColors.textHint,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

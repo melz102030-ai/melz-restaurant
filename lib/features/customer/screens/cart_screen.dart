@@ -39,6 +39,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     if (user == null) { context.push('/login'); return; }
     if (cart.isEmpty) return;
 
+    if (!settings.effectivelyOpen) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('المطعم مغلق حالياً، لا يمكن إرسال الطلب'),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+
     if (cartTotal < settings.minOrderAmount) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(
@@ -239,7 +247,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               ),
             )
           : Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
               decoration: const BoxDecoration(
                 color: AppColors.surface,
                 boxShadow: [
@@ -250,13 +258,51 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   ),
                 ],
               ),
-              child: AppButton(
-                label: '${AppStrings.checkout} - ${total.toStringAsFixed(2)} ${AppStrings.sar}',
-                onPressed: settings.isOpen ? _placeOrder : null,
-                isLoading: _isPlacingOrder,
-                icon: Icons.check_circle,
-                width: double.infinity,
-                color: settings.isOpen ? AppColors.purple : AppColors.textHint,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (!settings.effectivelyOpen)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: AppColors.error.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.access_time,
+                              color: AppColors.error, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              !settings.isOpen
+                                  ? 'المطعم مغلق حالياً من قِبل الإدارة'
+                                  : 'المطعم مغلق · يفتح ${settings.openTimeLabel}',
+                              style: const TextStyle(
+                                  color: AppColors.error, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  AppButton(
+                    label:
+                        '${AppStrings.checkout} - ${total.toStringAsFixed(2)} ${AppStrings.sar}',
+                    onPressed:
+                        settings.effectivelyOpen ? _placeOrder : null,
+                    isLoading: _isPlacingOrder,
+                    icon: Icons.check_circle,
+                    width: double.infinity,
+                    color: settings.effectivelyOpen
+                        ? AppColors.purple
+                        : AppColors.textHint,
+                  ),
+                ],
               ),
             ),
     );

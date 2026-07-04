@@ -46,6 +46,25 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     _loadSettings();
   }
 
+  Future<void> _pickTime(TextEditingController ctrl) async {
+    final parts = ctrl.text.split(':');
+    final h = int.tryParse(parts.isNotEmpty ? parts[0] : '8') ?? 8;
+    final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: h, minute: m),
+      builder: (ctx, child) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) {
+      ctrl.text =
+          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
+      setState(() {});
+    }
+  }
+
   Future<void> _loadSettings() async {
     final settings = await SettingsService.getSettings();
     if (mounted) {
@@ -224,11 +243,21 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _Field(controller: _openTimeCtrl, label: 'وقت الفتح', hint: '08:00'),
+                  child: _TimePickerTile(
+                    label: 'وقت الفتح',
+                    controller: _openTimeCtrl,
+                    onTap: () => _pickTime(_openTimeCtrl),
+                    icon: Icons.wb_sunny_outlined,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _Field(controller: _closeTimeCtrl, label: 'وقت الإغلاق', hint: '00:00'),
+                  child: _TimePickerTile(
+                    label: 'وقت الإغلاق',
+                    controller: _closeTimeCtrl,
+                    onTap: () => _pickTime(_closeTimeCtrl),
+                    icon: Icons.nightlight_outlined,
+                  ),
                 ),
               ],
             ),
@@ -528,4 +557,71 @@ class _ImagePicker extends StatelessWidget {
           Text('رفع صورة', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
         ],
       );
+}
+
+class _TimePickerTile extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final VoidCallback onTap;
+  final IconData icon;
+
+  const _TimePickerTile({
+    required this.label,
+    required this.controller,
+    required this.onTap,
+    required this.icon,
+  });
+
+  String _fmt(String hhmm) {
+    final parts = hhmm.split(':');
+    if (parts.length != 2) return hhmm;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final isPm = h >= 12;
+    final h12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+    return '$h12:${m.toString().padLeft(2, '0')} ${isPm ? 'م' : 'ص'}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayText = controller.text.isEmpty ? '--:--' : _fmt(controller.text);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.purpleDark.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.purple, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: const TextStyle(
+                          color: AppColors.textHint, fontSize: 11)),
+                  const SizedBox(height: 2),
+                  Text(
+                    displayText,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.edit, color: AppColors.textHint, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
 }

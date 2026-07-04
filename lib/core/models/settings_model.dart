@@ -29,6 +29,44 @@ class RestaurantSettings {
     this.allowOrders = true,
   });
 
+  // هل المطعم مفتوح فعلياً الآن؟ (الوقت الحالي ضمن الجدول + المفتاح اليدوي)
+  bool get effectivelyOpen {
+    if (!isOpen || !allowOrders) return false;
+    if (openTime.isEmpty || closeTime.isEmpty) return true;
+    final now = DateTime.now();
+    final open = _parseHHMM(openTime, now);
+    final close = _parseHHMM(closeTime, now);
+    if (open == null || close == null) return true;
+    // معالجة تجاوز منتصف الليل (مثال: 22:00 - 02:00)
+    if (close.isBefore(open) || close.isAtSameMomentAs(open)) {
+      return now.isAfter(open) || now.isBefore(close);
+    }
+    return now.isAfter(open) && now.isBefore(close);
+  }
+
+  static DateTime? _parseHHMM(String hhmm, DateTime date) {
+    final parts = hhmm.trim().split(':');
+    if (parts.length != 2) return null;
+    final h = int.tryParse(parts[0].trim());
+    final m = int.tryParse(parts[1].trim());
+    if (h == null || m == null) return null;
+    return DateTime(date.year, date.month, date.day, h, m);
+  }
+
+  String _fmtHHMM(String hhmm) {
+    final parts = hhmm.split(':');
+    if (parts.length != 2) return hhmm;
+    final h = int.tryParse(parts[0]) ?? 0;
+    final m = int.tryParse(parts[1]) ?? 0;
+    final isPm = h >= 12;
+    final h12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
+    return '$h12:${m.toString().padLeft(2, '0')} ${isPm ? 'م' : 'ص'}';
+  }
+
+  String get openTimeLabel => _fmtHHMM(openTime);
+  String get closeTimeLabel => _fmtHHMM(closeTime);
+  String get scheduleLabel => '${_fmtHHMM(openTime)} - ${_fmtHHMM(closeTime)}';
+
   factory RestaurantSettings.fromMap(Map<String, dynamic> map) {
     return RestaurantSettings(
       restaurantName: map['restaurantName'] ?? 'Meals',
