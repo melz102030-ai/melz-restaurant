@@ -31,11 +31,9 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
   final Set<String> _knownPendingIds = {};
   bool _initialLoaded = false;
   bool _alarmPlaying = false;
-  bool _soundPrimed = false;
 
   void _primeAudio() {
     try { js.context.callMethod('primeKitchenAudio', []); } catch (_) {}
-    setState(() => _soundPrimed = true);
   }
 
   void _playAlarm() {
@@ -56,6 +54,9 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    // محاولة تهيئة الصوت فور فتح شاشة المطبخ
+    // (يعمل إذا وصل المستخدم عبر نقرة — أي تفاعل مسبق يكفي)
+    WidgetsBinding.instance.addPostFrameCallback((_) => _primeAudio());
   }
 
   @override
@@ -105,14 +106,8 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           ],
         ),
         actions: [
-          // Sound prime / alarm dismiss
-          if (!_soundPrimed)
-            TextButton.icon(
-              onPressed: _primeAudio,
-              icon: const Icon(Icons.volume_up, size: 18, color: Colors.amber),
-              label: const Text('تفعيل الصوت', style: TextStyle(color: Colors.amber, fontSize: 12)),
-            )
-          else if (_alarmPlaying)
+          // إيقاف الإنذار عند تشغيله
+          if (_alarmPlaying)
             TextButton.icon(
               onPressed: _stopAlarm,
               icon: const Icon(Icons.volume_off, size: 18, color: Colors.redAccent),

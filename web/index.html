@@ -306,8 +306,11 @@
       }
     }
 
-    // Prime AudioContext on first user gesture (browsers require interaction before audio)
+    // Prime AudioContext — يُهيّئ السياق الصوتي بصمت
+    var _kitchenAudioPrimed = false;
+
     function primeKitchenAudio() {
+      if (_kitchenAudioPrimed) return;
       try {
         var ctx = new (window.AudioContext || window.webkitAudioContext)();
         var buf = ctx.createBuffer(1, 1, 22050);
@@ -315,9 +318,24 @@
         src.buffer = buf;
         src.connect(ctx.destination);
         src.start(0);
-        ctx.resume().then(function() { ctx.close(); });
+        ctx.resume().then(function() {
+          _kitchenAudioPrimed = true;
+          ctx.close();
+        });
       } catch (e) {}
     }
+
+    // تهيئة تلقائية عند أول تفاعل في أي مكان بالصفحة
+    // (يضمن أن الصوت جاهز قبل وصول المستخدم لشاشة المطبخ)
+    function _onFirstGesture() {
+      primeKitchenAudio();
+      ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(function(ev) {
+        document.removeEventListener(ev, _onFirstGesture, true);
+      });
+    }
+    ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(function(ev) {
+      document.addEventListener(ev, _onFirstGesture, { capture: true, once: true });
+    });
   </script>
 </body>
 </html>
