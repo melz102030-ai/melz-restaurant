@@ -259,5 +259,65 @@
   </script>
 
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- Kitchen alarm — Web Audio API, no file needed -->
+  <script>
+    var _kAlarmCtx = null;
+
+    function playKitchenAlarm() {
+      stopKitchenAlarm();
+      try {
+        _kAlarmCtx = new (window.AudioContext || window.webkitAudioContext)();
+        var ctx = _kAlarmCtx;
+
+        function tone(freq, startSec, durationSec, vol) {
+          var osc = ctx.createOscillator();
+          var gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(freq, ctx.currentTime + startSec);
+          gain.gain.setValueAtTime(vol, ctx.currentTime + startSec);
+          gain.gain.setValueAtTime(vol, ctx.currentTime + startSec + durationSec - 0.02);
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + startSec + durationSec);
+          osc.start(ctx.currentTime + startSec);
+          osc.stop(ctx.currentTime + startSec + durationSec + 0.01);
+        }
+
+        // Pattern: HIGH(0.27s) + LOW(0.23s) = 0.5s per rep, 40 reps = 20 seconds of alarm
+        var REPS = 40;
+        for (var i = 0; i < REPS; i++) {
+          var t = i * 0.5;
+          tone(1400, t,        0.25, 1.0);   // high, very loud
+          tone(750,  t + 0.25, 0.23, 1.0);   // low, very loud
+        }
+
+        // Auto-close after 21 seconds
+        setTimeout(stopKitchenAlarm, 21000);
+      } catch (e) {
+        console.warn('Kitchen alarm error:', e);
+      }
+    }
+
+    function stopKitchenAlarm() {
+      if (_kAlarmCtx) {
+        try { _kAlarmCtx.close(); } catch (e) {}
+        _kAlarmCtx = null;
+      }
+    }
+
+    // Prime AudioContext on first user gesture (browsers require interaction before audio)
+    function primeKitchenAudio() {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var buf = ctx.createBuffer(1, 1, 22050);
+        var src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+        ctx.resume().then(function() { ctx.close(); });
+      } catch (e) {}
+    }
+  </script>
 </body>
 </html>

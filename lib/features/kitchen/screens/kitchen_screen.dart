@@ -1,3 +1,5 @@
+import 'dart:js' as js;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -23,6 +25,29 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  // Alarm state
+  final Set<String> _knownPendingIds = {};
+  bool _initialLoaded = false;
+  bool _alarmPlaying = false;
+  bool _soundPrimed = false;
+
+  void _primeAudio() {
+    try { js.context.callMethod('primeKitchenAudio', []); } catch (_) {}
+    setState(() => _soundPrimed = true);
+  }
+
+  void _playAlarm() {
+    try { js.context.callMethod('playKitchenAlarm', []); } catch (_) {}
+    if (mounted) setState(() => _alarmPlaying = true);
+    // Safety auto-stop after 22s if JS timer somehow fails
+    Future.delayed(const Duration(seconds: 22), _stopAlarm);
+  }
+
+  void _stopAlarm() {
+    try { js.context.callMethod('stopKitchenAlarm', []); } catch (_) {}
+    if (mounted) setState(() => _alarmPlaying = false);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -31,6 +56,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
 
   @override
   void dispose() {
+    _stopAlarm();
     _tabController.dispose();
     super.dispose();
   }
@@ -41,6 +67,25 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     final inProgress = ref.watch(inProgressKitchenOrdersProvider);
     final ready = ref.watch(readyKitchenOrdersProvider);
     final ordersAsync = ref.watch(kitchenOrdersProvider);
+
+    // Detect truly-new pending orders and trigger alarm
+    ref.listen<AsyncValue<List<OrderModel>>>(kitchenOrdersProvider, (_, next) {
+      final orders = next.valueOrNull ?? [];
+      final pendingIds = orders
+          .where((o) => o.status == OrderStatus.pending)
+          .map((o) => o.id)
+          .toSet();
+
+      if (_initialLoaded) {
+        final brandNew = pendingIds.difference(_knownPendingIds);
+        if (brandNew.isNotEmpty) _playAlarm();
+      } else {
+        _initialLoaded = true;
+      }
+      _knownPendingIds
+        ..clear()
+        ..addAll(pendingIds);
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -55,6 +100,19 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           ],
         ),
         actions: [
+          // Sound prime / alarm dismiss
+          if (!_soundPrimed)
+            TextButton.icon(
+              onPressed: _primeAudio,
+              icon: const Icon(Icons.volume_up, size: 18, color: Colors.amber),
+              label: const Text('تفعيل الصوت', style: TextStyle(color: Colors.amber, fontSize: 12)),
+            )
+          else if (_alarmPlaying)
+            TextButton.icon(
+              onPressed: _stopAlarm,
+              icon: const Icon(Icons.volume_off, size: 18, color: Colors.redAccent),
+              label: const Text('إيقاف', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+            ),
           // Logout
           IconButton(
             onPressed: () async {
@@ -92,29 +150,63 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           ],
         ),
       ),
-      body: ordersAsync.when(
-        loading: () => const LoadingWidget(message: 'جاري تحميل الطلبات...'),
-        error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error),
-        data: (_) => TabBarView(
-          controller: _tabController,
-          children: [
-            // New orders
-            _OrdersColumn(
-              orders: newOrders,
-              emptyMessage: 'لا توجد طلبات جديدة',
+      body: Column(
+        children: [
+          // Flashing alarm banner
+          if (_alarmPlaying)
+            GestureDetector(
+              onTap: _stopAlarm,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                color: Colors.red,
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.notifications_active, color: Colors.white, size: 22),
+                    SizedBox(width: 10),
+                    Text(
+                      '🔔 طلب جديد وصل! — اضغط لإيقاف الصوت',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ).animate(onPlay: (c) => c.repeat()).shimmer(
+                  duration: const Duration(milliseconds: 600),
+                  color: Colors.orange,
+                ),
+          Expanded(
+            child: ordersAsync.when(
+              loading: () => const LoadingWidget(message: 'جاري تحميل الطلبات...'),
+              error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error),
+              data: (_) => TabBarView(
+                controller: _tabController,
+                children: [
+                  // New orders
+                  _OrdersColumn(
+                    orders: newOrders,
+                    emptyMessage: 'لا توجد طلبات جديدة',
+                  ),
+                  // In progress
+                  _OrdersColumn(
+                    orders: inProgress,
+                    emptyMessage: 'لا توجد طلبات قيد التنفيذ',
+                  ),
+                  // Ready
+                  _OrdersColumn(
+                    orders: ready,
+                    emptyMessage: 'لا توجد طلبات جاهزة',
+                  ),
+                ],
+              ),
             ),
-            // In progress
-            _OrdersColumn(
-              orders: inProgress,
-              emptyMessage: 'لا توجد طلبات قيد التنفيذ',
-            ),
-            // Ready
-            _OrdersColumn(
-              orders: ready,
-              emptyMessage: 'لا توجد طلبات جاهزة',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
