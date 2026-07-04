@@ -54,21 +54,35 @@ class AuthService {
   }
 
   static Future<UserModel?> loadSession() async {
-    // أولاً: تحقق من Firebase Auth
+    // أولاً: تحقق من Firebase Auth الحالي
     final firebaseUser = _auth.currentUser;
     if (firebaseUser != null) {
       try {
-        final doc =
-            await _db.collection(_colUsers).doc(firebaseUser.uid).get();
+        final doc = await _db.collection(_colUsers).doc(firebaseUser.uid).get();
         if (doc.exists) {
-          return UserModel.fromMap(doc.data()!, doc.id);
+          final user = UserModel.fromMap(doc.data()!, doc.id);
+          await saveSession(user); // حدّث الكاش المحلي بأحدث بيانات
+          return user;
         }
       } catch (_) {}
     }
-    // ثانياً: من SharedPreferences
+
+    // ثانياً: من SharedPreferences مع التحقق من Firestore
     final prefs = await SharedPreferences.getInstance();
     final id = prefs.getString('user_id');
     if (id == null) return null;
+
+    // حاول جلب أحدث بيانات من Firestore (يلتقط تغييرات الأدمن على الدور)
+    try {
+      final doc = await _db.collection(_colUsers).doc(id).get();
+      if (doc.exists) {
+        final user = UserModel.fromMap(doc.data()!, doc.id);
+        await saveSession(user);
+        return user;
+      }
+    } catch (_) {}
+
+    // الاحتياطي الأخير: الكاش المحلي فقط (لا اتصال)
     return UserModel(
       id: id,
       phone: prefs.getString('user_phone') ?? '',
@@ -88,7 +102,11 @@ class AuthService {
   }
 
   static Future<void> updateUserName(String userId, String name) async {
-    await _db.collection(_colUsers).doc(userId).update({'name': name});
+    // استخدم set+merge بدلاً من update حتى يعمل حتى لو لم يكن الـ document موجوداً
+    await _db.collection(_colUsers).doc(userId).set(
+      {'name': name},
+      SetOptions(merge: true),
+    );
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_name', name);
   }
