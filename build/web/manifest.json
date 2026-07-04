@@ -1,11 +1,11 @@
 {
-    "name": "melz_restaurant",
-    "short_name": "melz_restaurant",
+    "name": "Meals - برجر . ساندوتشات . كلوب",
+    "short_name": "Meals",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#6A0DAD",
+    "theme_color": "#6A0DAD",
+    "description": "اطلب أشهى المأكولات بين يديك - برجر، ساندوتشات، كلوب",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
