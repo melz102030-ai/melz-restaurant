@@ -614,9 +614,11 @@ class _AnimatedBubblesState extends State<_AnimatedBubbles>
   @override
   void initState() {
     super.initState();
+    // مدة قصيرة جداً فقط لتحريك إطارات الرسم بسلاسة (60fps)
+    // المواضع تُحسب من الوقت الحقيقي لا من t، فلا تقطع عند الدورة
     _ctrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 12),
+      duration: const Duration(milliseconds: 16),
     )..repeat();
   }
 
@@ -660,11 +662,9 @@ class _BubblesPainter extends CustomPainter {
 
   _BubblesPainter(this.t, this.isDark);
 
-  // رسم قلب بحجم معين حول نقطة مركز
   void _drawHeart(Canvas canvas, Offset center, double size, Paint paint) {
     final s = size;
     final path = Path();
-    // القلب يُرسم من أعلى الوسط باتجاه عقارب الساعة
     path.moveTo(center.dx, center.dy + s * 0.3);
     path.cubicTo(
       center.dx - s * 1.0, center.dy - s * 0.4,
@@ -687,6 +687,9 @@ class _BubblesPainter extends CustomPainter {
         : [const Color(0xFF6A0DAD), const Color(0xFF800040), const Color(0xFF9C4DCA)];
     final maxOpacity = isDark ? 0.22 : 0.07;
 
+    // الوقت الحقيقي بالثواني — يزداد باستمرار بلا انقطاع
+    final seconds = DateTime.now().millisecondsSinceEpoch / 1000.0;
+
     for (int i = 0; i < _defs.length; i++) {
       final d = _defs[i];
       final x = d[0];
@@ -694,7 +697,8 @@ class _BubblesPainter extends CustomPainter {
       final speed = d[2];
       final phase = d[3];
 
-      final y = 1.0 - ((t * speed + phase) % 1.0);
+      // speed / 12.0 يحافظ على نفس السرعة الأصلية (12 ث = دورة كاملة بسرعة 1.0)
+      final y = 1.0 - ((seconds * speed / 12.0 + phase) % 1.0);
 
       double opacity = maxOpacity;
       if (y > 0.85) opacity *= (1.0 - y) / 0.15;
@@ -714,5 +718,5 @@ class _BubblesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_BubblesPainter old) => old.t != t;
+  bool shouldRepaint(_BubblesPainter old) => true;
 }
