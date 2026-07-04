@@ -411,15 +411,14 @@ class _DevLoginButtons extends ConsumerWidget {
       UserRole.admin: 'مدير النظام',
       UserRole.kitchen: 'موظف مطبخ',
     };
-    final phones = {
-      UserRole.customer: 'dev_customer',
-      UserRole.admin: 'dev_admin',
-      UserRole.kitchen: 'dev_kitchen',
-    };
+
+    // Sign in anonymously so Firestore writes are authenticated
+    final anonResult = await FirebaseAuth.instance.signInAnonymously();
+    final uid = anonResult.user?.uid ?? 'dev_${role.name}';
 
     final user = UserModel(
-      id: 'dev_${role.name}',
-      phone: phones[role]!,
+      id: uid,
+      phone: 'dev_${role.name}',
       name: names[role]!,
       role: role,
       createdAt: DateTime.now(),
