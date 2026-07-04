@@ -660,6 +660,26 @@ class _BubblesPainter extends CustomPainter {
 
   _BubblesPainter(this.t, this.isDark);
 
+  // رسم قلب بحجم معين حول نقطة مركز
+  void _drawHeart(Canvas canvas, Offset center, double size, Paint paint) {
+    final s = size;
+    final path = Path();
+    // القلب يُرسم من أعلى الوسط باتجاه عقارب الساعة
+    path.moveTo(center.dx, center.dy + s * 0.3);
+    path.cubicTo(
+      center.dx - s * 1.0, center.dy - s * 0.4,
+      center.dx - s * 1.0, center.dy - s * 1.2,
+      center.dx,            center.dy - s * 0.5,
+    );
+    path.cubicTo(
+      center.dx + s * 1.0, center.dy - s * 1.2,
+      center.dx + s * 1.0, center.dy - s * 0.4,
+      center.dx,            center.dy + s * 0.3,
+    );
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final colors = isDark
@@ -670,7 +690,7 @@ class _BubblesPainter extends CustomPainter {
     for (int i = 0; i < _defs.length; i++) {
       final d = _defs[i];
       final x = d[0];
-      final radius = d[1] / 2;
+      final heartSize = d[1] / 2;
       final speed = d[2];
       final phase = d[3];
 
@@ -684,7 +704,12 @@ class _BubblesPainter extends CustomPainter {
         ..color = colors[i % colors.length].withValues(alpha: opacity)
         ..style = PaintingStyle.fill;
 
-      canvas.drawCircle(Offset(x * size.width, y * size.height), radius, paint);
+      _drawHeart(
+        canvas,
+        Offset(x * size.width, y * size.height),
+        heartSize,
+        paint,
+      );
     }
   }
 
