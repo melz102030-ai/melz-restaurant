@@ -66,8 +66,9 @@ class OrderService {
     });
   }
 
-  // Stream active kitchen orders — الترتيب في Dart لتجنب Composite Index
+  // Stream kitchen orders — active + delivered in last 4 hours
   static Stream<List<OrderModel>> streamKitchenOrders() {
+    final cutoff = DateTime.now().subtract(const Duration(hours: 4));
     return _db
         .collection(_colOrders)
         .where('status', whereIn: [
@@ -75,14 +76,19 @@ class OrderService {
           OrderStatus.confirmed.name,
           OrderStatus.preparing.name,
           OrderStatus.ready.name,
+          OrderStatus.delivered.name,
         ])
         .snapshots()
         .map((snap) {
           final orders = snap.docs
               .map((d) => OrderModel.fromMap(d.data(), d.id))
               .toList();
-          orders.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-          return orders;
+          // Keep delivered only from last 4 hours
+          final filtered = orders.where((o) =>
+              o.status != OrderStatus.delivered ||
+              o.updatedAt.isAfter(cutoff)).toList();
+          filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+          return filtered;
         });
   }
 

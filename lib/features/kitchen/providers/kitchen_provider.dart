@@ -31,3 +31,11 @@ final readyKitchenOrdersProvider = Provider<List<OrderModel>>((ref) {
   );
   return orders.where((o) => o.status == OrderStatus.ready).toList();
 });
+
+final deliveredKitchenOrdersProvider = Provider<List<OrderModel>>((ref) {
+  final orders = ref.watch(kitchenOrdersProvider).maybeWhen(
+    data: (d) => d,
+    orElse: () => <OrderModel>[],
+  );
+  return orders.where((o) => o.status == OrderStatus.delivered).toList();
+});

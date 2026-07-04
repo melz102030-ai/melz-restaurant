@@ -48,10 +48,12 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     if (mounted) setState(() => _alarmPlaying = false);
   }
 
+  void _openAvailability() => context.push('/kitchen/availability');
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -66,6 +68,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     final newOrders = ref.watch(newKitchenOrdersProvider);
     final inProgress = ref.watch(inProgressKitchenOrdersProvider);
     final ready = ref.watch(readyKitchenOrdersProvider);
+    final delivered = ref.watch(deliveredKitchenOrdersProvider);
     final ordersAsync = ref.watch(kitchenOrdersProvider);
 
     // Detect truly-new pending orders and trigger alarm
@@ -113,6 +116,12 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
               icon: const Icon(Icons.volume_off, size: 18, color: Colors.redAccent),
               label: const Text('إيقاف', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
             ),
+          // Availability management
+          IconButton(
+            onPressed: _openAvailability,
+            icon: const Icon(Icons.restaurant_menu),
+            tooltip: 'إدارة توفر الأصناف',
+          ),
           // Logout
           IconButton(
             onPressed: () async {
@@ -125,6 +134,8 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
         ],
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: [
             Tab(
               child: _TabLabel(
@@ -145,6 +156,13 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
                 label: AppStrings.completed,
                 count: ready.length,
                 color: AppColors.statusReady,
+              ),
+            ),
+            Tab(
+              child: _TabLabel(
+                label: 'مُسلَّمة',
+                count: delivered.length,
+                color: AppColors.statusDelivered,
               ),
             ),
           ],
@@ -201,6 +219,11 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
                   _OrdersColumn(
                     orders: ready,
                     emptyMessage: 'لا توجد طلبات جاهزة',
+                  ),
+                  // Delivered (last 4 hours)
+                  _OrdersColumn(
+                    orders: delivered,
+                    emptyMessage: 'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات',
                   ),
                 ],
               ),

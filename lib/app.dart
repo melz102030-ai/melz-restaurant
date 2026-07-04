@@ -20,6 +20,7 @@ import 'features/admin/screens/admin_reports_screen.dart';
 import 'features/admin/screens/admin_settings_screen.dart';
 import 'features/admin/screens/admin_users_screen.dart';
 import 'features/kitchen/screens/kitchen_screen.dart';
+import 'features/kitchen/screens/kitchen_availability_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _adminKey = GlobalKey<NavigatorState>();
@@ -127,6 +128,10 @@ GoRouter _buildRouter(UserModel? user) {
       GoRoute(
         path: '/kitchen',
         builder: (_, __) => const KitchenScreen(),
+      ),
+      GoRoute(
+        path: '/kitchen/availability',
+        builder: (_, __) => const KitchenAvailabilityScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
