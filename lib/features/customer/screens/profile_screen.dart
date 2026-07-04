@@ -32,7 +32,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
-    final ordersAsync = ref.watch(customerOrdersProvider);
+    final orders = ref.watch(customerOrdersStreamProvider).valueOrNull ?? [];
 
     if (user == null) {
       return Scaffold(
@@ -137,7 +137,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             // Stats
             Builder(builder: (_) {
-              final orders = ordersAsync;
               final completed = orders.where((o) => o.status == OrderStatus.delivered).length;
               final totalSpent = orders
                   .where((o) => o.status == OrderStatus.delivered)
@@ -188,7 +187,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 12),
 
             Builder(builder: (_) {
-              final orders = ordersAsync;
               if (orders.isEmpty) {
                 return const Center(
                   child: Padding(

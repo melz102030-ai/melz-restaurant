@@ -8,7 +8,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/models/order_model.dart';
-import '../../../core/providers/local_order_provider.dart';
+import '../../../core/services/order_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -30,7 +30,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     super.dispose();
   }
 
-  void _placeOrder() {
+  Future<void> _placeOrder() async {
     final user = ref.read(authProvider);
     final cart = ref.read(cartProvider);
     final settings = ref.read(settingsProvider);
@@ -48,27 +48,36 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       return;
     }
 
-    final subtotal = cartTotal;
-    final deliveryFee = settings.deliveryFee;
+    setState(() => _isPlacingOrder = true);
+    try {
+      final order = OrderModel(
+        id: '',
+        customerId: user.id,
+        customerName: user.name,
+        customerPhone: user.phone,
+        items: ref.read(cartProvider.notifier).toOrderItems(),
+        subtotal: cartTotal,
+        deliveryFee: settings.deliveryFee,
+        total: cartTotal + settings.deliveryFee,
+        status: OrderStatus.pending,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
 
-    final order = OrderModel(
-      id: '',
-      customerId: user.id,
-      customerName: user.name,
-      customerPhone: user.phone,
-      items: ref.read(cartProvider.notifier).toOrderItems(),
-      subtotal: subtotal,
-      deliveryFee: deliveryFee,
-      total: subtotal + deliveryFee,
-      status: OrderStatus.pending,
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
-
-    final orderId = ref.read(localOrderProvider.notifier).addOrder(order);
-    ref.read(cartProvider.notifier).clear();
-    context.go('/track/$orderId');
+      final orderId = await OrderService.placeOrder(order);
+      ref.read(cartProvider.notifier).clear();
+      if (mounted) context.go('/track/$orderId');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('فشل إرسال الطلب، حاول مجدداً'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isPlacingOrder = false);
+    }
   }
 
   @override

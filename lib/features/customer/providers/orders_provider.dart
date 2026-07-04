@@ -1,19 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/providers/local_order_provider.dart';
+import '../../../core/services/order_service.dart';
 
-final customerOrdersProvider = Provider<List<OrderModel>>((ref) {
+final customerOrdersStreamProvider = StreamProvider<List<OrderModel>>((ref) {
   final user = ref.watch(authProvider);
-  if (user == null) return [];
-  return ref
-      .watch(localOrderProvider)
-      .where((o) => o.customerId == user.id)
-      .toList();
+  if (user == null) return const Stream.empty();
+  return OrderService.streamCustomerOrders(user.id);
 });
 
 final activeOrderProvider = Provider<OrderModel?>((ref) {
-  final orders = ref.watch(customerOrdersProvider);
+  final orders = ref.watch(customerOrdersStreamProvider).valueOrNull ?? [];
   return orders
       .where((o) =>
           o.status != OrderStatus.delivered &&
@@ -21,6 +18,7 @@ final activeOrderProvider = Provider<OrderModel?>((ref) {
       .firstOrNull;
 });
 
-final trackOrderProvider = Provider.family<OrderModel?, String>((ref, orderId) {
-  return ref.watch(localOrderProvider).where((o) => o.id == orderId).firstOrNull;
+final trackOrderProvider =
+    StreamProvider.family<OrderModel?, String>((ref, orderId) {
+  return OrderService.streamOrder(orderId);
 });

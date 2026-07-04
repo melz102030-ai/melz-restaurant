@@ -26,16 +26,19 @@ class OrderService {
     return ref.id;
   }
 
-  // Stream customer orders
+  // Stream customer orders — sort in Dart to avoid composite index
   static Stream<List<OrderModel>> streamCustomerOrders(String customerId) {
     return _db
         .collection(_colOrders)
         .where('customerId', isEqualTo: customerId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => OrderModel.fromMap(d.data(), d.id))
-            .toList());
+        .map((snap) {
+          final orders = snap.docs
+              .map((d) => OrderModel.fromMap(d.data(), d.id))
+              .toList();
+          orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return orders;
+        });
   }
 
   // Stream single order (for tracking)
