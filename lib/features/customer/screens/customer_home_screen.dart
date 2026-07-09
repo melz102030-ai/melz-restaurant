@@ -176,6 +176,12 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         centerTitle: false,
+        // مدخل خفي لفريق العمل (مطبخ/إدارة) — أيقونة فقط بلا نص
+        leading: IconButton(
+          icon: Icon(Icons.admin_panel_settings_outlined,
+              size: 20, color: AppColors.textHint.withOpacity(0.35)),
+          onPressed: () => context.push('/staff-login'),
+        ),
         title: Row(
           children: [
             Container(

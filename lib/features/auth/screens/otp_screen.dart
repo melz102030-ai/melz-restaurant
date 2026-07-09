@@ -14,7 +14,8 @@ import '../../../shared/widgets/app_button.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
   final String phone;
-  const OtpScreen({super.key, required this.phone});
+  final String? returnTo;
+  const OtpScreen({super.key, required this.phone, this.returnTo});
 
   @override
   ConsumerState<OtpScreen> createState() => _OtpScreenState();
@@ -109,7 +110,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     switch (role) {
       case UserRole.admin:   context.go('/admin');   break;
       case UserRole.kitchen: context.go('/kitchen'); break;
-      case UserRole.customer: context.go('/home');   break;
+      case UserRole.customer: context.go(widget.returnTo ?? '/home'); break;
     }
   }
 

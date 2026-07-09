@@ -14,7 +14,8 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  final String? returnTo;
+  const LoginScreen({super.key, this.returnTo});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -49,7 +50,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final phone = '$_selectedCountryCode${_phoneController.text.trim()}';
       await AuthService.sendOtp(phone);
       if (!mounted) return;
-      context.push('/otp', extra: phone);
+      context.push('/otp', extra: {'phone': phone, 'returnTo': widget.returnTo});
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

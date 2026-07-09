@@ -30,30 +30,33 @@ GoRouter _buildRouter(UserModel? user) {
     navigatorKey: _rootKey,
     initialLocation: _getInitialRoute(user),
     redirect: (context, state) {
-      final isAuthRoute = state.matchedLocation == '/login' ||
-          state.matchedLocation == '/otp' ||
-          state.matchedLocation == '/staff-login';
+      final loc = state.matchedLocation;
+      final isAuthRoute =
+          loc == '/login' || loc == '/otp' || loc == '/staff-login';
+      final isGuestAllowedRoute = loc == '/home' || loc == '/cart';
+      final isAdminRoute = loc.startsWith('/admin');
+      final isKitchenRoute = loc.startsWith('/kitchen');
 
-      if (user == null && !isAuthRoute) {
-        return '/login';
+      // زوار بلا تسجيل دخول: يدخلون القائمة والسلة مباشرة للمعاينة والطلب
+      if (user == null) {
+        if (isAuthRoute || isGuestAllowedRoute) return null;
+        if (isAdminRoute || isKitchenRoute) return '/staff-login';
+        return '/login'; // مثل /profile أو /track تتطلب تسجيل دخول
       }
 
-      if (user != null && isAuthRoute) {
+      if (isAuthRoute) {
         return _getHomeRoute(user.role);
       }
 
       // Role-based redirect
-      if (user != null && !isAuthRoute) {
-        final loc = state.matchedLocation;
-        if (user.role == UserRole.admin && !loc.startsWith('/admin')) {
-          if (!loc.startsWith('/home') && !loc.startsWith('/cart') &&
-              !loc.startsWith('/track') && !loc.startsWith('/profile')) {
-            return '/admin';
-          }
+      if (user.role == UserRole.admin && !isAdminRoute) {
+        if (!loc.startsWith('/home') && !loc.startsWith('/cart') &&
+            !loc.startsWith('/track') && !loc.startsWith('/profile')) {
+          return '/admin';
         }
-        if (user.role == UserRole.kitchen && !loc.startsWith('/kitchen')) {
-          return '/kitchen';
-        }
+      }
+      if (user.role == UserRole.kitchen && !isKitchenRoute) {
+        return '/kitchen';
       }
 
       return null;
@@ -62,11 +65,17 @@ GoRouter _buildRouter(UserModel? user) {
       // Auth
       GoRoute(
         path: '/login',
-        builder: (_, __) => const LoginScreen(),
+        builder: (_, state) => LoginScreen(returnTo: state.extra as String?),
       ),
       GoRoute(
         path: '/otp',
-        builder: (_, state) => OtpScreen(phone: state.extra as String),
+        builder: (_, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return OtpScreen(
+            phone: args['phone'] as String,
+            returnTo: args['returnTo'] as String?,
+          );
+        },
       ),
       GoRoute(
         path: '/staff-login',
@@ -155,7 +164,7 @@ GoRouter _buildRouter(UserModel? user) {
 }
 
 String _getInitialRoute(UserModel? user) {
-  if (user == null) return '/login';
+  if (user == null) return '/home';
   return _getHomeRoute(user.role);
 }
 

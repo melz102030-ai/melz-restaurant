@@ -36,7 +36,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final settings = ref.read(settingsProvider);
     final cartTotal = ref.read(cartTotalProvider);
 
-    if (user == null) { context.push('/login'); return; }
+    if (user == null) { context.push('/login', extra: '/cart'); return; }
     if (cart.isEmpty) return;
 
     if (!settings.effectivelyOpen) {
