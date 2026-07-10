@@ -1,4 +1,5 @@
 import 'dart:js' as js;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -333,17 +334,19 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           // Cover / logo banner — scrolls away when user scrolls down
           if (coverImageUrl != null)
             SliverToBoxAdapter(
-              child: Image.network(
-                coverImageUrl,
-                width: screenWidth,
-                fit: BoxFit.fitWidth,
-                errorBuilder: (_, __, ___) => Container(
-                  height: screenWidth * 0.55,
-                  decoration: const BoxDecoration(
-                      gradient: AppColors.heroGradient),
-                  child: const Center(
-                    child: Icon(Icons.restaurant,
-                        color: Colors.white, size: 72),
+              child: _WavyCoverBanner(
+                child: Image.network(
+                  coverImageUrl,
+                  width: screenWidth,
+                  fit: BoxFit.fitWidth,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: screenWidth * 0.55,
+                    decoration: const BoxDecoration(
+                        gradient: AppColors.heroGradient),
+                    child: const Center(
+                      child: Icon(Icons.restaurant,
+                          color: Colors.white, size: 72),
+                    ),
                   ),
                 ),
               ),
@@ -738,6 +741,89 @@ class _InstallBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Wavy lines header overlay ─────────────────────────────────────────────────
+
+class _WavyCoverBanner extends StatefulWidget {
+  final Widget child;
+  const _WavyCoverBanner({required this.child});
+
+  @override
+  State<_WavyCoverBanner> createState() => _WavyCoverBannerState();
+}
+
+class _WavyCoverBannerState extends State<_WavyCoverBanner>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    // 16ms just triggers repaint; real positions come from DateTime.now()
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 16),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        widget.child,
+        Positioned.fill(
+          child: AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) => CustomPaint(painter: _WavyLinesPainter()),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _WavyLinesPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = DateTime.now().millisecondsSinceEpoch / 1000.0;
+
+    void drawWave(double yFrac, double amp, double freq, double speed,
+        double opacity, double strokeW, double dir) {
+      final paint = Paint()
+        ..color = Colors.white.withOpacity(opacity)
+        ..strokeWidth = strokeW
+        ..style = PaintingStyle.stroke
+        ..isAntiAlias = true;
+
+      final baseY = size.height * yFrac;
+      final offset = t * speed * dir;
+
+      final path = Path();
+      path.moveTo(0, baseY + amp * math.sin(offset * freq));
+      for (double x = 3; x <= size.width; x += 3) {
+        path.lineTo(x, baseY + amp * math.sin((x + offset) * freq));
+      }
+      canvas.drawPath(path, paint);
+    }
+
+    drawWave(0.10, 13, 0.011, 58,  0.18, 1.8,  1);
+    drawWave(0.23,  8, 0.015, 72,  0.13, 1.2, -1);
+    drawWave(0.37, 15, 0.009, 44,  0.21, 2.0,  1);
+    drawWave(0.50, 10, 0.013, 66,  0.15, 1.5, -1);
+    drawWave(0.63, 12, 0.010, 51,  0.17, 1.8,  1);
+    drawWave(0.77,  7, 0.017, 78,  0.12, 1.2, -1);
+    drawWave(0.90, 14, 0.012, 62,  0.20, 2.0,  1);
+  }
+
+  @override
+  bool shouldRepaint(_WavyLinesPainter old) => true;
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────
