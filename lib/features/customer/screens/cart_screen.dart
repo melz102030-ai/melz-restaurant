@@ -1,3 +1,5 @@
+import 'dart:js' as js;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -12,6 +14,7 @@ import '../../../core/services/order_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../../auth/widgets/login_bottom_sheet.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
@@ -23,6 +26,7 @@ class CartScreen extends ConsumerStatefulWidget {
 class _CartScreenState extends ConsumerState<CartScreen> {
   final _notesController = TextEditingController();
   bool _isPlacingOrder = false;
+  OrderType _orderType = OrderType.delivery;
 
   @override
   void dispose() {
@@ -31,12 +35,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Future<void> _placeOrder() async {
-    final user = ref.read(authProvider);
     final cart = ref.read(cartProvider);
     final settings = ref.read(settingsProvider);
     final cartTotal = ref.read(cartTotalProvider);
 
-    if (user == null) { context.push('/login', extra: '/cart'); return; }
     if (cart.isEmpty) return;
 
     if (!settings.effectivelyOpen) {
@@ -56,6 +58,18 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       return;
     }
 
+    var user = ref.read(authProvider);
+    if (user == null) {
+      final loggedIn = await showLoginBottomSheet(context);
+      if (!loggedIn || !mounted) return;
+      user = ref.read(authProvider);
+      if (user == null) return;
+    }
+
+    final isDelivery =
+        settings.deliveryEnabled && _orderType == OrderType.delivery;
+    final deliveryFee = isDelivery ? settings.deliveryFee : 0.0;
+
     setState(() => _isPlacingOrder = true);
     try {
       final order = OrderModel(
@@ -65,17 +79,18 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         customerPhone: user.phone,
         items: ref.read(cartProvider.notifier).toOrderItems(),
         subtotal: cartTotal,
-        deliveryFee: settings.deliveryFee,
-        total: cartTotal + settings.deliveryFee,
+        deliveryFee: deliveryFee,
+        total: cartTotal + deliveryFee,
         status: OrderStatus.pending,
         notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
+        orderType: isDelivery ? OrderType.delivery : OrderType.pickup,
       );
 
       final orderId = await OrderService.placeOrder(order);
       ref.read(cartProvider.notifier).clear();
-      if (mounted) context.go('/track/$orderId');
+      if (mounted) await _showThankYouDialog(orderId);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -88,12 +103,59 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     }
   }
 
+  Future<void> _showThankYouDialog(String orderId) async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: const [
+            Icon(Icons.celebration, color: AppColors.purple),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text('شكراً لطلبك! 🎉',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 18)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'يمكنك تتبع طلبك أول بأول، وبإمكانك فتح تطبيقات أخرى دون إغلاق المتصفح — '
+              'سنُشعرك فور جاهزية طلبك للاستلام.',
+              style: TextStyle(color: AppColors.textSecondary, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            AppButton(
+              label: 'تتبع الطلب',
+              icon: Icons.receipt_long,
+              width: double.infinity,
+              onPressed: () {
+                try {
+                  js.context.callMethod('requestNotifyPermission', []);
+                } catch (_) {}
+                Navigator.pop(ctx);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+    if (mounted) context.go('/track/$orderId');
+  }
+
   @override
   Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
     final cartTotal = ref.watch(cartTotalProvider);
     final settings = ref.watch(settingsProvider);
-    final deliveryFee = settings.deliveryFee;
+    final isDelivery =
+        settings.deliveryEnabled && _orderType == OrderType.delivery;
+    final deliveryFee = isDelivery ? settings.deliveryFee : 0.0;
     final total = cartTotal + deliveryFee;
 
     return Scaffold(
@@ -192,6 +254,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         ),
                       ),
 
+                      if (settings.deliveryEnabled) ...[
+                        const SizedBox(height: 16),
+                        _OrderTypeToggle(
+                          orderType: _orderType,
+                          onChanged: (t) => setState(() => _orderType = t),
+                        ),
+                      ],
+
                       const SizedBox(height: 16),
 
                       // Price summary
@@ -201,8 +271,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             _PriceRow(AppStrings.subtotal,
                                 '${cartTotal.toStringAsFixed(2)} ${AppStrings.sar}'),
                             const SizedBox(height: 8),
-                            _PriceRow(AppStrings.deliveryFee,
-                                '${deliveryFee.toStringAsFixed(2)} ${AppStrings.sar}'),
+                            _PriceRow(
+                                isDelivery ? AppStrings.deliveryFee : 'الاستلام من المطعم',
+                                isDelivery
+                                    ? '${deliveryFee.toStringAsFixed(2)} ${AppStrings.sar}'
+                                    : 'مجاناً'),
                             const Divider(color: AppColors.surfaceLight),
                             _PriceRow(
                               AppStrings.total,
@@ -425,6 +498,90 @@ class _CartItemTile extends ConsumerWidget {
       height: 64,
       decoration: const BoxDecoration(color: AppColors.surfaceLight),
       child: const Icon(Icons.restaurant, color: AppColors.textHint, size: 28),
+    );
+  }
+}
+
+class _OrderTypeToggle extends StatelessWidget {
+  final OrderType orderType;
+  final ValueChanged<OrderType> onChanged;
+
+  const _OrderTypeToggle({required this.orderType, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ToggleOption(
+              label: 'توصيل',
+              icon: Icons.delivery_dining,
+              isSelected: orderType == OrderType.delivery,
+              onTap: () => onChanged(OrderType.delivery),
+            ),
+          ),
+          Expanded(
+            child: _ToggleOption(
+              label: 'استلام من المطعم',
+              icon: Icons.storefront,
+              isSelected: orderType == OrderType.pickup,
+              onTap: () => onChanged(OrderType.pickup),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleOption extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ToggleOption({
+    required this.label,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.purple : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon,
+                size: 16,
+                color: isSelected ? Colors.white : AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppColors.textSecondary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

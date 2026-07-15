@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
@@ -137,12 +138,24 @@ class _AdminOrderCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              order.customerPhone,
-              style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+            GestureDetector(
+              onTap: () =>
+                  launchUrl(Uri(scheme: 'tel', path: order.customerPhone)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.call, color: AppColors.success, size: 13),
+                  const SizedBox(width: 4),
+                  Text(
+                    order.customerPhone,
+                    style: const TextStyle(
+                        color: AppColors.textHint, fontSize: 12),
+                  ),
+                ],
+              ),
             ),
             Text(
-              DateFormat('dd/MM/yyyy - hh:mm a').format(order.createdAt),
+              '${DateFormat('dd/MM/yyyy - hh:mm a').format(order.createdAt)} · ${order.orderType.label}',
               style: const TextStyle(color: AppColors.textHint, fontSize: 11),
             ),
           ],

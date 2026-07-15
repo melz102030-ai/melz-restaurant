@@ -9,6 +9,12 @@ enum OrderStatus {
   cancelled,
 }
 
+enum OrderType { delivery, pickup }
+
+extension OrderTypeExt on OrderType {
+  String get label => this == OrderType.delivery ? 'توصيل' : 'استلام من المطعم';
+}
+
 extension OrderStatusExt on OrderStatus {
   String get label {
     switch (this) {
@@ -138,6 +144,7 @@ class OrderModel {
   final String? kitchenNotes;
   final int? estimatedMinutes;
   final DateTime? estimatedSetAt;
+  final OrderType orderType;
 
   const OrderModel({
     required this.id,
@@ -156,6 +163,7 @@ class OrderModel {
     this.kitchenNotes,
     this.estimatedMinutes,
     this.estimatedSetAt,
+    this.orderType = OrderType.delivery,
   });
 
   // الوقت المتبقي حتى الجاهزية (سالب = تأخير)
@@ -194,6 +202,10 @@ class OrderModel {
       estimatedSetAt: map['estimatedSetAt'] is Timestamp
           ? (map['estimatedSetAt'] as Timestamp).toDate()
           : null,
+      orderType: OrderType.values.firstWhere(
+        (t) => t.name == (map['orderType'] ?? 'delivery'),
+        orElse: () => OrderType.delivery,
+      ),
     );
   }
 
@@ -216,6 +228,7 @@ class OrderModel {
       'estimatedSetAt': estimatedSetAt != null
           ? Timestamp.fromDate(estimatedSetAt!)
           : null,
+      'orderType': orderType.name,
     };
   }
 
@@ -243,6 +256,7 @@ class OrderModel {
       kitchenNotes: kitchenNotes ?? this.kitchenNotes,
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
       estimatedSetAt: estimatedSetAt ?? this.estimatedSetAt,
+      orderType: orderType,
     );
   }
 }

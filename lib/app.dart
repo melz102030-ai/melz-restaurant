@@ -6,7 +6,6 @@ import 'core/models/user_model.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/login_screen.dart';
-import 'features/auth/screens/otp_screen.dart';
 import 'features/auth/screens/staff_login_screen.dart';
 import 'features/customer/screens/customer_home_screen.dart';
 import 'features/customer/screens/cart_screen.dart';
@@ -31,8 +30,7 @@ GoRouter _buildRouter(UserModel? user) {
     initialLocation: _getInitialRoute(user),
     redirect: (context, state) {
       final loc = state.matchedLocation;
-      final isAuthRoute =
-          loc == '/login' || loc == '/otp' || loc == '/staff-login';
+      final isAuthRoute = loc == '/login' || loc == '/staff-login';
       final isGuestAllowedRoute = loc == '/home' || loc == '/cart';
       final isAdminRoute = loc.startsWith('/admin');
       final isKitchenRoute = loc.startsWith('/kitchen');
@@ -66,16 +64,6 @@ GoRouter _buildRouter(UserModel? user) {
       GoRoute(
         path: '/login',
         builder: (_, state) => LoginScreen(returnTo: state.extra as String?),
-      ),
-      GoRoute(
-        path: '/otp',
-        builder: (_, state) {
-          final args = state.extra as Map<String, dynamic>;
-          return OtpScreen(
-            phone: args['phone'] as String,
-            returnTo: args['returnTo'] as String?,
-          );
-        },
       ),
       GoRoute(
         path: '/staff-login',

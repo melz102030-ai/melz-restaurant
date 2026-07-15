@@ -8,34 +8,94 @@ class AuthService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _colUsers = 'users';
 
-  // يُخزّن نتيجة إرسال OTP على الويب
-  static ConfirmationResult? _webConfirmResult;
-
-  // ─── إرسال OTP عبر Firebase (SMS) ────────────────────────────────────────
-  static Future<void> sendOtp(String phone) async {
-    _webConfirmResult = await _auth.signInWithPhoneNumber(phone);
+  // ─── تطبيع رقم الجوال إلى صيغة موحّدة بغض النظر عن كيفية كتابته ─────────────
+  // يقبل: 05XXXXXXXX، 5XXXXXXXX، 966XXXXXXXXX، +966 5XXXXXXXX ... إلخ
+  static String normalizePhone(String countryCode, String rawInput) {
+    final ccDigits = countryCode.replaceAll(RegExp(r'\D'), '');
+    var digits = rawInput.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith(ccDigits) && ccDigits.isNotEmpty) {
+      return digits;
+    }
+    digits = digits.replaceFirst(RegExp(r'^0+'), '');
+    return '$ccDigits$digits';
   }
 
-  // ─── التحقق من الكود ──────────────────────────────────────────────────────
-  static Future<UserModel> verifyOtp(String code) async {
-    if (_webConfirmResult == null) {
-      throw Exception('لم يتم إرسال الكود بعد');
-    }
-    final credential = await _webConfirmResult!.confirm(code);
+  static String _pseudoEmail(String normalizedPhone) =>
+      '$normalizedPhone@meals.local';
+
+  // ─── إنشاء حساب عميل برقم جوال + كلمة مرور ───────────────────────────────
+  static Future<UserModel> signUpWithPhonePassword(
+    String countryCode,
+    String rawPhone,
+    String password,
+    String name,
+  ) async {
+    final normalized = normalizePhone(countryCode, rawPhone);
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: _pseudoEmail(normalized),
+      password: password,
+    );
     final firebaseUser = credential.user;
-    if (firebaseUser == null) throw Exception('فشل التحقق');
-    return await _getOrCreateUser(firebaseUser);
+    if (firebaseUser == null) throw Exception('فشل إنشاء الحساب');
+
+    final user = UserModel(
+      id: firebaseUser.uid,
+      phone: normalized,
+      name: name.trim().isEmpty ? 'عميل' : name.trim(),
+      role: UserRole.customer,
+      createdAt: DateTime.now(),
+    );
+    await _db.collection(_colUsers).doc(firebaseUser.uid).set(user.toMap());
+    return user;
+  }
+
+  // ─── تسجيل الدخول برقم الجوال + كلمة المرور ──────────────────────────────
+  static Future<UserModel> loginWithPhonePassword(
+    String countryCode,
+    String rawPhone,
+    String password,
+  ) async {
+    final normalized = normalizePhone(countryCode, rawPhone);
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: _pseudoEmail(normalized),
+      password: password,
+    );
+    final firebaseUser = credential.user;
+    if (firebaseUser == null) throw Exception('فشل تسجيل الدخول');
+    return await _getOrCreateUser(firebaseUser, normalized);
+  }
+
+  static String phonePasswordError(String code) {
+    switch (code) {
+      case 'user-not-found':
+      case 'invalid-credential':
+      case 'wrong-password':
+        return 'رقم الجوال أو كلمة المرور غير صحيحة';
+      case 'email-already-in-use':
+        return 'يوجد حساب مسجّل بهذا الرقم مسبقاً، سجّل الدخول بدلاً من ذلك';
+      case 'weak-password':
+        return 'كلمة المرور ضعيفة، اختر كلمة مرور أطول';
+      case 'invalid-email':
+        return 'رقم الجوال غير صحيح';
+      case 'too-many-requests':
+        return 'طلبات كثيرة، حاول لاحقاً';
+      case 'network-request-failed':
+        return 'تحقق من اتصال الإنترنت';
+      default:
+        return 'خطأ: $code';
+    }
   }
 
   // ─── إنشاء أو جلب مستخدم من Firestore ────────────────────────────────────
-  static Future<UserModel> _getOrCreateUser(User firebaseUser) async {
+  static Future<UserModel> _getOrCreateUser(User firebaseUser,
+      [String? phone]) async {
     final doc = await _db.collection(_colUsers).doc(firebaseUser.uid).get();
     if (doc.exists) {
       return UserModel.fromMap(doc.data()!, doc.id);
     }
     final user = UserModel(
       id: firebaseUser.uid,
-      phone: firebaseUser.phoneNumber ?? '',
+      phone: phone ?? firebaseUser.phoneNumber ?? '',
       name: 'عميل',
       role: UserRole.customer,
       createdAt: DateTime.now(),

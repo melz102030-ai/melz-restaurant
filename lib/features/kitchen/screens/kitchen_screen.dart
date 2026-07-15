@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
@@ -321,13 +322,17 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
   bool _expanded = false;
   Timer? _ticker;
 
+  bool get _isTerminal =>
+      widget.order.status == OrderStatus.delivered ||
+      widget.order.status == OrderStatus.cancelled;
+
   @override
   void initState() {
     super.initState();
     final mins = widget.order.estimatedMinutes;
     _timeCtrl.text = mins != null ? '$mins' : '';
     _notesCtrl.text = widget.order.kitchenNotes ?? '';
-    if (widget.order.estimatedMinutes != null) {
+    if (widget.order.estimatedMinutes != null && !_isTerminal) {
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
       });
@@ -337,6 +342,13 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
   @override
   void didUpdateWidget(_KitchenOrderCard old) {
     super.didUpdateWidget(old);
+
+    if (_isTerminal) {
+      _ticker?.cancel();
+      _ticker = null;
+      return;
+    }
+
     // عند وصول estimatedMinutes من Firestore لأول مرة ابدأ المؤقت
     if (old.order.estimatedMinutes == null &&
         widget.order.estimatedMinutes != null &&
@@ -476,8 +488,36 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                           fontSize: 12,
                         ),
                       ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: (order.orderType == OrderType.delivery
+                                  ? AppColors.purple
+                                  : AppColors.manjawi)
+                              .withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          order.orderType.label,
+                          style: TextStyle(
+                            color: order.orderType == OrderType.delivery
+                                ? AppColors.purple
+                                : AppColors.manjawi,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
+                ),
+
+                IconButton(
+                  onPressed: () =>
+                      launchUrl(Uri(scheme: 'tel', path: order.customerPhone)),
+                  icon: const Icon(Icons.call, color: AppColors.success, size: 20),
+                  tooltip: 'اتصل بالعميل',
                 ),
 
                 // Time elapsed + countdown
@@ -514,8 +554,8 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    // Countdown pill (shown only when estimatedMinutes is set)
-                    if (order.estimatedMinutes != null) ...[
+                    // Countdown pill (shown only when estimatedMinutes is set and order still active)
+                    if (order.estimatedMinutes != null && !_isTerminal) ...[
                       Builder(builder: (_) {
                         final remaining = order.remainingTime!;
                         final isLate = remaining.isNegative;

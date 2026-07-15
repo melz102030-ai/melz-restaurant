@@ -9,9 +9,7 @@ import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../../core/services/auth_service.dart';
-import '../../../shared/widgets/app_button.dart';
-import '../../../shared/widgets/gradient_container.dart';
+import '../widgets/phone_password_form.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   final String? returnTo;
@@ -22,62 +20,17 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _phoneController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
-  String _selectedCountryCode = '+966';
-
-  static const List<Map<String, String>> _countryCodes = [
-    {'code': '+966', 'flag': '🇸🇦', 'name': 'السعودية'},
-    {'code': '+971', 'flag': '🇦🇪', 'name': 'الإمارات'},
-    {'code': '+965', 'flag': '🇰🇼', 'name': 'الكويت'},
-    {'code': '+973', 'flag': '🇧🇭', 'name': 'البحرين'},
-    {'code': '+974', 'flag': '🇶🇦', 'name': 'قطر'},
-    {'code': '+968', 'flag': '🇴🇲', 'name': 'عمان'},
-  ];
-
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _sendOtp() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isLoading = true);
-
-    try {
-      final phone = '$_selectedCountryCode${_phoneController.text.trim()}';
-      await AuthService.sendOtp(phone);
-      if (!mounted) return;
-      context.push('/otp', extra: {'phone': phone, 'returnTo': widget.returnTo});
-    } on FirebaseAuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(_firebaseError(e.code)),
-        backgroundColor: AppColors.error,
-      ));
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('خطأ: $e'),
-        backgroundColor: AppColors.error,
-      ));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  String _firebaseError(String code) {
-    switch (code) {
-      case 'invalid-phone-number':
-        return 'رقم الجوال غير صحيح';
-      case 'too-many-requests':
-        return 'طلبات كثيرة، حاول لاحقاً';
-      case 'network-request-failed':
-        return 'تحقق من اتصال الإنترنت';
-      default:
-        return 'خطأ: $code';
+  void _onLoginSuccess(UserModel user) {
+    switch (user.role) {
+      case UserRole.admin:
+        context.go('/admin');
+        break;
+      case UserRole.kitchen:
+        context.go('/kitchen');
+        break;
+      case UserRole.customer:
+        context.go(widget.returnTo ?? '/home');
+        break;
     }
   }
 
@@ -143,169 +96,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           Center(child: _buildLogo()),
                           const SizedBox(height: 40),
                         ],
-                        Text(
-                          'مرحباً بك!',
-                          style: Theme.of(context).textTheme.headlineMedium,
-                        ).animate().fadeIn(),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'أدخل رقم جوالك للمتابعة',
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ).animate().fadeIn(delay: 100.ms),
+                        PhonePasswordForm(onSuccess: _onLoginSuccess)
+                            .animate()
+                            .fadeIn(delay: 100.ms),
+
                         const SizedBox(height: 40),
-                        Form(
-                          key: _formKey,
+                        const Divider(color: AppColors.surfaceLight),
+                        const SizedBox(height: 20),
+
+                        // Admin/Kitchen login hint
+                        Center(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              // Phone input
-                              Text(
-                                AppStrings.phoneNumber,
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                              const Text(
+                                'هل أنت من فريق العمل؟',
+                                style: TextStyle(color: AppColors.textHint),
                               ),
                               const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  // Country code dropdown
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surfaceLight,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: AppColors.purpleDark,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    child: DropdownButtonHideUnderline(
-                                      child: DropdownButton<String>(
-                                        value: _selectedCountryCode,
-                                        dropdownColor: AppColors.surface,
-                                        items: _countryCodes.map((c) {
-                                          return DropdownMenuItem<String>(
-                                            value: c['code'],
-                                            child: Text(
-                                              '${c['flag']} ${c['code']}',
-                                              style: const TextStyle(
-                                                color: AppColors.textPrimary,
-                                              ),
-                                            ),
-                                          );
-                                        }).toList(),
-                                        onChanged: (v) {
-                                          if (v != null) {
-                                            setState(() => _selectedCountryCode = v);
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: TextFormField(
-                                      controller: _phoneController,
-                                      keyboardType: TextInputType.phone,
-                                      textAlign: TextAlign.left,
-                                      style: const TextStyle(
-                                        color: AppColors.textPrimary,
-                                        fontSize: 18,
-                                        letterSpacing: 1.5,
-                                      ),
-                                      decoration: const InputDecoration(
-                                        hintText: '5XXXXXXXX',
-                                        prefixIcon: Icon(Icons.phone_android),
-                                      ),
-                                      validator: (v) {
-                                        if (v == null || v.trim().isEmpty) {
-                                          return 'أدخل رقم الجوال';
-                                        }
-                                        if (v.trim().length < 9) {
-                                          return 'رقم الجوال غير صحيح';
-                                        }
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 32),
-
-                              // Send OTP Button
-                              AppButton(
-                                label: AppStrings.sendOtp,
-                                onPressed: _sendOtp,
-                                isLoading: _isLoading,
-                                icon: Icons.send,
-                                width: double.infinity,
-                              ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2),
-
-                              const SizedBox(height: 16),
-
-                              // WhatsApp note
-                              GlassMorphCard(
-                                padding: const EdgeInsets.all(12),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF25D366).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: const Icon(
-                                        Icons.chat,
-                                        color: Color(0xFF25D366),
-                                        size: 20,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    const Expanded(
-                                      child: Text(
-                                        'سيتم إرسال رمز التحقق عبر SMS',
-                                        style: TextStyle(
-                                          color: AppColors.textSecondary,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ).animate().fadeIn(delay: 400.ms),
-
-                              const SizedBox(height: 40),
-                              const Divider(color: AppColors.surfaceLight),
-                              const SizedBox(height: 20),
-
-                              // Admin/Kitchen login hint
-                              Center(
-                                child: Column(
-                                  children: [
-                                    const Text(
-                                      'هل أنت من فريق العمل؟',
-                                      style: TextStyle(color: AppColors.textHint),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    TextButton.icon(
-                                      onPressed: () => context.push('/staff-login'),
-                                      icon: const Icon(Icons.admin_panel_settings),
-                                      label: const Text('دخول الإدارة والمطبخ'),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: AppColors.manjawi,
-                                      ),
-                                    ),
-                                  ],
+                              TextButton.icon(
+                                onPressed: () => context.push('/staff-login'),
+                                icon: const Icon(Icons.admin_panel_settings),
+                                label: const Text('دخول الإدارة والمطبخ'),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.manjawi,
                                 ),
                               ),
-
-                              // ─── أزرار معاينة مؤقتة (DEV ONLY) ───────────
-                              const SizedBox(height: 24),
-                              const _DevLoginButtons(),
                             ],
                           ),
                         ),
+
+                        // ─── أزرار معاينة مؤقتة (DEV ONLY) ───────────
+                        const SizedBox(height: 24),
+                        const _DevLoginButtons(),
                       ],
                     ),
                   ),

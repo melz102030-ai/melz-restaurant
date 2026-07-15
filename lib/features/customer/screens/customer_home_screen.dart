@@ -31,6 +31,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   String? _highlightedCatId;
   bool _suppressScrollDetection = false;
   bool _showInstallBanner = false;
+  bool _isIosInstallable = false;
+  bool _installBannerDismissed = false;
 
   @override
   void initState() {
@@ -46,8 +48,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   void _checkInstallPrompt() {
     try {
       final ready = js.context['_pwaInstallReady'] == true;
-      if (mounted && ready != _showInstallBanner) {
-        setState(() => _showInstallBanner = ready);
+      final iosInstallable =
+          js.context.callMethod('isIosSafariInstallable', []) == true;
+      if (mounted &&
+          (ready != _showInstallBanner || iosInstallable != _isIosInstallable)) {
+        setState(() {
+          _showInstallBanner = ready;
+          _isIosInstallable = iosInstallable;
+        });
       }
     } catch (_) {}
   }
@@ -56,7 +64,42 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     try {
       js.context.callMethod('showPwaInstallPrompt', []);
     } catch (_) {}
-    setState(() => _showInstallBanner = false);
+    setState(() => _installBannerDismissed = true);
+  }
+
+  void _showIosInstallInstructions() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('تثبيت التطبيق',
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 17)),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'لتثبيت التطبيق على شاشتك الرئيسية:',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            SizedBox(height: 12),
+            _IosStep(number: '1', text: 'اضغط زر المشاركة ⬆️ في شريط المتصفح'),
+            SizedBox(height: 8),
+            _IosStep(number: '2', text: 'اختر "إضافة إلى الشاشة الرئيسية"'),
+            SizedBox(height: 8),
+            _IosStep(number: '3', text: 'اضغط "إضافة" للتأكيد'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('حسناً'),
+          ),
+        ],
+      ),
+    );
+    setState(() => _installBannerDismissed = true);
   }
 
   @override
@@ -285,11 +328,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         physics: const BouncingScrollPhysics(),
         slivers: [
           // بانر تثبيت التطبيق (PWA)
-          if (_showInstallBanner)
+          if (!_installBannerDismissed && (_showInstallBanner || _isIosInstallable))
             SliverToBoxAdapter(
               child: _InstallBanner(
-                onInstall: _triggerInstall,
-                onDismiss: () => setState(() => _showInstallBanner = false),
+                isIos: _isIosInstallable && !_showInstallBanner,
+                onInstall: _isIosInstallable && !_showInstallBanner
+                    ? _showIosInstallInstructions
+                    : _triggerInstall,
+                onDismiss: () => setState(() => _installBannerDismissed = true),
               ),
             ),
 
@@ -654,10 +700,47 @@ class _StickyBarDelegate extends SliverPersistentHeaderDelegate {
 
 // ── PWA Install Banner ────────────────────────────────────────────────────────
 
+class _IosStep extends StatelessWidget {
+  final String number;
+  final String text;
+  const _IosStep({required this.number, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            color: AppColors.purple,
+            shape: BoxShape.circle,
+          ),
+          child: Text(number,
+              style: const TextStyle(
+                  color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(text,
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+        ),
+      ],
+    );
+  }
+}
+
 class _InstallBanner extends StatelessWidget {
   final VoidCallback onInstall;
   final VoidCallback onDismiss;
-  const _InstallBanner({required this.onInstall, required this.onDismiss});
+  final bool isIos;
+  const _InstallBanner({
+    required this.onInstall,
+    required this.onDismiss,
+    this.isIos = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -706,7 +789,9 @@ class _InstallBanner extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'أضفه لشاشتك الرئيسية للوصول السريع',
+                    isIos
+                        ? 'أضفه لشاشتك الرئيسية عبر زر المشاركة'
+                        : 'أضفه لشاشتك الرئيسية للوصول السريع',
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 11,
@@ -728,7 +813,7 @@ class _InstallBanner extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8)),
                 elevation: 0,
               ),
-              child: const Text('تحميل',
+              child: Text(isIos ? 'كيف؟' : 'تحميل',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
             ),
             const SizedBox(width: 4),

@@ -12,6 +12,7 @@ class RestaurantSettings {
   final String? address;
   final String? welcomeMessage;
   final bool allowOrders;
+  final bool deliveryEnabled;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -27,6 +28,7 @@ class RestaurantSettings {
     this.address,
     this.welcomeMessage,
     this.allowOrders = true,
+    this.deliveryEnabled = true,
   });
 
   // هل المطعم مفتوح فعلياً الآن؟ (الوقت الحالي ضمن الجدول + المفتاح اليدوي)
@@ -82,6 +84,7 @@ class RestaurantSettings {
       address: map['address'],
       welcomeMessage: map['welcomeMessage'],
       allowOrders: map['allowOrders'] ?? true,
+      deliveryEnabled: map['deliveryEnabled'] ?? true,
     );
   }
 
@@ -100,6 +103,7 @@ class RestaurantSettings {
       'address': address,
       'welcomeMessage': welcomeMessage,
       'allowOrders': allowOrders,
+      'deliveryEnabled': deliveryEnabled,
     };
   }
 
@@ -117,6 +121,7 @@ class RestaurantSettings {
     String? address,
     String? welcomeMessage,
     bool? allowOrders,
+    bool? deliveryEnabled,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -132,6 +137,7 @@ class RestaurantSettings {
       address: address ?? this.address,
       welcomeMessage: welcomeMessage ?? this.welcomeMessage,
       allowOrders: allowOrders ?? this.allowOrders,
+      deliveryEnabled: deliveryEnabled ?? this.deliveryEnabled,
     );
   }
 }

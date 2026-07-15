@@ -33,6 +33,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _welcomeMsgCtrl = TextEditingController();
   bool _isOpen = true;
   bool _allowOrders = true;
+  bool _deliveryEnabled = true;
   bool _isSaving = false;
   bool _isLoaded = false;
   Uint8List? _logoBytes;
@@ -80,6 +81,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _welcomeMsgCtrl.text = settings.welcomeMessage ?? '';
         _isOpen = settings.isOpen;
         _allowOrders = settings.allowOrders;
+        _deliveryEnabled = settings.deliveryEnabled;
         _currentLogoUrl = settings.logoUrl;
         _currentCoverUrl = settings.coverUrl;
         _isLoaded = true;
@@ -147,6 +149,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             ? null
             : _welcomeMsgCtrl.text.trim(),
         allowOrders: _allowOrders,
+        deliveryEnabled: _deliveryEnabled,
       );
 
       await SettingsService.updateSettings(settings);
@@ -231,7 +234,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             const SizedBox(height: 12),
             _Field(
               controller: _whatsappCtrl,
-              label: 'رقم واتساب المطعم (للـOTP)',
+              label: 'رقم واتساب المطعم',
               icon: Icons.chat,
               hint: '+966XXXXXXXXX',
               keyboardType: TextInputType.phone,
@@ -287,6 +290,16 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             const SizedBox(height: 24),
 
             _SectionTitle(title: 'الأسعار والوقت', icon: Icons.monetization_on),
+            GlassMorphCard(
+              child: _SwitchRow(
+                label: 'تفعيل التوصيل',
+                subtitle: 'السماح للعميل بالاختيار بين التوصيل والاستلام من المطعم',
+                value: _deliveryEnabled,
+                onChanged: (v) => setState(() => _deliveryEnabled = v),
+                icon: Icons.delivery_dining,
+              ),
+            ),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(

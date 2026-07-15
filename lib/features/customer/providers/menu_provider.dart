@@ -12,10 +12,9 @@ final categoriesStreamProvider = StreamProvider<List<CategoryModel>>((ref) {
 final menuItemsStreamProvider =
     StreamProvider.family<List<MenuItemModel>, String?>((ref, categoryId) {
   // stream all items ordered by sortOrder, filter in Dart to avoid composite index
+  // (sold-out items stay in the list — the UI greys them out instead of hiding them)
   return MenuService.streamMenuItems().map((items) => items
-      .where((i) =>
-          i.isAvailable &&
-          (categoryId == null || i.categoryId == categoryId))
+      .where((i) => categoryId == null || i.categoryId == categoryId)
       .toList());
 });
 

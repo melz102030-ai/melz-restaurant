@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:js' as js;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
@@ -62,10 +64,14 @@ class _OrderTrackingContent extends StatefulWidget {
 class _OrderTrackingContentState extends State<_OrderTrackingContent> {
   Timer? _ticker;
 
+  bool get _isTerminal =>
+      widget.order.status == OrderStatus.delivered ||
+      widget.order.status == OrderStatus.cancelled;
+
   @override
   void initState() {
     super.initState();
-    if (widget.order.estimatedMinutes != null) {
+    if (widget.order.estimatedMinutes != null && !_isTerminal) {
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
       });
@@ -75,6 +81,18 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
   @override
   void didUpdateWidget(_OrderTrackingContent old) {
     super.didUpdateWidget(old);
+
+    if (old.order.status != OrderStatus.ready &&
+        widget.order.status == OrderStatus.ready) {
+      _notifyOrderReady();
+    }
+
+    if (_isTerminal) {
+      _ticker?.cancel();
+      _ticker = null;
+      return;
+    }
+
     if (old.order.estimatedMinutes == null &&
         widget.order.estimatedMinutes != null &&
         _ticker == null) {
@@ -82,6 +100,15 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
         if (mounted) setState(() {});
       });
     }
+  }
+
+  void _notifyOrderReady() {
+    try {
+      js.context.callMethod('showOrderReadyNotification', [
+        'طلبك جاهز! 🎉',
+        'يمكنك الآن استلام طلبك #${widget.order.id.substring(0, 6).toUpperCase()}',
+      ]);
+    } catch (_) {}
   }
 
   @override
@@ -140,6 +167,36 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Quick actions: call restaurant / restaurant location
+          Row(
+            children: [
+              Expanded(
+                child: _QuickActionButton(
+                  icon: Icons.call,
+                  label: 'اتصل بالمطعم',
+                  onTap: () => launchUrl(Uri(scheme: 'tel', path: '0565235404')),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _QuickActionButton(
+                  icon: Icons.location_on_outlined,
+                  label: 'الموقع على الخريطة',
+                  onTap: () => launchUrl(
+                    Uri.parse('https://maps.app.goo.gl/DUsDbGQAaVDYHmKz9'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          if (isDelivered) ...[
+            const _DeliveredThankYouCard(),
+            const SizedBox(height: 16),
+          ],
+
           // Status card
           GlassMorphCard(
             borderColor: statusColor.withOpacity(0.5),
@@ -514,5 +571,94 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
       case OrderStatus.cancelled:
         return Icons.cancel;
     }
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.purpleDark.withOpacity(0.3)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: AppColors.purple, size: 18),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeliveredThankYouCard extends StatelessWidget {
+  const _DeliveredThankYouCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassMorphCard(
+      borderColor: AppColors.success.withOpacity(0.5),
+      child: Column(
+        children: [
+          const Icon(Icons.favorite, color: AppColors.success, size: 40)
+              .animate()
+              .scale(duration: 500.ms, curve: Curves.elasticOut),
+          const SizedBox(height: 10),
+          const Text(
+            'شكراً لطلبك من Meals! 💜',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+              fontSize: 17,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'يسعدنا لو شاركتنا رأيك — تقييمك يعني لنا الكثير ويساعد الآخرين',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          AppButton(
+            label: 'قيّمنا على خرائط جوجل',
+            icon: Icons.star_rate_rounded,
+            width: double.infinity,
+            onPressed: () => launchUrl(
+              Uri.parse('https://g.page/r/CdcxqI33hmd2EBM/review'),
+              mode: LaunchMode.externalApplication,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

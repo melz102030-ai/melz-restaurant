@@ -20,11 +20,12 @@ class MenuItemListCard extends ConsumerWidget {
           .where((i) => i.item.id == item.id)
           .fold(0, (s, c) => s + c.quantity),
     ));
+    final available = item.isAvailable;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
+        color: available ? AppColors.cardBackground : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: totalQty > 0
@@ -34,7 +35,7 @@ class MenuItemListCard extends ConsumerWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: item.hasOptions
+        onTap: available && item.hasOptions
             ? () => _showOptionsSheet(context, ref)
             : null,
         child: Padding(
@@ -47,13 +48,23 @@ class MenuItemListCard extends ConsumerWidget {
                 child: SizedBox(
                   width: 80,
                   height: 80,
-                  child: item.imageUrl != null
-                      ? Image.network(
-                          item.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder(),
-                        )
-                      : _placeholder(),
+                  child: ColorFiltered(
+                    colorFilter: available
+                        ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
+                        : const ColorFilter.matrix([
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0,      0,      0,      1, 0,
+                          ]),
+                    child: item.imageUrl != null
+                        ? Image.network(
+                            item.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _placeholder(),
+                          )
+                        : _placeholder(),
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -65,8 +76,10 @@ class MenuItemListCard extends ConsumerWidget {
                   children: [
                     Text(
                       item.name,
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
+                      style: TextStyle(
+                        color: available
+                            ? AppColors.textPrimary
+                            : AppColors.textHint,
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -84,56 +97,74 @@ class MenuItemListCard extends ConsumerWidget {
                       ),
                     ],
                     const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        if (item.hasDiscount) ...[
-                          Text(
-                            '${item.price.toStringAsFixed(0)} ${AppStrings.sar}',
-                            style: const TextStyle(
-                              color: AppColors.textHint,
-                              fontSize: 11,
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                        ],
-                        Text(
-                          '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
-                          style: const TextStyle(
-                            color: AppColors.purple,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
+                    if (!available)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'نفدت الكمية',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (item.hasDiscount) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: AppColors.red,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '-${item.discountPercent!.toInt()}%',
+                      )
+                    else
+                      Row(
+                        children: [
+                          if (item.hasDiscount) ...[
+                            Text(
+                              '${item.price.toStringAsFixed(0)} ${AppStrings.sar}',
                               style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                                color: AppColors.textHint,
+                                fontSize: 11,
+                                decoration: TextDecoration.lineThrough,
                               ),
                             ),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(
+                            '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
+                            style: const TextStyle(
+                              color: AppColors.purple,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
                           ),
+                          if (item.hasDiscount) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: AppColors.red,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '-${item.discountPercent!.toInt()}%',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (item.hasOptions) ...[
+                            const SizedBox(width: 6),
+                            const Text(
+                              'قابل للتخصيص',
+                              style: TextStyle(
+                                  color: AppColors.textHint, fontSize: 10),
+                            ),
+                          ],
                         ],
-                        if (item.hasOptions) ...[
-                          const SizedBox(width: 6),
-                          const Text(
-                            'قابل للتخصيص',
-                            style: TextStyle(
-                                color: AppColors.textHint, fontSize: 10),
-                          ),
-                        ],
-                      ],
-                    ),
+                      ),
                   ],
                 ),
               ),
@@ -141,7 +172,9 @@ class MenuItemListCard extends ConsumerWidget {
               const SizedBox(width: 8),
 
               // Add control
-              if (!item.hasOptions)
+              if (!available)
+                const SizedBox.shrink()
+              else if (!item.hasOptions)
                 totalQty == 0
                     ? _AddBtn(onTap: () => cartNotifier.addItem(item))
                     : _QtyRow(
