@@ -332,6 +332,46 @@
       } catch (e) {}
     }
 
+    // ── إشعارات المتصفح (Web Notification API) ─────────────────────────
+    // تعمل طالما التبويب مفتوح في الخلفية — بدون حاجة لخادم إشعارات
+    function requestNotifyPermission() {
+      try {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+      } catch (e) {}
+    }
+
+    function showOrderReadyNotification(title, body) {
+      try {
+        if (!('Notification' in window)) return;
+        if (Notification.permission !== 'granted') return;
+        var n = new Notification(title, {
+          body: body,
+          icon: 'icons/Icon-192.png',
+          tag: 'order-ready',
+        });
+        n.onclick = function () {
+          window.focus();
+          n.close();
+        };
+      } catch (e) {}
+    }
+
+    // ── كشف iOS Safari (لا يدعم beforeinstallprompt) ────────────────────
+    function isIosSafariInstallable() {
+      try {
+        var isIos = /iP(hone|od|ad)/.test(navigator.platform) ||
+          (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+        var isStandalone = window.navigator.standalone === true ||
+          window.matchMedia('(display-mode: standalone)').matches;
+        return isIos && !isStandalone;
+      } catch (e) {
+        return false;
+      }
+    }
+
     // ── PWA Install Prompt ────────────────────────────────────────────
     var _pwaInstallPrompt = null;
 
