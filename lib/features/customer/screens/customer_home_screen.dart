@@ -9,9 +9,11 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/models/category_model.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
 import '../../../core/providers/settings_provider.dart';
+import '../../../core/services/auth_service.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/menu_item_card.dart';
@@ -33,6 +35,27 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   bool _showInstallBanner = false;
   bool _isIosInstallable = false;
   bool _installBannerDismissed = false;
+  UserRole? _quickLoginRole;
+
+  Future<void> _quickLogin(UserRole role) async {
+    if (_quickLoginRole != null) return;
+    setState(() => _quickLoginRole = role);
+    try {
+      final user = await AuthService.quickPreviewLogin(role);
+      await ref.read(authProvider.notifier).login(user);
+      if (!mounted) return;
+      context.go(role == UserRole.kitchen ? '/kitchen' : '/admin');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('خطأ في الدخول: $e'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _quickLoginRole = null);
+    }
+  }
 
   @override
   void initState() {
@@ -220,11 +243,24 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         centerTitle: false,
-        // مدخل خفي لفريق العمل (مطبخ/إدارة) — أيقونة فقط بلا نص
-        leading: IconButton(
-          icon: Icon(Icons.admin_panel_settings_outlined,
-              size: 20, color: AppColors.textHint.withOpacity(0.35)),
-          onPressed: () => context.push('/staff-login'),
+        // دخول مباشر سريع لفريق العمل (مطبخ/إدارة) — لمرحلة المعاينة فقط
+        leadingWidth: 84,
+        leading: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _StaffQuickIcon(
+              icon: Icons.restaurant,
+              tooltip: 'دخول المطبخ (معاينة)',
+              isLoading: _quickLoginRole == UserRole.kitchen,
+              onTap: () => _quickLogin(UserRole.kitchen),
+            ),
+            _StaffQuickIcon(
+              icon: Icons.admin_panel_settings_outlined,
+              tooltip: 'دخول الإدارة (معاينة)',
+              isLoading: _quickLoginRole == UserRole.admin,
+              onTap: () => _quickLogin(UserRole.admin),
+            ),
+          ],
         ),
         title: Row(
           children: [
@@ -559,6 +595,42 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         ),
       ),
     ];
+  }
+}
+
+// ── أيقونة دخول سريع لفريق العمل (معاينة) ─────────────────────────────────────
+
+class _StaffQuickIcon extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final bool isLoading;
+  final VoidCallback onTap;
+
+  const _StaffQuickIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.isLoading,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: isLoading ? null : onTap,
+      tooltip: tooltip,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      icon: isLoading
+          ? SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.textHint.withOpacity(0.5),
+              ),
+            )
+          : Icon(icon, size: 20, color: AppColors.textHint.withOpacity(0.45)),
+    );
   }
 }
 

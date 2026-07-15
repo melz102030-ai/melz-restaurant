@@ -2,13 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/settings_provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../../../core/services/auth_service.dart';
 import '../widgets/phone_password_form.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -240,38 +239,8 @@ class _DevLoginButtonsState extends ConsumerState<_DevLoginButtons> {
     if (_loadingRole != null) return;
     setState(() => _loadingRole = role);
 
-    const names = {
-      UserRole.customer: 'عميل تجريبي',
-      UserRole.admin: 'مدير النظام',
-      UserRole.kitchen: 'موظف مطبخ',
-    };
-
     try {
-      // محاولة تسجيل الدخول المجهول للحصول على Firebase Auth token
-      String uid = 'dev_${role.name}';
-      try {
-        final anonResult = await FirebaseAuth.instance.signInAnonymously();
-        if (anonResult.user != null) uid = anonResult.user!.uid;
-      } catch (_) {
-        // Anonymous Auth غير مفعّل — نكمل بـ uid ثابت
-      }
-
-      final user = UserModel(
-        id: uid,
-        phone: 'dev_${role.name}',
-        name: names[role]!,
-        role: role,
-        createdAt: DateTime.now(),
-      );
-
-      // حفظ في Firestore حتى يُعرف الدور بعد إعادة التحميل
-      try {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .set(user.toMap(), SetOptions(merge: true));
-      } catch (_) {}
-
+      final user = await AuthService.quickPreviewLogin(role);
       await ref.read(authProvider.notifier).login(user);
 
       if (!mounted) return;
