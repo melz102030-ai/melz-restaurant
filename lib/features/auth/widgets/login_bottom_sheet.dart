@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../core/services/auth_service.dart';
 import 'phone_password_form.dart';
 
 /// نافذة منبثقة مختصرة لتسجيل الدخول/إنشاء حساب — تُستخدم عند إتمام الطلب
@@ -17,9 +20,35 @@ Future<bool> showLoginBottomSheet(BuildContext context) async {
   return result ?? false;
 }
 
-class _LoginSheetContent extends StatelessWidget {
+class _LoginSheetContent extends ConsumerStatefulWidget {
   final ValueChanged<UserModel> onSuccess;
   const _LoginSheetContent({required this.onSuccess});
+
+  @override
+  ConsumerState<_LoginSheetContent> createState() => _LoginSheetContentState();
+}
+
+class _LoginSheetContentState extends ConsumerState<_LoginSheetContent> {
+  bool _quickLoading = false;
+
+  Future<void> _quickCustomerLogin() async {
+    if (_quickLoading) return;
+    setState(() => _quickLoading = true);
+    try {
+      final user = await AuthService.quickPreviewLogin(UserRole.customer);
+      await ref.read(authProvider.notifier).login(user);
+      if (!mounted) return;
+      widget.onSuccess(user);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('خطأ: $e'),
+        backgroundColor: AppColors.error,
+      ));
+    } finally {
+      if (mounted) setState(() => _quickLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,9 +81,42 @@ class _LoginSheetContent extends StatelessWidget {
                 ),
               ),
             ),
-            PhonePasswordForm(onSuccess: onSuccess, compact: true),
+            PhonePasswordForm(onSuccess: widget.onSuccess, compact: true),
+            const SizedBox(height: 16),
+            _QuickCustomerPreviewButton(
+              isLoading: _quickLoading,
+              onTap: _quickCustomerLogin,
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── دخول سريع كعميل بدون بيانات — لمرحلة المعاينة فقط ───────────────────────
+class _QuickCustomerPreviewButton extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback onTap;
+  const _QuickCustomerPreviewButton({required this.isLoading, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: isLoading ? null : onTap,
+      icon: isLoading
+          ? const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
+            )
+          : const Icon(Icons.flash_on, size: 18, color: Colors.amber),
+      label: const Text('معاينة سريعة — دخول كعميل مباشرة'),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.amber.shade800,
+        side: BorderSide(color: Colors.amber.withValues(alpha: 0.5)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
