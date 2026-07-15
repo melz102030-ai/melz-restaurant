@@ -192,6 +192,11 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
           ),
           const SizedBox(height: 16),
 
+          if (!isDelivered && !isCancelled) ...[
+            _PlayWhileWaitingCard(orderId: order.id),
+            const SizedBox(height: 16),
+          ],
+
           if (isDelivered) ...[
             const _DeliveredThankYouCard(),
             const SizedBox(height: 16),
@@ -571,6 +576,61 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
       case OrderStatus.cancelled:
         return Icons.cancel;
     }
+  }
+}
+
+class _PlayWhileWaitingCard extends StatelessWidget {
+  final String orderId;
+  const _PlayWhileWaitingCard({required this.orderId});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => context.push('/game/$orderId'),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: AppColors.heroGradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.purple.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.videogame_asset, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('العب وأنت تنتظر 🎮',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14)),
+                  SizedBox(height: 2),
+                  Text('احمِ القلب من الاصطدام وسجّل أعلى نقاطك',
+                      style: TextStyle(color: Colors.white70, fontSize: 11)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_left, color: Colors.white, size: 22),
+          ],
+        ),
+      ),
+    );
   }
 }
 

@@ -20,6 +20,7 @@ import 'features/admin/screens/admin_settings_screen.dart';
 import 'features/admin/screens/admin_users_screen.dart';
 import 'features/kitchen/screens/kitchen_screen.dart';
 import 'features/kitchen/screens/kitchen_availability_screen.dart';
+import 'features/game/heart_dodge_game_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _adminKey = GlobalKey<NavigatorState>();
@@ -87,6 +88,11 @@ GoRouter _buildRouter(UserModel? user) {
       GoRoute(
         path: '/profile',
         builder: (_, __) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/game/:orderId',
+        builder: (_, state) =>
+            HeartDodgeGameScreen(orderId: state.pathParameters['orderId']!),
       ),
 
       // Admin - Shell route with sidebar
