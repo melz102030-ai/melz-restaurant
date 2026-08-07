@@ -133,8 +133,9 @@ class _DeliveryLocationPickerScreenState
                     initialCenter: _center,
                     initialZoom: 15,
                     onPositionChanged: (position, hasGesture) {
-                      if (hasGesture) {
-                        _center = position.center;
+                      final center = position.center;
+                      if (hasGesture && center != null) {
+                        _center = center;
                         if (!_hasPicked) setState(() => _hasPicked = true);
                       }
                     },
