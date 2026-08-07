@@ -14,10 +14,10 @@ class AppColors {
   static const Color redLight = Color(0xFFFF4433);
   static const Color redDark = Color(0xFF8B0000);
 
-  // Background Colors
+  // Background Colors — عائلة بيج دافئة موحّدة (بدون درجات رمادية/بنفسجية باردة تكسر التناسق)
   static const Color background = Color(0xFFF5EEDC);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceLight = Color(0xFFEDE7F6);
+  static const Color surfaceLight = Color(0xFFEADFC8);
   static const Color cardBackground = Color(0xFFFFFFFF);
 
   // Text Colors
@@ -48,7 +48,7 @@ class AppColors {
   );
 
   static const LinearGradient cardGradient = LinearGradient(
-    colors: [Color(0xFFF3EEF9), Color(0xFFFFFFFF)],
+    colors: [Color(0xFFF7F1E1), Color(0xFFFFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
