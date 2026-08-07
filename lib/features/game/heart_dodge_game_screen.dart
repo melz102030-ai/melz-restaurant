@@ -309,11 +309,13 @@ class _OrderStatusStrip extends StatelessWidget {
   final OrderModel? order;
   const _OrderStatusStrip({required this.order});
 
-  static const _steps = [
+  List<({OrderStatus status, IconData icon, String label})> get _steps => [
     (status: OrderStatus.pending, icon: Icons.hourglass_empty, label: 'انتظار'),
     (status: OrderStatus.confirmed, icon: Icons.thumb_up, label: 'تأكيد'),
     (status: OrderStatus.preparing, icon: Icons.restaurant, label: 'تحضير'),
     (status: OrderStatus.ready, icon: Icons.delivery_dining, label: 'جاهز'),
+    if (order!.orderType == OrderType.delivery)
+      (status: OrderStatus.outForDelivery, icon: Icons.two_wheeler, label: 'توصيل'),
     (status: OrderStatus.delivered, icon: Icons.check_circle, label: 'تسليم'),
   ];
 

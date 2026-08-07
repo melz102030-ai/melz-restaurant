@@ -28,6 +28,7 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen>
     (label: 'تأكيد', status: OrderStatus.confirmed),
     (label: 'تحضير', status: OrderStatus.preparing),
     (label: 'جاهز', status: OrderStatus.ready),
+    (label: 'توصيل', status: OrderStatus.outForDelivery),
     (label: 'تسليم', status: OrderStatus.delivered),
     (label: 'ملغى', status: OrderStatus.cancelled),
   ];
@@ -102,6 +103,7 @@ class _AdminOrderCard extends StatelessWidget {
     OrderStatus.confirmed: AppColors.statusConfirmed,
     OrderStatus.preparing: AppColors.statusPreparing,
     OrderStatus.ready: AppColors.statusReady,
+    OrderStatus.outForDelivery: AppColors.statusOutForDelivery,
     OrderStatus.delivered: AppColors.statusDelivered,
     OrderStatus.cancelled: AppColors.statusCancelled,
   };
@@ -279,7 +281,8 @@ class _StatusActionButtons extends StatelessWidget {
             color: AppColors.statusReady,
             onTap: () => OrderService.updateOrderStatus(order.id, OrderStatus.ready),
           ),
-        if (order.status == OrderStatus.ready)
+        if (order.status == OrderStatus.ready ||
+            order.status == OrderStatus.outForDelivery)
           _ActionButton(
             label: 'تم التسليم',
             icon: Icons.done_all,

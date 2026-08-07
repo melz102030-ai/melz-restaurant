@@ -280,6 +280,7 @@ class _OrderHistoryTile extends StatelessWidget {
       OrderStatus.confirmed: AppColors.statusConfirmed,
       OrderStatus.preparing: AppColors.statusPreparing,
       OrderStatus.ready: AppColors.statusReady,
+      OrderStatus.outForDelivery: AppColors.statusOutForDelivery,
       OrderStatus.delivered: AppColors.statusDelivered,
       OrderStatus.cancelled: AppColors.statusCancelled,
     };

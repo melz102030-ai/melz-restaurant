@@ -9,12 +9,17 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
 import '../../../core/providers/settings_provider.dart';
+import '../../../core/providers/delivery_zone_provider.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/models/settings_model.dart';
+import '../../../core/models/delivery_zone_model.dart';
 import '../../../core/services/order_service.dart';
+import '../../../core/services/delivery_zone_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../auth/widgets/login_bottom_sheet.dart';
+import 'delivery_location_picker_screen.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
@@ -27,11 +32,56 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   final _notesController = TextEditingController();
   bool _isPlacingOrder = false;
   OrderType _orderType = OrderType.delivery;
+  double? _deliveryLat;
+  double? _deliveryLng;
+  String? _deliveryAddressNote;
 
   @override
   void dispose() {
     _notesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDeliveryLocation() async {
+    final result = await Navigator.of(context, rootNavigator: true)
+        .push<DeliveryLocationResult>(
+      MaterialPageRoute(
+        builder: (_) => DeliveryLocationPickerScreen(
+          initialLat: _deliveryLat,
+          initialLng: _deliveryLng,
+          initialNote: _deliveryAddressNote,
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() {
+        _deliveryLat = result.lat;
+        _deliveryLng = result.lng;
+        _deliveryAddressNote = result.addressNote;
+      });
+    }
+  }
+
+  // يحدد رسوم التوصيل: حسب النطاق (المسافة) إن كان مُفعّلاً عند الإدارة، وإلا الرسم الثابت
+  ({double fee, String? zoneId, String? zoneName, bool outsideServiceArea})
+      _resolveDeliveryPricing(RestaurantSettings settings, List<DeliveryZone> zones) {
+    if (!settings.useDeliveryZones || !settings.hasRestaurantLocation || zones.isEmpty) {
+      return (fee: settings.deliveryFee, zoneId: null, zoneName: null, outsideServiceArea: false);
+    }
+    if (_deliveryLat == null || _deliveryLng == null) {
+      return (fee: settings.deliveryFee, zoneId: null, zoneName: null, outsideServiceArea: false);
+    }
+    final distance = DeliveryZoneService.distanceKm(
+      settings.restaurantLat!,
+      settings.restaurantLng!,
+      _deliveryLat!,
+      _deliveryLng!,
+    );
+    final zone = DeliveryZoneService.resolveZone(zones, distance);
+    if (zone == null) {
+      return (fee: 0, zoneId: null, zoneName: null, outsideServiceArea: true);
+    }
+    return (fee: zone.fee, zoneId: zone.id, zoneName: zone.name, outsideServiceArea: false);
   }
 
   Future<void> _placeOrder() async {
@@ -60,6 +110,28 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       return;
     }
 
+    final isDelivery =
+        settings.deliveryEnabled && _orderType == OrderType.delivery;
+
+    if (isDelivery && (_deliveryLat == null || _deliveryLng == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('الرجاء تحديد موقع التوصيل على الخريطة أولاً'),
+        backgroundColor: AppColors.warning,
+      ));
+      return;
+    }
+
+    final zones = ref.read(deliveryZonesProvider).valueOrNull ?? const <DeliveryZone>[];
+    final pricing = _resolveDeliveryPricing(settings, zones);
+
+    if (isDelivery && pricing.outsideServiceArea) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('عذراً، موقعك خارج نطاق التوصيل المتاح'),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+
     setState(() => _isPlacingOrder = true);
     try {
       var user = ref.read(authProvider);
@@ -70,9 +142,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         if (user == null) return;
       }
 
-      final isDelivery =
-          settings.deliveryEnabled && _orderType == OrderType.delivery;
-      final deliveryFee = isDelivery ? settings.deliveryFee : 0.0;
+      final deliveryFee = isDelivery ? pricing.fee : 0.0;
 
       final order = OrderModel(
         id: '',
@@ -88,6 +158,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
         orderType: isDelivery ? OrderType.delivery : OrderType.pickup,
+        deliveryLat: isDelivery ? _deliveryLat : null,
+        deliveryLng: isDelivery ? _deliveryLng : null,
+        deliveryAddress: isDelivery ? _deliveryAddressNote : null,
+        deliveryZoneId: isDelivery ? pricing.zoneId : null,
+        deliveryZoneName: isDelivery ? pricing.zoneName : null,
       );
 
       final orderId = await OrderService.placeOrder(order);
@@ -118,10 +193,14 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final cart = ref.watch(cartProvider);
     final cartTotal = ref.watch(cartTotalProvider);
     final settings = ref.watch(settingsProvider);
+    final zones = ref.watch(deliveryZonesProvider).valueOrNull ?? const <DeliveryZone>[];
     final isDelivery =
         settings.deliveryEnabled && _orderType == OrderType.delivery;
-    final deliveryFee = isDelivery ? settings.deliveryFee : 0.0;
+    final pricing = _resolveDeliveryPricing(settings, zones);
+    final deliveryFee = isDelivery ? pricing.fee : 0.0;
     final total = cartTotal + deliveryFee;
+    final locationMissing = isDelivery && (_deliveryLat == null || _deliveryLng == null);
+    final outsideServiceArea = isDelivery && pricing.outsideServiceArea;
 
     return Scaffold(
       appBar: AppBar(
@@ -227,6 +306,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         ),
                       ],
 
+                      if (isDelivery) ...[
+                        const SizedBox(height: 16),
+                        _DeliveryLocationCard(
+                          hasLocation: !locationMissing,
+                          addressNote: _deliveryAddressNote,
+                          outsideServiceArea: outsideServiceArea,
+                          onTap: _pickDeliveryLocation,
+                        ),
+                      ],
+
                       const SizedBox(height: 16),
 
                       // Price summary
@@ -237,9 +326,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                 '${cartTotal.toStringAsFixed(2)} ${AppStrings.sar}'),
                             const SizedBox(height: 8),
                             _PriceRow(
-                                isDelivery ? AppStrings.deliveryFee : 'الاستلام من المطعم',
                                 isDelivery
-                                    ? '${deliveryFee.toStringAsFixed(2)} ${AppStrings.sar}'
+                                    ? (pricing.zoneName != null
+                                        ? '${AppStrings.deliveryFee} (${pricing.zoneName})'
+                                        : AppStrings.deliveryFee)
+                                    : 'الاستلام من المطعم',
+                                isDelivery
+                                    ? (outsideServiceArea
+                                        ? '—'
+                                        : '${deliveryFee.toStringAsFixed(2)} ${AppStrings.sar}')
                                     : 'مجاناً'),
                             const Divider(color: AppColors.surfaceLight),
                             _PriceRow(
@@ -491,6 +586,95 @@ class _QtyButton extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, color: AppColors.textPrimary, size: 14),
+      ),
+    );
+  }
+}
+
+class _DeliveryLocationCard extends StatelessWidget {
+  final bool hasLocation;
+  final String? addressNote;
+  final bool outsideServiceArea;
+  final VoidCallback onTap;
+
+  const _DeliveryLocationCard({
+    required this.hasLocation,
+    required this.addressNote,
+    required this.outsideServiceArea,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = outsideServiceArea
+        ? AppColors.error
+        : hasLocation
+            ? AppColors.success
+            : AppColors.warning;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.35)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              outsideServiceArea
+                  ? Icons.location_off
+                  : hasLocation
+                      ? Icons.location_on
+                      : Icons.add_location_alt_outlined,
+              color: color,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    outsideServiceArea
+                        ? 'موقعك خارج نطاق التوصيل'
+                        : hasLocation
+                            ? 'تم تحديد موقع التوصيل'
+                            : 'حدّد موقع التوصيل',
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  if (hasLocation && addressNote != null && addressNote!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        addressNote!,
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    )
+                  else if (!hasLocation)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Text(
+                        'عبر GPS أو التحديد اليدوي على الخريطة',
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Text(
+              hasLocation ? 'تغيير' : 'تحديد',
+              style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ],
+        ),
       ),
     );
   }

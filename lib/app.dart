@@ -18,8 +18,11 @@ import 'features/admin/screens/admin_orders_screen.dart';
 import 'features/admin/screens/admin_reports_screen.dart';
 import 'features/admin/screens/admin_settings_screen.dart';
 import 'features/admin/screens/admin_users_screen.dart';
+import 'features/admin/screens/admin_drivers_screen.dart';
+import 'features/admin/screens/admin_delivery_zones_screen.dart';
 import 'features/kitchen/screens/kitchen_screen.dart';
 import 'features/kitchen/screens/kitchen_availability_screen.dart';
+import 'features/driver/screens/driver_screen.dart';
 import 'features/game/heart_dodge_game_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
@@ -35,11 +38,12 @@ GoRouter _buildRouter(UserModel? user) {
       final isGuestAllowedRoute = loc == '/home' || loc == '/cart';
       final isAdminRoute = loc.startsWith('/admin');
       final isKitchenRoute = loc.startsWith('/kitchen');
+      final isDriverRoute = loc.startsWith('/driver');
 
       // زوار بلا تسجيل دخول: يدخلون القائمة والسلة مباشرة للمعاينة والطلب
       if (user == null) {
         if (isAuthRoute || isGuestAllowedRoute) return null;
-        if (isAdminRoute || isKitchenRoute) return '/staff-login';
+        if (isAdminRoute || isKitchenRoute || isDriverRoute) return '/staff-login';
         return '/login'; // مثل /profile أو /track تتطلب تسجيل دخول
       }
 
@@ -56,6 +60,9 @@ GoRouter _buildRouter(UserModel? user) {
       }
       if (user.role == UserRole.kitchen && !isKitchenRoute) {
         return '/kitchen';
+      }
+      if (user.role == UserRole.driver && !isDriverRoute) {
+        return '/driver';
       }
 
       return null;
@@ -124,6 +131,14 @@ GoRouter _buildRouter(UserModel? user) {
             path: '/admin/settings',
             builder: (_, __) => const AdminSettingsScreen(),
           ),
+          GoRoute(
+            path: '/admin/drivers',
+            builder: (_, __) => const AdminDriversScreen(),
+          ),
+          GoRoute(
+            path: '/admin/delivery-zones',
+            builder: (_, __) => const AdminDeliveryZonesScreen(),
+          ),
         ],
       ),
 
@@ -135,6 +150,12 @@ GoRouter _buildRouter(UserModel? user) {
       GoRoute(
         path: '/kitchen/availability',
         builder: (_, __) => const KitchenAvailabilityScreen(),
+      ),
+
+      // Driver
+      GoRoute(
+        path: '/driver',
+        builder: (_, __) => const DriverScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -168,6 +189,8 @@ String _getHomeRoute(UserRole role) {
       return '/admin';
     case UserRole.kitchen:
       return '/kitchen';
+    case UserRole.driver:
+      return '/driver';
     case UserRole.customer:
       return '/home';
   }

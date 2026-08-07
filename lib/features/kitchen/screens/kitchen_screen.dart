@@ -12,6 +12,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../core/providers/drivers_provider.dart';
 import '../../../core/services/order_service.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -54,7 +55,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     // محاولة تهيئة الصوت فور فتح شاشة المطبخ
     // (يعمل إذا وصل المستخدم عبر نقرة — أي تفاعل مسبق يكفي)
     WidgetsBinding.instance.addPostFrameCallback((_) => _primeAudio());
@@ -72,6 +73,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
     final newOrders = ref.watch(newKitchenOrdersProvider);
     final inProgress = ref.watch(inProgressKitchenOrdersProvider);
     final ready = ref.watch(readyKitchenOrdersProvider);
+    final delivering = ref.watch(deliveringKitchenOrdersProvider);
     final delivered = ref.watch(deliveredKitchenOrdersProvider);
     final ordersAsync = ref.watch(kitchenOrdersProvider);
 
@@ -158,6 +160,13 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
             ),
             Tab(
               child: _TabLabel(
+                label: 'التوصيل',
+                count: delivering.length,
+                color: AppColors.statusOutForDelivery,
+              ),
+            ),
+            Tab(
+              child: _TabLabel(
                 label: 'مُسلَّمة',
                 count: delivered.length,
                 color: AppColors.statusDelivered,
@@ -217,6 +226,11 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
                   _OrdersColumn(
                     orders: ready,
                     emptyMessage: 'لا توجد طلبات جاهزة',
+                  ),
+                  // Out for delivery
+                  _OrdersColumn(
+                    orders: delivering,
+                    emptyMessage: 'لا توجد طلبات في الطريق حالياً',
                   ),
                   // Delivered (last 4 hours)
                   _OrdersColumn(
@@ -383,6 +397,22 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
     }
   }
 
+  Future<void> _openAssignDriver() async {
+    await showDialog(
+      context: context,
+      builder: (_) => _AssignDriverDialog(order: widget.order),
+    );
+  }
+
+  Future<void> _unassignDriver() async {
+    setState(() => _isUpdating = true);
+    try {
+      await OrderService.unassignDriver(widget.order.id);
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
+    }
+  }
+
   String _fmtCountdown(Duration d) {
     if (d.isNegative) {
       final over = d.abs();
@@ -403,6 +433,8 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
         return AppColors.statusPreparing;
       case OrderStatus.ready:
         return AppColors.statusReady;
+      case OrderStatus.outForDelivery:
+        return AppColors.statusOutForDelivery;
       default:
         return AppColors.textHint;
     }
@@ -509,6 +541,25 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                           ),
                         ),
                       ),
+                      if (order.driverName != null) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.delivery_dining,
+                                size: 12, color: AppColors.statusOutForDelivery),
+                            const SizedBox(width: 3),
+                            Text(
+                              order.driverName!,
+                              style: const TextStyle(
+                                color: AppColors.statusOutForDelivery,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -764,7 +815,54 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                               icon: Icons.check_circle,
                               onTap: () => _updateStatus(OrderStatus.ready),
                             ),
-                          if (order.status == OrderStatus.ready)
+                          if (order.status == OrderStatus.ready) ...[
+                            if (order.orderType == OrderType.pickup)
+                              _ActionBtn(
+                                label: AppStrings.markDelivered,
+                                color: AppColors.statusDelivered,
+                                icon: Icons.done_all,
+                                onTap: () => _updateStatus(OrderStatus.delivered),
+                              )
+                            else if (order.driverId == null)
+                              _ActionBtn(
+                                label: 'تعيين مندوب',
+                                color: AppColors.purple,
+                                icon: Icons.delivery_dining,
+                                onTap: _openAssignDriver,
+                              )
+                            else
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.warning.withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'بانتظار تأكيد: ${order.driverName}',
+                                      style: const TextStyle(
+                                        color: AppColors.warning,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: _unassignDriver,
+                                    icon: const Icon(Icons.close,
+                                        size: 16, color: AppColors.error),
+                                    tooltip: 'إلغاء تعيين المندوب',
+                                    padding: EdgeInsets.zero,
+                                    constraints:
+                                        const BoxConstraints(minWidth: 28, minHeight: 28),
+                                  ),
+                                ],
+                              ),
+                          ],
+                          if (order.status == OrderStatus.outForDelivery)
                             _ActionBtn(
                               label: AppStrings.markDelivered,
                               color: AppColors.statusDelivered,
@@ -824,6 +922,117 @@ class _ActionBtn extends StatelessWidget {
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+    );
+  }
+}
+
+class _AssignDriverDialog extends ConsumerWidget {
+  final OrderModel order;
+  const _AssignDriverDialog({required this.order});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final driversAsync = ref.watch(allDriversProvider);
+    final activeCounts = ref.watch(driverActiveOrderCountsProvider);
+
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420, maxHeight: 500),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: const Text(
+                'تعيين مندوب للطلب',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+            Flexible(
+              child: driversAsync.when(
+                loading: () => const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: LoadingWidget(),
+                ),
+                error: (e, _) => Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text('خطأ: $e', style: const TextStyle(color: AppColors.error)),
+                ),
+                data: (drivers) {
+                  if (drivers.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Text(
+                        'لا يوجد مناديب مسجّلين بعد — أضفهم من لوحة الإدارة',
+                        style: TextStyle(color: AppColors.textHint),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+                  final sorted = [...drivers]
+                    ..sort((a, b) =>
+                        (activeCounts[a.id] ?? 0).compareTo(activeCounts[b.id] ?? 0));
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    itemCount: sorted.length,
+                    itemBuilder: (_, i) {
+                      final d = sorted[i];
+                      final count = activeCounts[d.id] ?? 0;
+                      final isBusy = count > 0;
+                      final statusColor = !d.isAvailable
+                          ? AppColors.textHint
+                          : isBusy
+                              ? AppColors.warning
+                              : AppColors.success;
+                      return ListTile(
+                        onTap: () async {
+                          await OrderService.assignDriver(
+                            order.id,
+                            d.id,
+                            d.name,
+                            d.phone.isEmpty ? null : d.phone,
+                          );
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                        leading: CircleAvatar(
+                          backgroundColor: statusColor.withOpacity(0.15),
+                          child: Icon(Icons.delivery_dining, color: statusColor),
+                        ),
+                        title: Text(d.name,
+                            style: const TextStyle(
+                                color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                        subtitle: Text(
+                          !d.isAvailable
+                              ? 'غير متصل'
+                              : isBusy
+                                  ? 'مشغول — $count طلب حالي'
+                                  : 'متاح الآن',
+                          style: TextStyle(color: statusColor, fontSize: 12),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8),
+              child: TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('إلغاء'),
+              ),
+            ),
+          ],
         ),
       ),
     );

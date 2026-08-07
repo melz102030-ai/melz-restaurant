@@ -5,6 +5,7 @@ enum OrderStatus {
   confirmed,
   preparing,
   ready,
+  outForDelivery,
   delivered,
   cancelled,
 }
@@ -26,6 +27,8 @@ extension OrderStatusExt on OrderStatus {
         return 'قيد التحضير';
       case OrderStatus.ready:
         return 'جاهز';
+      case OrderStatus.outForDelivery:
+        return 'في الطريق إليك 🚗';
       case OrderStatus.delivered:
         return 'تم التسليم';
       case OrderStatus.cancelled:
@@ -43,8 +46,10 @@ extension OrderStatusExt on OrderStatus {
         return 2;
       case OrderStatus.ready:
         return 3;
-      case OrderStatus.delivered:
+      case OrderStatus.outForDelivery:
         return 4;
+      case OrderStatus.delivered:
+        return 5;
       case OrderStatus.cancelled:
         return -1;
     }
@@ -145,6 +150,16 @@ class OrderModel {
   final int? estimatedMinutes;
   final DateTime? estimatedSetAt;
   final OrderType orderType;
+  final double? deliveryLat;
+  final double? deliveryLng;
+  final String? deliveryAddress;
+  final String? deliveryZoneId;
+  final String? deliveryZoneName;
+  final String? driverId;
+  final String? driverName;
+  final String? driverPhone;
+  final DateTime? assignedAt;
+  final DateTime? pickedUpAt;
 
   const OrderModel({
     required this.id,
@@ -164,7 +179,19 @@ class OrderModel {
     this.estimatedMinutes,
     this.estimatedSetAt,
     this.orderType = OrderType.delivery,
+    this.deliveryLat,
+    this.deliveryLng,
+    this.deliveryAddress,
+    this.deliveryZoneId,
+    this.deliveryZoneName,
+    this.driverId,
+    this.driverName,
+    this.driverPhone,
+    this.assignedAt,
+    this.pickedUpAt,
   });
+
+  bool get hasDeliveryLocation => deliveryLat != null && deliveryLng != null;
 
   // الوقت المتبقي حتى الجاهزية (سالب = تأخير)
   Duration? get remainingTime {
@@ -206,6 +233,20 @@ class OrderModel {
         (t) => t.name == (map['orderType'] ?? 'delivery'),
         orElse: () => OrderType.delivery,
       ),
+      deliveryLat: (map['deliveryLat'] as num?)?.toDouble(),
+      deliveryLng: (map['deliveryLng'] as num?)?.toDouble(),
+      deliveryAddress: map['deliveryAddress'],
+      deliveryZoneId: map['deliveryZoneId'],
+      deliveryZoneName: map['deliveryZoneName'],
+      driverId: map['driverId'],
+      driverName: map['driverName'],
+      driverPhone: map['driverPhone'],
+      assignedAt: map['assignedAt'] is Timestamp
+          ? (map['assignedAt'] as Timestamp).toDate()
+          : null,
+      pickedUpAt: map['pickedUpAt'] is Timestamp
+          ? (map['pickedUpAt'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -229,6 +270,16 @@ class OrderModel {
           ? Timestamp.fromDate(estimatedSetAt!)
           : null,
       'orderType': orderType.name,
+      'deliveryLat': deliveryLat,
+      'deliveryLng': deliveryLng,
+      'deliveryAddress': deliveryAddress,
+      'deliveryZoneId': deliveryZoneId,
+      'deliveryZoneName': deliveryZoneName,
+      'driverId': driverId,
+      'driverName': driverName,
+      'driverPhone': driverPhone,
+      'assignedAt': assignedAt != null ? Timestamp.fromDate(assignedAt!) : null,
+      'pickedUpAt': pickedUpAt != null ? Timestamp.fromDate(pickedUpAt!) : null,
     };
   }
 
@@ -238,6 +289,11 @@ class OrderModel {
     String? kitchenNotes,
     int? estimatedMinutes,
     DateTime? estimatedSetAt,
+    String? driverId,
+    String? driverName,
+    String? driverPhone,
+    DateTime? assignedAt,
+    DateTime? pickedUpAt,
   }) {
     return OrderModel(
       id: id,
@@ -257,6 +313,16 @@ class OrderModel {
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,
       estimatedSetAt: estimatedSetAt ?? this.estimatedSetAt,
       orderType: orderType,
+      deliveryLat: deliveryLat,
+      deliveryLng: deliveryLng,
+      deliveryAddress: deliveryAddress,
+      deliveryZoneId: deliveryZoneId,
+      deliveryZoneName: deliveryZoneName,
+      driverId: driverId ?? this.driverId,
+      driverName: driverName ?? this.driverName,
+      driverPhone: driverPhone ?? this.driverPhone,
+      assignedAt: assignedAt ?? this.assignedAt,
+      pickedUpAt: pickedUpAt ?? this.pickedUpAt,
     );
   }
 }

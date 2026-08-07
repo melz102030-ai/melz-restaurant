@@ -36,6 +36,7 @@ class AppColors {
   static const Color statusConfirmed = Color(0xFF2196F3);
   static const Color statusPreparing = Color(0xFF9C4DCA);
   static const Color statusReady = Color(0xFF4CAF50);
+  static const Color statusOutForDelivery = Color(0xFF00838F);
   static const Color statusDelivered = Color(0xFF1B5E20);
   static const Color statusCancelled = Color(0xFFF44336);
 

@@ -139,6 +139,8 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
         return AppColors.statusPreparing;
       case OrderStatus.ready:
         return AppColors.statusReady;
+      case OrderStatus.outForDelivery:
+        return AppColors.statusOutForDelivery;
       case OrderStatus.delivered:
         return AppColors.statusDelivered;
       case OrderStatus.cancelled:
@@ -157,6 +159,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
       OrderStatus.confirmed,
       OrderStatus.preparing,
       OrderStatus.ready,
+      if (order.orderType == OrderType.delivery) OrderStatus.outForDelivery,
       OrderStatus.delivered,
     ];
 
@@ -199,6 +202,11 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
 
           if (isDelivered) ...[
             const _DeliveredThankYouCard(),
+            const SizedBox(height: 16),
+          ],
+
+          if (order.status == OrderStatus.outForDelivery && order.driverName != null) ...[
+            _DriverInfoCard(order: order),
             const SizedBox(height: 16),
           ],
 
@@ -571,6 +579,8 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
         return Icons.restaurant;
       case OrderStatus.ready:
         return Icons.delivery_dining;
+      case OrderStatus.outForDelivery:
+        return Icons.two_wheeler;
       case OrderStatus.delivered:
         return Icons.check_circle;
       case OrderStatus.cancelled:
@@ -674,6 +684,59 @@ class _QuickActionButton extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DriverInfoCard extends StatelessWidget {
+  final OrderModel order;
+  const _DriverInfoCard({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassMorphCard(
+      borderColor: AppColors.statusOutForDelivery.withOpacity(0.5),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.statusOutForDelivery.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.two_wheeler,
+                color: AppColors.statusOutForDelivery, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'مندوب التوصيل',
+                  style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                ),
+                Text(
+                  order.driverName!,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (order.driverPhone != null && order.driverPhone!.isNotEmpty)
+            IconButton(
+              onPressed: () =>
+                  launchUrl(Uri(scheme: 'tel', path: order.driverPhone)),
+              icon: const Icon(Icons.call, color: AppColors.success),
+              tooltip: 'اتصل بالمندوب',
+            ),
+        ],
       ),
     );
   }

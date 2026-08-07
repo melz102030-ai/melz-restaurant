@@ -27,6 +27,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       case UserRole.kitchen:
         context.go('/kitchen');
         break;
+      case UserRole.driver:
+        context.go('/driver');
+        break;
       case UserRole.customer:
         context.go(widget.returnTo ?? '/home');
         break;
@@ -254,6 +257,9 @@ class _DevLoginButtonsState extends ConsumerState<_DevLoginButtons> {
         case UserRole.kitchen:
           context.go('/kitchen');
           break;
+        case UserRole.driver:
+          context.go('/driver');
+          break;
       }
     } catch (e) {
       if (!mounted) return;
@@ -331,6 +337,14 @@ class _DevLoginButtonsState extends ConsumerState<_DevLoginButtons> {
                 color: AppColors.red,
                 isLoading: _loadingRole == UserRole.admin,
                 onTap: () => _loginAs(UserRole.admin),
+              ),
+              const SizedBox(width: 8),
+              _DevBtn(
+                label: 'مندوب',
+                icon: Icons.delivery_dining,
+                color: AppColors.info,
+                isLoading: _loadingRole == UserRole.driver,
+                onTap: () => _loginAs(UserRole.driver),
               ),
             ],
           ),

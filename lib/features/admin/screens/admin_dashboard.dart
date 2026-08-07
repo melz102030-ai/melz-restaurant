@@ -438,6 +438,7 @@ class _ActiveOrderTile extends StatelessWidget {
       OrderStatus.confirmed: AppColors.statusConfirmed,
       OrderStatus.preparing: AppColors.statusPreparing,
       OrderStatus.ready: AppColors.statusReady,
+      OrderStatus.outForDelivery: AppColors.statusOutForDelivery,
     };
     final color = statusColors[order.status] ?? AppColors.textHint;
 

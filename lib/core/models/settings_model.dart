@@ -13,6 +13,9 @@ class RestaurantSettings {
   final String? welcomeMessage;
   final bool allowOrders;
   final bool deliveryEnabled;
+  final double? restaurantLat;
+  final double? restaurantLng;
+  final bool useDeliveryZones;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -29,7 +32,12 @@ class RestaurantSettings {
     this.welcomeMessage,
     this.allowOrders = true,
     this.deliveryEnabled = true,
+    this.restaurantLat,
+    this.restaurantLng,
+    this.useDeliveryZones = false,
   });
+
+  bool get hasRestaurantLocation => restaurantLat != null && restaurantLng != null;
 
   // هل المطعم مفتوح فعلياً الآن؟ (الوقت الحالي ضمن الجدول + المفتاح اليدوي)
   bool get effectivelyOpen {
@@ -85,6 +93,9 @@ class RestaurantSettings {
       welcomeMessage: map['welcomeMessage'],
       allowOrders: map['allowOrders'] ?? true,
       deliveryEnabled: map['deliveryEnabled'] ?? true,
+      restaurantLat: (map['restaurantLat'] as num?)?.toDouble(),
+      restaurantLng: (map['restaurantLng'] as num?)?.toDouble(),
+      useDeliveryZones: map['useDeliveryZones'] ?? false,
     );
   }
 
@@ -104,6 +115,9 @@ class RestaurantSettings {
       'welcomeMessage': welcomeMessage,
       'allowOrders': allowOrders,
       'deliveryEnabled': deliveryEnabled,
+      'restaurantLat': restaurantLat,
+      'restaurantLng': restaurantLng,
+      'useDeliveryZones': useDeliveryZones,
     };
   }
 
@@ -122,6 +136,9 @@ class RestaurantSettings {
     String? welcomeMessage,
     bool? allowOrders,
     bool? deliveryEnabled,
+    double? restaurantLat,
+    double? restaurantLng,
+    bool? useDeliveryZones,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -138,6 +155,9 @@ class RestaurantSettings {
       welcomeMessage: welcomeMessage ?? this.welcomeMessage,
       allowOrders: allowOrders ?? this.allowOrders,
       deliveryEnabled: deliveryEnabled ?? this.deliveryEnabled,
+      restaurantLat: restaurantLat ?? this.restaurantLat,
+      restaurantLng: restaurantLng ?? this.restaurantLng,
+      useDeliveryZones: useDeliveryZones ?? this.useDeliveryZones,
     );
   }
 }

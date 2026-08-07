@@ -22,6 +22,8 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     (icon: Icons.receipt_long, label: 'الطلبات', route: '/admin/orders'),
     (icon: Icons.bar_chart, label: 'التقارير', route: '/admin/reports'),
     (icon: Icons.people, label: 'الأعضاء', route: '/admin/users'),
+    (icon: Icons.delivery_dining, label: 'المناديب', route: '/admin/drivers'),
+    (icon: Icons.map_outlined, label: 'مناطق التوصيل', route: '/admin/delivery-zones'),
     (icon: Icons.settings, label: 'الإعدادات', route: '/admin/settings'),
   ];
 

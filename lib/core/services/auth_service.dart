@@ -189,6 +189,7 @@ class AuthService {
     UserRole.customer: 'عميل تجريبي',
     UserRole.admin: 'مدير النظام',
     UserRole.kitchen: 'موظف مطبخ',
+    UserRole.driver: 'مندوب توصيل',
   };
 
   static Future<UserModel> quickPreviewLogin(UserRole role) async {
@@ -218,9 +219,9 @@ class AuthService {
     return user;
   }
 
-  // إنشاء موظف مباشرة من الأدمن (بدون OTP — يسجّل لاحقاً بنفسه)
+  // إنشاء موظف مباشرة من الأدمن (بدون OTP — يسجّل دخوله عبر /staff-login بهذه الكلمة)
   static Future<UserModel> createStaffUser(
-      String phone, String name, UserRole role) async {
+      String phone, String name, UserRole role, String password) async {
     // تحقق أولاً إن كان موجوداً
     final q = await _db
         .collection(_colUsers)
@@ -229,8 +230,11 @@ class AuthService {
         .get();
     if (q.docs.isNotEmpty) {
       final existing = UserModel.fromMap(q.docs.first.data(), q.docs.first.id);
-      await changeUserRole(existing.id, role);
-      return existing;
+      await _db.collection(_colUsers).doc(existing.id).set(
+        {'role': role.name, 'name': name, 'staffPassword': password},
+        SetOptions(merge: true),
+      );
+      return existing.copyWith(name: name, role: role);
     }
     final ref = _db.collection(_colUsers).doc();
     final user = UserModel(
@@ -240,7 +244,23 @@ class AuthService {
       role: role,
       createdAt: DateTime.now(),
     );
-    await ref.set(user.toMap());
+    await ref.set({...user.toMap(), 'staffPassword': password});
     return user;
+  }
+
+  // ─── المناديب ─────────────────────────────────────────────────────────────
+  static Stream<List<UserModel>> streamDrivers() {
+    return _db
+        .collection(_colUsers)
+        .where('role', isEqualTo: UserRole.driver.name)
+        .snapshots()
+        .map((s) => s.docs.map((d) => UserModel.fromMap(d.data(), d.id)).toList());
+  }
+
+  static Future<void> setDriverAvailability(String driverId, bool isAvailable) async {
+    await _db
+        .collection(_colUsers)
+        .doc(driverId)
+        .set({'isAvailable': isAvailable}, SetOptions(merge: true));
   }
 }

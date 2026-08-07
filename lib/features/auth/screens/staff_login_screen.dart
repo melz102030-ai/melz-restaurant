@@ -43,7 +43,7 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
       final query = await FirebaseFirestore.instance
           .collection('users')
           .where('phone', isEqualTo: phone)
-          .where('role', whereIn: ['admin', 'kitchen'])
+          .where('role', whereIn: ['admin', 'kitchen', 'driver'])
           .limit(1)
           .get();
 
@@ -69,6 +69,9 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
           break;
         case UserRole.kitchen:
           context.go('/kitchen');
+          break;
+        case UserRole.driver:
+          context.go('/driver');
           break;
         case UserRole.customer:
           context.go('/home');

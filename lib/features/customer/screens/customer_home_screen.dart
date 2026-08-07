@@ -44,7 +44,18 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       final user = await AuthService.quickPreviewLogin(role);
       await ref.read(authProvider.notifier).login(user);
       if (!mounted) return;
-      context.go(role == UserRole.kitchen ? '/kitchen' : '/admin');
+      switch (role) {
+        case UserRole.kitchen:
+          context.go('/kitchen');
+          break;
+        case UserRole.driver:
+          context.go('/driver');
+          break;
+        case UserRole.admin:
+        case UserRole.customer:
+          context.go('/admin');
+          break;
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -244,7 +255,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         elevation: 0,
         centerTitle: false,
         // دخول مباشر سريع لفريق العمل (مطبخ/إدارة) — لمرحلة المعاينة فقط
-        leadingWidth: 84,
+        leadingWidth: 120,
         leading: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -253,6 +264,12 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               tooltip: 'دخول المطبخ (معاينة)',
               isLoading: _quickLoginRole == UserRole.kitchen,
               onTap: () => _quickLogin(UserRole.kitchen),
+            ),
+            _StaffQuickIcon(
+              icon: Icons.delivery_dining,
+              tooltip: 'دخول المندوب (معاينة)',
+              isLoading: _quickLoginRole == UserRole.driver,
+              onTap: () => _quickLogin(UserRole.driver),
             ),
             _StaffQuickIcon(
               icon: Icons.admin_panel_settings_outlined,

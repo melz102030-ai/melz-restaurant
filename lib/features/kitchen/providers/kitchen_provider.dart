@@ -32,10 +32,35 @@ final readyKitchenOrdersProvider = Provider<List<OrderModel>>((ref) {
   return orders.where((o) => o.status == OrderStatus.ready).toList();
 });
 
+final deliveringKitchenOrdersProvider = Provider<List<OrderModel>>((ref) {
+  final orders = ref.watch(kitchenOrdersProvider).maybeWhen(
+    data: (d) => d,
+    orElse: () => <OrderModel>[],
+  );
+  return orders.where((o) => o.status == OrderStatus.outForDelivery).toList();
+});
+
 final deliveredKitchenOrdersProvider = Provider<List<OrderModel>>((ref) {
   final orders = ref.watch(kitchenOrdersProvider).maybeWhen(
     data: (d) => d,
     orElse: () => <OrderModel>[],
   );
   return orders.where((o) => o.status == OrderStatus.delivered).toList();
+});
+
+// عدد الطلبات النشطة (بانتظار تأكيد المندوب أو في الطريق) لكل مندوب — لتحديد "متاح" أو "مشغول"
+final driverActiveOrderCountsProvider = Provider<Map<String, int>>((ref) {
+  final orders = ref.watch(kitchenOrdersProvider).maybeWhen(
+    data: (d) => d,
+    orElse: () => <OrderModel>[],
+  );
+  final counts = <String, int>{};
+  for (final o in orders) {
+    final driverId = o.driverId;
+    if (driverId == null) continue;
+    if (o.status == OrderStatus.ready || o.status == OrderStatus.outForDelivery) {
+      counts[driverId] = (counts[driverId] ?? 0) + 1;
+    }
+  }
+  return counts;
 });

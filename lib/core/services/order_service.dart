@@ -21,6 +21,12 @@ class OrderService {
       notes: order.notes,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
+      orderType: order.orderType,
+      deliveryLat: order.deliveryLat,
+      deliveryLng: order.deliveryLng,
+      deliveryAddress: order.deliveryAddress,
+      deliveryZoneId: order.deliveryZoneId,
+      deliveryZoneName: order.deliveryZoneName,
     );
     await ref.set(newOrder.toMap());
     return ref.id;
@@ -76,6 +82,7 @@ class OrderService {
           OrderStatus.confirmed.name,
           OrderStatus.preparing.name,
           OrderStatus.ready.name,
+          OrderStatus.outForDelivery.name,
           OrderStatus.delivered.name,
         ])
         .snapshots()
@@ -90,6 +97,58 @@ class OrderService {
           filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
           return filtered;
         });
+  }
+
+  // Stream orders currently assigned to a driver (awaiting confirmation, or out for delivery)
+  // فلترة واحدة فقط في Firestore (driverId) والباقي في Dart لتجنب Composite Index
+  static Stream<List<OrderModel>> streamDriverOrders(String driverId) {
+    return _db
+        .collection(_colOrders)
+        .where('driverId', isEqualTo: driverId)
+        .snapshots()
+        .map((snap) {
+          final orders = snap.docs
+              .map((d) => OrderModel.fromMap(d.data(), d.id))
+              .where((o) =>
+                  o.status == OrderStatus.ready || o.status == OrderStatus.outForDelivery)
+              .toList();
+          orders.sort((a, b) =>
+              (a.assignedAt ?? a.createdAt).compareTo(b.assignedAt ?? b.createdAt));
+          return orders;
+        });
+  }
+
+  // Assign a driver to a ready delivery order (awaiting the driver's confirmation)
+  static Future<void> assignDriver(
+      String orderId, String driverId, String driverName, String? driverPhone) async {
+    await _db.collection(_colOrders).doc(orderId).update({
+      'driverId': driverId,
+      'driverName': driverName,
+      'driverPhone': driverPhone,
+      'assignedAt': Timestamp.fromDate(DateTime.now()),
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
+  // Kitchen/admin cancels a pending driver assignment (order stays "ready", unassigned)
+  static Future<void> unassignDriver(String orderId) async {
+    await _db.collection(_colOrders).doc(orderId).update({
+      'driverId': null,
+      'driverName': null,
+      'driverPhone': null,
+      'assignedAt': null,
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
+  // Driver confirms pickup of an assigned order — moves it to "out for delivery"
+  static Future<void> confirmPickup(String orderId) async {
+    final now = DateTime.now();
+    await _db.collection(_colOrders).doc(orderId).update({
+      'status': OrderStatus.outForDelivery.name,
+      'pickedUpAt': Timestamp.fromDate(now),
+      'updatedAt': Timestamp.fromDate(now),
+    });
   }
 
   // Update order status

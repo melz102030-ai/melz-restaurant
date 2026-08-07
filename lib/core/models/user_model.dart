@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum UserRole { customer, admin, kitchen }
+enum UserRole { customer, admin, kitchen, driver }
 
 class UserModel {
   final String id;
@@ -9,6 +9,9 @@ class UserModel {
   final UserRole role;
   final DateTime createdAt;
   final String? fcmToken;
+  // Driver-only fields
+  final bool isAvailable;
+  final String? vehicleType;
 
   const UserModel({
     required this.id,
@@ -17,6 +20,8 @@ class UserModel {
     required this.role,
     required this.createdAt,
     this.fcmToken,
+    this.isAvailable = true,
+    this.vehicleType,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
@@ -32,6 +37,8 @@ class UserModel {
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
       fcmToken: map['fcmToken'],
+      isAvailable: map['isAvailable'] ?? true,
+      vehicleType: map['vehicleType'],
     );
   }
 
@@ -42,6 +49,8 @@ class UserModel {
       'role': role.name,
       'createdAt': Timestamp.fromDate(createdAt),
       'fcmToken': fcmToken,
+      'isAvailable': isAvailable,
+      'vehicleType': vehicleType,
     };
   }
 
@@ -49,6 +58,8 @@ class UserModel {
     String? name,
     UserRole? role,
     String? fcmToken,
+    bool? isAvailable,
+    String? vehicleType,
   }) {
     return UserModel(
       id: id,
@@ -57,6 +68,8 @@ class UserModel {
       role: role ?? this.role,
       createdAt: createdAt,
       fcmToken: fcmToken ?? this.fcmToken,
+      isAvailable: isAvailable ?? this.isAvailable,
+      vehicleType: vehicleType ?? this.vehicleType,
     );
   }
 }

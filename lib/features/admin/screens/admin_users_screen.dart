@@ -155,11 +155,13 @@ class _UserTile extends StatelessWidget {
     final roleColors = {
       UserRole.admin: AppColors.purple,
       UserRole.kitchen: AppColors.manjawi,
+      UserRole.driver: AppColors.info,
       UserRole.customer: AppColors.textSecondary,
     };
     final roleLabels = {
       UserRole.admin: 'إدارة',
       UserRole.kitchen: 'مطبخ',
+      UserRole.driver: 'مندوب',
       UserRole.customer: 'عميل',
     };
     final color = roleColors[user.role] ?? AppColors.textSecondary;
@@ -286,8 +288,8 @@ class _AddStaffDialogState extends State<_AddStaffDialog> {
         createdAt: DateTime.now(),
       );
       // Add staff user to Firestore with password
-      await AuthService.createStaffUser(
-          _phoneCtrl.text.trim(), _nameCtrl.text.trim(), _selectedRole);
+      await AuthService.createStaffUser(_phoneCtrl.text.trim(),
+          _nameCtrl.text.trim(), _selectedRole, _passwordCtrl.text.trim());
       if (mounted) Navigator.pop(context);
     } finally {
       if (mounted) setState(() => _isSaving = false);
