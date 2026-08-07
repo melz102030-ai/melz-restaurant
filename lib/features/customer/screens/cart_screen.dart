@@ -414,41 +414,51 @@ class _CartItemTile extends ConsumerWidget {
           ),
 
           // Quantity controls
-          Row(
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              IconButton(
-                onPressed: () => cart.removeItem(cartItem.cartKey),
-                icon: const Icon(Icons.remove_circle_outline,
-                    color: AppColors.red, size: 22),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  '${cartItem.quantity}',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _QtyButton(
+                      icon: Icons.remove,
+                      onTap: () => cart.removeItem(cartItem.cartKey),
+                    ),
+                    SizedBox(
+                      width: 22,
+                      child: Text(
+                        '${cartItem.quantity}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    _QtyButton(
+                      icon: Icons.add,
+                      onTap: () => cart.addItem(cartItem.item, cartItem.selectedOptions),
+                    ),
+                  ],
                 ),
               ),
-              IconButton(
-                onPressed: () => cart.addItem(cartItem.item, cartItem.selectedOptions),
-                icon: const Icon(Icons.add_circle_outline,
-                    color: AppColors.purple, size: 22),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 8),
+              const SizedBox(height: 6),
               // Delete
-              IconButton(
-                onPressed: () => cart.deleteItem(cartItem.cartKey),
-                icon: const Icon(Icons.delete_outline,
-                    color: AppColors.textHint, size: 20),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              InkWell(
+                onTap: () => cart.deleteItem(cartItem.cartKey),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.delete_outline,
+                      color: AppColors.textHint, size: 16),
+                ),
               ),
             ],
           ),
@@ -463,6 +473,25 @@ class _CartItemTile extends ConsumerWidget {
       height: 64,
       decoration: const BoxDecoration(color: AppColors.surfaceLight),
       child: const Icon(Icons.restaurant, color: AppColors.textHint, size: 28),
+    );
+  }
+}
+
+class _QtyButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _QtyButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Icon(icon, color: AppColors.textPrimary, size: 14),
+      ),
     );
   }
 }
