@@ -35,6 +35,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Future<void> _placeOrder() async {
+    if (_isPlacingOrder) return;
+
     final cart = ref.read(cartProvider);
     final settings = ref.read(settingsProvider);
     final cartTotal = ref.read(cartTotalProvider);
@@ -58,20 +60,20 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       return;
     }
 
-    var user = ref.read(authProvider);
-    if (user == null) {
-      final loggedIn = await showLoginBottomSheet(context);
-      if (!loggedIn || !mounted) return;
-      user = ref.read(authProvider);
-      if (user == null) return;
-    }
-
-    final isDelivery =
-        settings.deliveryEnabled && _orderType == OrderType.delivery;
-    final deliveryFee = isDelivery ? settings.deliveryFee : 0.0;
-
     setState(() => _isPlacingOrder = true);
     try {
+      var user = ref.read(authProvider);
+      if (user == null) {
+        final loggedIn = await showLoginBottomSheet(context);
+        if (!loggedIn || !mounted) return;
+        user = ref.read(authProvider);
+        if (user == null) return;
+      }
+
+      final isDelivery =
+          settings.deliveryEnabled && _orderType == OrderType.delivery;
+      final deliveryFee = isDelivery ? settings.deliveryFee : 0.0;
+
       final order = OrderModel(
         id: '',
         customerId: user.id,
@@ -90,7 +92,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
       final orderId = await OrderService.placeOrder(order);
       ref.read(cartProvider.notifier).clear();
-      if (mounted) await _showThankYouDialog(orderId);
+      if (!mounted) return;
+      try {
+        js.context.callMethod('requestNotifyPermission', []);
+      } catch (_) {}
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('شكراً لطلبك! 🎉 يمكنك تتبع طلبك أول بأول'),
+        backgroundColor: AppColors.purple,
+      ));
+      context.go('/track/$orderId');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -101,51 +111,6 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     } finally {
       if (mounted) setState(() => _isPlacingOrder = false);
     }
-  }
-
-  Future<void> _showThankYouDialog(String orderId) async {
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: const [
-            Icon(Icons.celebration, color: AppColors.purple),
-            SizedBox(width: 10),
-            Expanded(
-              child: Text('شكراً لطلبك! 🎉',
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 18)),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'يمكنك تتبع طلبك أول بأول، وبإمكانك فتح تطبيقات أخرى دون إغلاق المتصفح — '
-              'سنُشعرك فور جاهزية طلبك للاستلام.',
-              style: TextStyle(color: AppColors.textSecondary, height: 1.5),
-            ),
-            const SizedBox(height: 20),
-            AppButton(
-              label: 'تتبع الطلب',
-              icon: Icons.receipt_long,
-              width: double.infinity,
-              onPressed: () {
-                try {
-                  js.context.callMethod('requestNotifyPermission', []);
-                } catch (_) {}
-                Navigator.pop(ctx);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-    if (mounted) context.go('/track/$orderId');
   }
 
   @override
