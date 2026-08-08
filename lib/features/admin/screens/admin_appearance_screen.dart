@@ -42,6 +42,55 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
     }
   }
 
+  // يحفظ المظهر الحالي كإفتراضي (يستبدل أي إفتراضي محفوظ سابقاً) ويطبّقه أيضاً كمظهر حالي
+  Future<void> _setAsDefault(AppThemeSettings settings) async {
+    setState(() => _isSaving = true);
+    try {
+      await AppThemeService.setDefaultTheme(settings);
+      await AppThemeService.updateTheme(settings);
+      if (mounted) {
+        setState(() => _draft = null);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('تم تعيين هذا المظهر كإفتراضي — حل محل الإفتراضي السابق'),
+          backgroundColor: AppColors.success,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  // يرجع للمظهر الذي عيّنه الأدمن كإفتراضي (أو المظهر الأصلي للتطبيق إن لم يُعيَّن أي إفتراضي بعد)
+  Future<void> _restoreDefault() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('استعادة المظهر الافتراضي'),
+        content: const Text('سيتم استبدال المظهر الحالي بالكامل بالمظهر الافتراضي المحفوظ. هل تريد المتابعة؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('استعادة')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final defaultTheme = await AppThemeService.getDefaultTheme() ?? const AppThemeSettings();
+      await AppThemeService.updateTheme(defaultTheme);
+      if (mounted) {
+        setState(() => _draft = null);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('تم استعادة المظهر الافتراضي'),
+          backgroundColor: AppColors.success,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   Future<void> _pickColor(BuildContext context, Color initial, ValueChanged<Color> onPicked) async {
     Color temp = initial;
     await showDialog(
@@ -98,13 +147,13 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
           _SectionTitle('الألوان الأساسية'),
           const SizedBox(height: 10),
           _ColorRow(
-            label: 'اللون البنفسجي (أساسي)',
+            label: 'اللون الأساسي',
             color: Color(settings.primaryColor),
             onTap: () => _pickColor(context, Color(settings.primaryColor),
                 (c) => _update(current, (s) => s.copyWith(primaryColor: c.toARGB32()))),
           ),
           _ColorRow(
-            label: 'اللون المنجاوي (ثانوي)',
+            label: 'اللون الثانوي',
             color: Color(settings.secondaryColor),
             onTap: () => _pickColor(context, Color(settings.secondaryColor),
                 (c) => _update(current, (s) => s.copyWith(secondaryColor: c.toARGB32()))),
@@ -198,7 +247,13 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: () => _update(current, (_) => const AppThemeSettings()),
+            onPressed: _isSaving ? null : () => _setAsDefault(settings),
+            icon: const Icon(Icons.bookmark_added_outlined),
+            label: const Text('تعيين الحالي كإفتراضي'),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: _isSaving ? null : _restoreDefault,
             icon: const Icon(Icons.restart_alt),
             label: const Text('استعادة المظهر الافتراضي'),
           ),

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
-import '../../../core/providers/settings_provider.dart';
 
 class AdminShell extends ConsumerStatefulWidget {
   final Widget child;
@@ -14,7 +13,8 @@ class AdminShell extends ConsumerStatefulWidget {
 }
 
 class _AdminShellState extends ConsumerState<AdminShell> {
-  int _selectedIndex = 0;
+  // مطوية (أيقونات فقط) افتراضياً — يمكن توسيعها من زر الطي/التوسيع
+  bool _expanded = false;
 
   static const _navItems = [
     (icon: Icons.dashboard, label: 'لوحة التحكم', route: '/admin'),
@@ -28,130 +28,88 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     (icon: Icons.settings, label: 'الإعدادات', route: '/admin/settings'),
   ];
 
+  int _selectedIndexForLocation(String loc) {
+    final exact = _navItems.indexWhere((item) => loc == item.route);
+    if (exact != -1) return exact;
+    // أفضل تطابق جزئي (لأي مسارات فرعية مستقبلية) — أطول مسار مطابق يفوز
+    var bestIndex = 0;
+    var bestLength = -1;
+    for (var i = 0; i < _navItems.length; i++) {
+      final route = _navItems[i].route;
+      if (loc.startsWith(route) && route.length > bestLength) {
+        bestIndex = i;
+        bestLength = route.length;
+      }
+    }
+    return bestIndex;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 768;
     final user = ref.watch(authProvider);
-    final logoUrl = ref.watch(settingsStreamProvider).valueOrNull?.logoUrl;
+    final loc = GoRouterState.of(context).uri.path;
+    final selectedIndex = _selectedIndexForLocation(loc);
 
-    if (isWide) {
-      return Scaffold(
-        body: Row(
-          children: [
-            // Sidebar
-            Container(
-              width: 220,
-              color: AppColors.surface,
-              child: Column(
-                children: [
-                  // Logo
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                    ),
-                    child: Row(
-                      children: [
-                        if (logoUrl != null)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              logoUrl,
-                              width: 44,
-                              height: 44,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                            ),
-                          ),
-                        if (logoUrl != null) const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            user?.name ?? 'الإدارة',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: ListView(
-                      children: _navItems.asMap().entries.map((e) {
-                        final i = e.key;
-                        final item = e.value;
-                        final isSelected = _selectedIndex == i;
-                        return ListTile(
-                          leading: Icon(
-                            item.icon,
-                            color: isSelected ? AppColors.purple : AppColors.textHint,
-                          ),
-                          title: Text(
-                            item.label,
-                            style: TextStyle(
-                              color: isSelected ? AppColors.purple : AppColors.textSecondary,
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          selected: isSelected,
-                          selectedTileColor: AppColors.purple.withOpacity(0.1),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          onTap: () {
-                            setState(() => _selectedIndex = i);
-                            context.go(item.route);
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  // Logout
+    return Scaffold(
+      body: Row(
+        children: [
+          NavigationRail(
+            extended: _expanded,
+            backgroundColor: AppColors.surface,
+            minWidth: 64,
+            minExtendedWidth: 220,
+            selectedIndex: selectedIndex,
+            onDestinationSelected: (i) => context.go(_navItems[i].route),
+            leading: Column(
+              children: [
+                const SizedBox(height: 8),
+                IconButton(
+                  icon: Icon(_expanded ? Icons.menu_open : Icons.menu, color: AppColors.purple),
+                  tooltip: _expanded ? 'طي القائمة' : 'توسيع القائمة',
+                  onPressed: () => setState(() => _expanded = !_expanded),
+                ),
+                if (_expanded) ...[
+                  const SizedBox(height: 6),
                   Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: ListTile(
-                      leading: Icon(Icons.logout, color: AppColors.error),
-                      title: const Text(
-                        'تسجيل الخروج',
-                        style: TextStyle(color: AppColors.error),
-                      ),
-                      onTap: () async {
-                        await ref.read(authProvider.notifier).logout();
-                        if (context.mounted) context.go('/login');
-                      },
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      user?.name ?? 'الإدارة',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],
+                const SizedBox(height: 12),
+              ],
+            ),
+            trailing: Expanded(
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: IconButton(
+                    icon: Icon(Icons.logout, color: AppColors.error),
+                    tooltip: 'تسجيل الخروج',
+                    onPressed: () async {
+                      await ref.read(authProvider.notifier).logout();
+                      if (context.mounted) context.go('/login');
+                    },
+                  ),
+                ),
               ),
             ),
-            // Content
-            Expanded(child: widget.child),
-          ],
-        ),
-      );
-    }
-
-    // Mobile bottom nav
-    return Scaffold(
-      body: widget.child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.purple.withOpacity(0.2),
-        onDestinationSelected: (i) {
-          setState(() => _selectedIndex = i);
-          context.go(_navItems[i].route);
-        },
-        destinations: _navItems.map((item) {
-          return NavigationDestination(
-            icon: Icon(item.icon),
-            label: item.label,
-          );
-        }).toList(),
+            destinations: _navItems
+                .map((item) => NavigationRailDestination(
+                      icon: Icon(item.icon, color: AppColors.textHint),
+                      selectedIcon: Icon(item.icon, color: AppColors.purple),
+                      label: Text(item.label),
+                    ))
+                .toList(),
+          ),
+          VerticalDivider(width: 1, color: AppColors.surfaceLight),
+          Expanded(child: widget.child),
+        ],
       ),
     );
   }
