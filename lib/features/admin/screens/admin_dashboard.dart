@@ -64,7 +64,7 @@ class AdminDashboard extends ConsumerWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ).animate().fadeIn(),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'إدارة مطعمك من هنا',
                 style: TextStyle(color: AppColors.textSecondary),
               ).animate().fadeIn(delay: 100.ms),
@@ -91,7 +91,7 @@ class AdminDashboard extends ConsumerWidget {
                             title: AppStrings.totalRevenue,
                             value: '${(stats['totalRevenue'] as double).toStringAsFixed(0)} ${AppStrings.sar}',
                             icon: Icons.attach_money,
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               colors: [AppColors.manjawiDark, AppColors.manjawi],
                             ),
                             index: 1,
@@ -149,7 +149,7 @@ class AdminDashboard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'الإيرادات - آخر 7 أيام',
                           style: TextStyle(
                             color: AppColors.textPrimary,
@@ -172,7 +172,7 @@ class AdminDashboard extends ConsumerWidget {
                                   getTooltipItem: (group, _, rod, __) {
                                     return BarTooltipItem(
                                       '${rod.toY.toStringAsFixed(0)} ر.س',
-                                      const TextStyle(color: AppColors.purple),
+                                      TextStyle(color: AppColors.purple),
                                     );
                                   },
                                 ),
@@ -189,7 +189,7 @@ class AdminDashboard extends ConsumerWidget {
                                       final parts = date.split('-');
                                       return Text(
                                         '${parts[2]}/${parts[1]}',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: AppColors.textHint,
                                           fontSize: 10,
                                         ),
@@ -240,7 +240,7 @@ class AdminDashboard extends ConsumerWidget {
               // Active orders
               Row(
                 children: [
-                  const Text(
+                  Text(
                     'الطلبات النشطة',
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -265,10 +265,10 @@ class AdminDashboard extends ConsumerWidget {
                   ).take(5).toList();
 
                   if (active.isEmpty) {
-                    return const GlassMorphCard(
+                    return GlassMorphCard(
                       child: Center(
                         child: Padding(
-                          padding: EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(16),
                           child: Text(
                             'لا توجد طلبات نشطة حالياً',
                             style: TextStyle(color: AppColors.textHint),
@@ -295,7 +295,7 @@ class AdminDashboard extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'الأكثر مبيعاً',
                         style: TextStyle(
                           color: AppColors.textPrimary,
@@ -341,12 +341,12 @@ class AdminDashboard extends ConsumerWidget {
                                   Expanded(
                                     child: Text(
                                       item['name'] as String,
-                                      style: const TextStyle(color: AppColors.textPrimary),
+                                      style: TextStyle(color: AppColors.textPrimary),
                                     ),
                                   ),
                                   Text(
                                     '${item['count']} طلب',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.purple,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -410,7 +410,7 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -419,7 +419,7 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             title,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
+            style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ],
       ),
@@ -467,14 +467,14 @@ class _ActiveOrderTile extends StatelessWidget {
               children: [
                 Text(
                   order.customerName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   '${order.items.length} عنصر · ${order.total.toStringAsFixed(2)} ${AppStrings.sar}',
-                  style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+                  style: TextStyle(color: AppColors.textHint, fontSize: 12),
                 ),
               ],
             ),

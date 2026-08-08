@@ -88,7 +88,7 @@ class MenuItemListCard extends ConsumerWidget {
                       const SizedBox(height: 3),
                       Text(
                         item.description,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textHint,
                           fontSize: 12,
                         ),
@@ -120,7 +120,7 @@ class MenuItemListCard extends ConsumerWidget {
                           if (item.hasDiscount) ...[
                             Text(
                               '${item.price.toStringAsFixed(0)} ${AppStrings.sar}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.textHint,
                                 fontSize: 11,
                                 decoration: TextDecoration.lineThrough,
@@ -130,7 +130,7 @@ class MenuItemListCard extends ConsumerWidget {
                           ],
                           Text(
                             '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.purple,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -147,7 +147,7 @@ class MenuItemListCard extends ConsumerWidget {
                               ),
                               child: Text(
                                 '-${item.discountPercent!.toInt()}%',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
@@ -157,7 +157,7 @@ class MenuItemListCard extends ConsumerWidget {
                           ],
                           if (item.hasOptions) ...[
                             const SizedBox(width: 6),
-                            const Text(
+                            Text(
                               'قابل للتخصيص',
                               style: TextStyle(
                                   color: AppColors.textHint, fontSize: 10),
@@ -203,14 +203,14 @@ class MenuItemListCard extends ConsumerWidget {
                         child: Container(
                           width: 18,
                           height: 18,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: AppColors.red,
                             shape: BoxShape.circle,
                           ),
                           child: Center(
                             child: Text(
                               '$totalQty',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -239,7 +239,185 @@ class MenuItemListCard extends ConsumerWidget {
 
   Widget _placeholder() => Container(
         color: AppColors.surfaceLight,
-        child: const Icon(Icons.restaurant, color: AppColors.textHint, size: 32),
+        child: Icon(Icons.restaurant, color: AppColors.textHint, size: 32),
+      );
+}
+
+// ── Grid card (طريقة عرض الأصناف: شبكة) ────────────────────────────────────────
+
+class MenuItemGridCard extends ConsumerWidget {
+  final MenuItemModel item;
+  const MenuItemGridCard({super.key, required this.item});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cartNotifier = ref.watch(cartProvider.notifier);
+    final totalQty = ref.watch(cartProvider.select(
+      (c) => c
+          .where((i) => i.item.id == item.id)
+          .fold(0, (s, c) => s + c.quantity),
+    ));
+    final available = item.isAvailable;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: available ? AppColors.cardBackground : AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: totalQty > 0
+              ? AppColors.purple.withValues(alpha: 0.4)
+              : AppColors.surfaceLight,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: available && item.hasOptions
+            ? () => _showOptionsSheet(context, ref)
+            : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ColorFiltered(
+                      colorFilter: available
+                          ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
+                          : const ColorFilter.matrix([
+                              0.2126, 0.7152, 0.0722, 0, 0,
+                              0.2126, 0.7152, 0.0722, 0, 0,
+                              0.2126, 0.7152, 0.0722, 0, 0,
+                              0,      0,      0,      1, 0,
+                            ]),
+                      child: item.imageUrl != null
+                          ? Image.network(
+                              item.imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _placeholder(),
+                            )
+                          : _placeholder(),
+                    ),
+                    if (!available)
+                      Positioned(
+                        top: 6,
+                        right: 6,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.error.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'نفدت الكمية',
+                            style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    style: TextStyle(
+                      color: available ? AppColors.textPrimary : AppColors.textHint,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: available
+                            ? Text(
+                                '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
+                                style: TextStyle(
+                                  color: AppColors.purple,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
+                      if (available)
+                        totalQty == 0
+                            ? _MiniAddBtn(
+                                onTap: () => item.hasOptions
+                                    ? _showOptionsSheet(context, ref)
+                                    : cartNotifier.addItem(item),
+                              )
+                            : _MiniQtyBadge(qty: totalQty),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showOptionsSheet(BuildContext context, WidgetRef ref) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _OptionsSheet(item: item, ref: ref),
+    );
+  }
+
+  Widget _placeholder() => Container(
+        color: AppColors.surfaceLight,
+        child: Icon(Icons.restaurant, color: AppColors.textHint, size: 32),
+      );
+}
+
+class _MiniAddBtn extends StatelessWidget {
+  final VoidCallback onTap;
+  const _MiniAddBtn({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            gradient: AppColors.primaryGradient,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 16),
+        ),
+      );
+}
+
+class _MiniQtyBadge extends StatelessWidget {
+  final int qty;
+  const _MiniQtyBadge({required this.qty});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.purple,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          '×$qty',
+          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+        ),
       );
 }
 
@@ -280,7 +458,7 @@ class _QtyRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Text(
               '$qty',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.textPrimary,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
@@ -401,7 +579,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
     return Container(
       constraints:
           BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -430,7 +608,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
                     children: [
                       Text(
                         widget.item.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -438,7 +616,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
                       ),
                       Text(
                         '${widget.item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.purple,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -449,13 +627,13 @@ class _OptionsSheetState extends State<_OptionsSheet> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.textHint),
+                  icon: Icon(Icons.close, color: AppColors.textHint),
                 ),
               ],
             ),
           ),
 
-          const Divider(color: AppColors.surfaceLight, height: 16),
+          Divider(color: AppColors.surfaceLight, height: 16),
 
           // Options
           Flexible(
@@ -471,7 +649,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
                         Expanded(
                           child: Text(
                             group.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.textPrimary,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -588,7 +766,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
           // Footer: qty + add button
           Container(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.surface,
               boxShadow: [
                 BoxShadow(
@@ -615,7 +793,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Text(
                         '$_qty',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -644,7 +822,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
                       _canAdd
                           ? 'أضف للسلة — ${_totalPrice.toStringAsFixed(0)} ${AppStrings.sar}'
                           : 'اختر الخيارات الإجبارية',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 15, fontWeight: FontWeight.bold),
                     ),
                   ),

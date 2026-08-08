@@ -11,10 +11,10 @@ class LoadingWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(color: AppColors.purple),
+          CircularProgressIndicator(color: AppColors.purple),
           if (message != null) ...[
             const SizedBox(height: 16),
-            Text(message!, style: const TextStyle(color: AppColors.textSecondary)),
+            Text(message!, style: TextStyle(color: AppColors.textSecondary)),
           ],
         ],
       ),
@@ -46,7 +46,7 @@ class EmptyState extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             message,
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           if (actionLabel != null && onAction != null) ...[

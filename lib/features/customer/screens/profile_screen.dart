@@ -49,7 +49,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       appBar: AppBar(
         title: const Text(AppStrings.profile),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
+          icon: Icon(Icons.arrow_back_ios),
           onPressed: () => context.pop(),
         ),
       ),
@@ -67,7 +67,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     padding: const EdgeInsets.all(24),
                     child: Text(
                       user.name.isNotEmpty ? user.name[0].toUpperCase() : 'E',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
@@ -83,7 +83,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           child: TextField(
                             controller: _nameController..text = user.name,
                             autofocus: true,
-                            style: const TextStyle(color: AppColors.textPrimary),
+                            style: TextStyle(color: AppColors.textPrimary),
                             decoration: const InputDecoration(
                               labelText: 'الاسم',
                             ),
@@ -97,11 +97,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             }
                             setState(() => _isEditingName = false);
                           },
-                          icon: const Icon(Icons.check, color: AppColors.success),
+                          icon: Icon(Icons.check, color: AppColors.success),
                         ),
                         IconButton(
                           onPressed: () => setState(() => _isEditingName = false),
-                          icon: const Icon(Icons.close, color: AppColors.error),
+                          icon: Icon(Icons.close, color: AppColors.error),
                         ),
                       ],
                     )
@@ -111,7 +111,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         Text(
                           user.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -119,7 +119,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         IconButton(
                           onPressed: () => setState(() => _isEditingName = true),
-                          icon: const Icon(Icons.edit, color: AppColors.textHint, size: 18),
+                          icon: Icon(Icons.edit, color: AppColors.textHint, size: 18),
                         ),
                       ],
                     ),
@@ -127,7 +127,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 8),
                   Text(
                     user.phone,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
                   ),
                 ],
               ),
@@ -176,7 +176,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 24),
 
             // Order history
-            const Text(
+            Text(
               'سجل الطلبات',
               style: TextStyle(
                 color: AppColors.textPrimary,
@@ -188,9 +188,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             Builder(builder: (_) {
               if (orders.isEmpty) {
-                return const Center(
+                return Center(
                   child: Padding(
-                    padding: EdgeInsets.all(32),
+                    padding: const EdgeInsets.all(32),
                     child: Text(
                       'لا توجد طلبات سابقة',
                       style: TextStyle(color: AppColors.textHint),
@@ -260,7 +260,7 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+            style: TextStyle(color: AppColors.textHint, fontSize: 11),
             textAlign: TextAlign.center,
           ),
         ],
@@ -313,7 +313,7 @@ class _OrderHistoryTile extends StatelessWidget {
                 children: [
                   Text(
                     '#${order.id.substring(0, 8).toUpperCase()}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -321,11 +321,11 @@ class _OrderHistoryTile extends StatelessWidget {
                   ),
                   Text(
                     '${order.items.length} عنصر · ${order.total.toStringAsFixed(2)} ${AppStrings.sar}',
-                    style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+                    style: TextStyle(color: AppColors.textHint, fontSize: 12),
                   ),
                   Text(
                     DateFormat('dd/MM/yyyy').format(order.createdAt),
-                    style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+                    style: TextStyle(color: AppColors.textHint, fontSize: 11),
                   ),
                 ],
               ),

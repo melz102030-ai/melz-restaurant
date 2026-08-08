@@ -43,7 +43,7 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
         actions: [
           IconButton(
             onPressed: () => showDialog(context: context, builder: (_) => const _ZoneDialog()),
-            icon: const Icon(Icons.add_location_alt),
+            icon: Icon(Icons.add_location_alt),
             tooltip: 'إضافة نطاق',
           ),
         ],
@@ -62,10 +62,10 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
                     Icon(Icons.storefront, color: AppColors.purple, size: 20),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text('موقع المطعم',
                         style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
                   ],
@@ -85,23 +85,23 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
                   onPressed: () => _pickRestaurantLocation(context, ref),
-                  icon: const Icon(Icons.edit_location_alt, size: 18),
+                  icon: Icon(Icons.edit_location_alt, size: 18),
                   label: Text(settings.hasRestaurantLocation ? 'تغيير الموقع' : 'تحديد موقع المطعم'),
                 ),
-                const Divider(height: 28, color: AppColors.surfaceLight),
+                Divider(height: 28, color: AppColors.surfaceLight),
                 Row(
                   children: [
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('التسعير حسب المسافة',
+                          Text('التسعير حسب المسافة',
                               style: TextStyle(
                                   color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
                           const SizedBox(height: 2),
                           Text(
                             'عند التفعيل: تُحسب رسوم التوصيل حسب النطاق الذي تقع فيه مسافة العميل — بدلاً من الرسم الثابت',
-                            style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+                            style: TextStyle(color: AppColors.textHint, fontSize: 11),
                           ),
                         ],
                       ),
@@ -121,7 +121,7 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'نطاقات المسافة والأسعار',
             style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
           ),
@@ -131,7 +131,7 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
             loading: () => const Padding(padding: EdgeInsets.all(24), child: LoadingWidget()),
             error: (e, _) => Padding(
               padding: const EdgeInsets.all(24),
-              child: Text('خطأ: $e', style: const TextStyle(color: AppColors.error)),
+              child: Text('خطأ: $e', style: TextStyle(color: AppColors.error)),
             ),
             data: (zones) {
               if (zones.isEmpty) {
@@ -177,7 +177,7 @@ class _ZoneTile extends StatelessWidget {
               color: AppColors.purple.withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.social_distance, color: AppColors.purple, size: 20),
+            child: Icon(Icons.social_distance, color: AppColors.purple, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -185,17 +185,17 @@ class _ZoneTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(zone.name,
-                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
                 Text(
                   'حتى ${zone.maxDistanceKm.toStringAsFixed(1)} كم · ${zone.fee.toStringAsFixed(2)} ${AppStrings.sar}',
-                  style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+                  style: TextStyle(color: AppColors.textHint, fontSize: 12),
                 ),
               ],
             ),
           ),
           IconButton(
             onPressed: () => showDialog(context: context, builder: (_) => _ZoneDialog(zone: zone)),
-            icon: const Icon(Icons.edit, color: AppColors.textSecondary, size: 20),
+            icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 20),
           ),
           IconButton(
             onPressed: () => showDialog(
@@ -215,7 +215,7 @@ class _ZoneTile extends StatelessWidget {
                 ],
               ),
             ),
-            icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
+            icon: Icon(Icons.delete_outline, color: AppColors.error, size: 20),
           ),
         ],
       ),
@@ -278,21 +278,21 @@ class _ZoneDialogState extends State<_ZoneDialog> {
         children: [
           TextField(
             controller: _nameCtrl,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'اسم النطاق', hintText: 'مثال: قريب'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _distanceCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'حتى مسافة (كم)', hintText: 'مثال: 5'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _feeCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'رسم التوصيل', hintText: 'مثال: 10'),
           ),
         ],

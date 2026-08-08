@@ -132,7 +132,7 @@ class _AdminOrderCard extends StatelessWidget {
         ),
         title: Text(
           '${order.customerName} · #${order.id.substring(0, 8).toUpperCase()}',
-          style: const TextStyle(
+          style: TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
           ),
@@ -146,11 +146,11 @@ class _AdminOrderCard extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.call, color: AppColors.success, size: 13),
+                  Icon(Icons.call, color: AppColors.success, size: 13),
                   const SizedBox(width: 4),
                   Text(
                     order.customerPhone,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textHint, fontSize: 12),
                   ),
                 ],
@@ -158,7 +158,7 @@ class _AdminOrderCard extends StatelessWidget {
             ),
             Text(
               '${DateFormat('dd/MM/yyyy - hh:mm a').format(order.createdAt)} · ${order.orderType.label}',
-              style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+              style: TextStyle(color: AppColors.textHint, fontSize: 11),
             ),
           ],
         ),
@@ -184,7 +184,7 @@ class _AdminOrderCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               '${order.total.toStringAsFixed(2)} ${AppStrings.sar}',
-              style: const TextStyle(
+              style: TextStyle(
                 color: AppColors.purple,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
@@ -201,7 +201,7 @@ class _AdminOrderCard extends StatelessWidget {
                 children: [
                   Text(
                     '×${item.quantity}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.purple,
                       fontWeight: FontWeight.bold,
                     ),
@@ -210,12 +210,12 @@ class _AdminOrderCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       item.name,
-                      style: const TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: AppColors.textSecondary),
                     ),
                   ),
                   Text(
                     '${item.total.toStringAsFixed(2)} ${AppStrings.sar}',
-                    style: const TextStyle(color: AppColors.textHint, fontSize: 13),
+                    style: TextStyle(color: AppColors.textHint, fontSize: 13),
                   ),
                 ],
               ),
@@ -223,22 +223,22 @@ class _AdminOrderCard extends StatelessWidget {
           ),
 
           if (order.notes != null && order.notes!.isNotEmpty) ...[
-            const Divider(color: AppColors.surfaceLight),
+            Divider(color: AppColors.surfaceLight),
             Row(
               children: [
-                const Icon(Icons.note, color: AppColors.textHint, size: 16),
+                Icon(Icons.note, color: AppColors.textHint, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     order.notes!,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
                 ),
               ],
             ),
           ],
 
-          const Divider(color: AppColors.surfaceLight),
+          Divider(color: AppColors.surfaceLight),
 
           // Status actions
           if (order.status != OrderStatus.delivered &&
@@ -318,7 +318,7 @@ class _ActionButton extends StatelessWidget {
     return ElevatedButton.icon(
       onPressed: onTap,
       icon: Icon(icon, size: 16),
-      label: Text(label, style: const TextStyle(fontSize: 12)),
+      label: Text(label, style: TextStyle(fontSize: 12)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,

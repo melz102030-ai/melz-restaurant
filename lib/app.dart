@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'core/constants/app_colors.dart';
 import 'core/models/user_model.dart';
 import 'core/providers/auth_provider.dart';
+import 'core/providers/app_theme_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/staff_login_screen.dart';
@@ -20,6 +21,7 @@ import 'features/admin/screens/admin_settings_screen.dart';
 import 'features/admin/screens/admin_users_screen.dart';
 import 'features/admin/screens/admin_drivers_screen.dart';
 import 'features/admin/screens/admin_delivery_zones_screen.dart';
+import 'features/admin/screens/admin_appearance_screen.dart';
 import 'features/kitchen/screens/kitchen_screen.dart';
 import 'features/kitchen/screens/kitchen_availability_screen.dart';
 import 'features/driver/screens/driver_screen.dart';
@@ -139,6 +141,10 @@ GoRouter _buildRouter(UserModel? user) {
             path: '/admin/delivery-zones',
             builder: (_, __) => const AdminDeliveryZonesScreen(),
           ),
+          GoRoute(
+            path: '/admin/appearance',
+            builder: (_, __) => const AdminAppearanceScreen(),
+          ),
         ],
       ),
 
@@ -163,7 +169,7 @@ GoRouter _buildRouter(UserModel? user) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+            Icon(Icons.error_outline, size: 64, color: AppColors.error),
             const SizedBox(height: 16),
             Text('صفحة غير موجودة: ${state.error}'),
             const SizedBox(height: 16),
@@ -202,11 +208,18 @@ class MelzApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
+    final themeSettings = ref.watch(appThemeProvider);
+
+    // يحدّث القيم الساكنة في AppColors من إعدادات الأدمن قبل أي رسم للواجهة
+    AppColors.applyTheme(themeSettings);
 
     return MaterialApp.router(
+      // مفتاح مرتبط بإعدادات المظهر: أي تغيير من لوحة الأدمن يعيد بناء الشجرة
+      // بالكامل فوراً حتى تنعكس الألوان/الخط على كل الواجهات دفعة واحدة
+      key: ValueKey(themeSettings.toMap().toString()),
       title: 'Meals',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.buildTheme(themeSettings),
       routerConfig: _buildRouter(user),
       builder: (context, child) {
         return Directionality(

@@ -52,7 +52,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Stack(
                 children: [
                   Positioned.fill(child: Container(
-                    decoration: const BoxDecoration(gradient: AppColors.heroGradient),
+                    decoration: BoxDecoration(gradient: AppColors.heroGradient),
                   )),
                   const Positioned.fill(child: _AnimatedBubbles(isDark: true)),
                   Positioned.fill(child: Column(
@@ -103,21 +103,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             .fadeIn(delay: 100.ms),
 
                         const SizedBox(height: 40),
-                        const Divider(color: AppColors.surfaceLight),
+                        Divider(color: AppColors.surfaceLight),
                         const SizedBox(height: 20),
 
                         // Admin/Kitchen login hint
                         Center(
                           child: Column(
                             children: [
-                              const Text(
+                              Text(
                                 'هل أنت من فريق العمل؟',
                                 style: TextStyle(color: AppColors.textHint),
                               ),
                               const SizedBox(height: 8),
                               TextButton.icon(
                                 onPressed: () => context.push('/staff-login'),
-                                icon: const Icon(Icons.admin_panel_settings),
+                                icon: Icon(Icons.admin_panel_settings),
                                 label: const Text('دخول الإدارة والمطبخ'),
                                 style: TextButton.styleFrom(
                                   foregroundColor: AppColors.manjawi,
@@ -220,7 +220,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SizedBox(width: 12),
         Text(
           text,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+          style: TextStyle(color: Colors.white, fontSize: 16),
         ),
       ],
     ).animate().fadeIn(delay: 600.ms).slideX(begin: -0.2);
@@ -288,7 +288,7 @@ class _DevLoginButtonsState extends ConsumerState<_DevLoginButtons> {
         children: [
           Row(
             children: [
-              const Icon(Icons.developer_mode, color: Colors.amber, size: 16),
+              Icon(Icons.developer_mode, color: Colors.amber, size: 16),
               const SizedBox(width: 6),
               const Text(
                 'معاينة سريعة',
@@ -396,7 +396,7 @@ class _DevBtn extends StatelessWidget {
                 children: [
                   Icon(icon, size: 15),
                   const SizedBox(width: 4),
-                  Text(label, style: const TextStyle(fontSize: 13)),
+                  Text(label, style: TextStyle(fontSize: 13)),
                 ],
               ),
       ),

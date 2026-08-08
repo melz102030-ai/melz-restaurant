@@ -37,7 +37,7 @@ class _AdminDriversScreenState extends ConsumerState<AdminDriversScreen> {
         actions: [
           IconButton(
             onPressed: () => showDialog(context: context, builder: (_) => const _AddDriverDialog()),
-            icon: const Icon(Icons.person_add),
+            icon: Icon(Icons.person_add),
             tooltip: 'إضافة مندوب',
           ),
         ],
@@ -103,8 +103,8 @@ class _DriverTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(driver.name,
-                    style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-                Text(driver.phone, style: const TextStyle(color: AppColors.textHint, fontSize: 12)),
+                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+                Text(driver.phone, style: TextStyle(color: AppColors.textHint, fontSize: 12)),
                 Text(
                   !driver.isAvailable
                       ? 'غير متصل'
@@ -123,7 +123,7 @@ class _DriverTile extends StatelessWidget {
           ),
           IconButton(
             onPressed: () => AuthService.changeUserRole(driver.id, UserRole.customer),
-            icon: const Icon(Icons.person_remove_outlined, color: AppColors.error, size: 20),
+            icon: Icon(Icons.person_remove_outlined, color: AppColors.error, size: 20),
             tooltip: 'إلغاء صلاحية المندوب',
           ),
         ],
@@ -179,21 +179,21 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
         children: [
           TextField(
             controller: _nameCtrl,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'الاسم'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'رقم الجوال', hintText: '+966XXXXXXXXX'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _passwordCtrl,
             obscureText: _obscure,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
               labelText: 'كلمة المرور',
               suffixIcon: IconButton(

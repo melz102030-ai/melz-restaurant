@@ -10,9 +10,11 @@ import '../../../core/models/category_model.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/models/app_theme_settings.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
 import '../../../core/providers/settings_provider.dart';
+import '../../../core/providers/app_theme_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
@@ -107,9 +109,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('تثبيت التطبيق',
+        title: Text('تثبيت التطبيق',
             style: TextStyle(color: AppColors.textPrimary, fontSize: 17)),
-        content: const Column(
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -117,12 +119,12 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               'لتثبيت التطبيق على شاشتك الرئيسية:',
               style: TextStyle(color: AppColors.textSecondary),
             ),
-            SizedBox(height: 12),
-            _IosStep(number: '1', text: 'اضغط زر المشاركة ⬆️ في شريط المتصفح'),
-            SizedBox(height: 8),
-            _IosStep(number: '2', text: 'اختر "إضافة إلى الشاشة الرئيسية"'),
-            SizedBox(height: 8),
-            _IosStep(number: '3', text: 'اضغط "إضافة" للتأكيد'),
+            const SizedBox(height: 12),
+            const _IosStep(number: '1', text: 'اضغط زر المشاركة ⬆️ في شريط المتصفح'),
+            const SizedBox(height: 8),
+            const _IosStep(number: '2', text: 'اختر "إضافة إلى الشاشة الرئيسية"'),
+            const SizedBox(height: 8),
+            const _IosStep(number: '3', text: 'اضغط "إضافة" للتأكيد'),
           ],
         ),
         actions: [
@@ -232,6 +234,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final categoriesAsync = ref.watch(categoriesStreamProvider);
     final allItemsAsync = ref.watch(menuItemsStreamProvider(null));
     final searchQuery = ref.watch(searchQueryProvider);
+    final displayStyle = ref.watch(appThemeProvider).menuDisplayStyle;
 
     final categories = categoriesAsync.valueOrNull ?? [];
     final allItems = allItemsAsync.valueOrNull ?? [];
@@ -309,7 +312,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   settings.effectivelyOpen
                       ? 'يغلق ${settings.closeTimeLabel}'
                       : 'يفتح ${settings.openTimeLabel}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textHint,
                     fontSize: 10,
                   ),
@@ -329,7 +332,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   backgroundColor: AppColors.purpleDark,
                   child: Text(
                     user.name.isNotEmpty ? user.name[0] : 'ع',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -345,7 +348,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               children: [
                 IconButton(
                   onPressed: () => context.push('/cart'),
-                  icon: const Icon(Icons.shopping_bag_outlined,
+                  icon: Icon(Icons.shopping_bag_outlined,
                       color: AppColors.textPrimary),
                 ),
                 if (cartCount > 0)
@@ -355,14 +358,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                     child: Container(
                       width: 17,
                       height: 17,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: AppColors.red,
                         shape: BoxShape.circle,
                       ),
                       child: Center(
                         child: Text(
                           '$cartCount',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -402,27 +405,27 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       colors: [AppColors.manjawiDark, AppColors.manjawi],
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.receipt_long,
+                      Icon(Icons.receipt_long,
                           color: Colors.white, size: 20),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'طلبك الحالي: ${activeOrder.status.label}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
                         ),
                       ),
-                      const Icon(Icons.chevron_left,
+                      Icon(Icons.chevron_left,
                           color: Colors.white, size: 20),
                     ],
                   ),
@@ -440,7 +443,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   fit: BoxFit.fitWidth,
                   errorBuilder: (_, __, ___) => Container(
                     height: screenWidth * 0.55,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                         gradient: AppColors.heroGradient),
                     child: const Center(
                       child: Icon(Icons.restaurant,
@@ -483,20 +486,12 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             else
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 1),
-                      child: MenuItemListCard(item: filteredItems[i]),
-                    ),
-                    childCount: filteredItems.length,
-                  ),
-                ),
+                sliver: _itemsSliver(filteredItems, displayStyle),
               ),
           ] else ...[
             // Normal mode: grouped by category with section headers
             for (final cat in categories)
-              ..._buildCategorySection(cat, allItems),
+              ..._buildCategorySection(cat, allItems, displayStyle),
             if (allItems.isEmpty)
               const SliverToBoxAdapter(child: _EmptyState()),
           ],
@@ -536,7 +531,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                           ),
                           child: Text(
                             '$cartCount',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -558,7 +553,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                           final total = ref.watch(cartTotalProvider);
                           return Text(
                             '${total.toStringAsFixed(0)} ${AppStrings.sar}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
@@ -575,9 +570,36 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
   }
 
+  // بنية العرض المشتركة بين وضع البحث ووضع الفئات: قائمة أو شبكة حسب إعداد الأدمن
+  Widget _itemsSliver(List<MenuItemModel> items, MenuDisplayStyle style) {
+    if (style == MenuDisplayStyle.grid) {
+      return SliverGrid(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 0.72,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (_, i) => MenuItemGridCard(item: items[i]),
+          childCount: items.length,
+        ),
+      );
+    }
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (_, i) => Padding(
+          padding: const EdgeInsets.only(bottom: 1),
+          child: MenuItemListCard(item: items[i]),
+        ),
+        childCount: items.length,
+      ),
+    );
+  }
+
   // Returns a header sliver + items sliver for one category
   List<Widget> _buildCategorySection(
-      CategoryModel cat, List<MenuItemModel> allItems) {
+      CategoryModel cat, List<MenuItemModel> allItems, MenuDisplayStyle displayStyle) {
     final catItems = allItems.where((i) => i.categoryId == cat.id).toList();
     if (catItems.isEmpty) return const [];
 
@@ -591,7 +613,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
           child: Text(
             cat.name,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textPrimary,
               fontSize: 17,
               fontWeight: FontWeight.bold,
@@ -601,15 +623,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       ),
       SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (_, i) => Padding(
-              padding: const EdgeInsets.only(bottom: 1),
-              child: MenuItemListCard(item: catItems[i]),
-            ),
-            childCount: catItems.length,
-          ),
-        ),
+        sliver: _itemsSliver(catItems, displayStyle),
       ),
     ];
   }
@@ -683,16 +697,16 @@ class _SearchCategoryBar extends StatelessWidget {
           child: TextField(
             controller: searchController,
             style:
-                const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                TextStyle(color: AppColors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
               hintText: AppStrings.search,
               hintStyle:
-                  const TextStyle(color: AppColors.textHint, fontSize: 14),
-              prefixIcon: const Icon(Icons.search,
+                  TextStyle(color: AppColors.textHint, fontSize: 14),
+              prefixIcon: Icon(Icons.search,
                   color: AppColors.textHint, size: 20),
               suffixIcon: searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.close,
+                      icon: Icon(Icons.close,
                           color: AppColors.textHint, size: 18),
                       onPressed: onClearSearch,
                     )
@@ -803,18 +817,18 @@ class _IosStep extends StatelessWidget {
           width: 22,
           height: 22,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.purple,
             shape: BoxShape.circle,
           ),
           child: Text(number,
-              style: const TextStyle(
+              style: TextStyle(
                   color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(text,
-              style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+              style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
         ),
       ],
     );
@@ -861,7 +875,7 @@ class _InstallBanner extends StatelessWidget {
                 color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.install_mobile, color: Colors.white, size: 24),
+              child: Icon(Icons.install_mobile, color: Colors.white, size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -1007,13 +1021,13 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 60),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.search_off, size: 48, color: AppColors.textHint),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
             AppStrings.noItemsFound,
             style: TextStyle(color: AppColors.textHint, fontSize: 15),

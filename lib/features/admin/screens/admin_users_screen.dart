@@ -30,7 +30,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
         actions: [
           IconButton(
             onPressed: () => _showAddStaffDialog(context),
-            icon: const Icon(Icons.person_add),
+            icon: Icon(Icons.person_add),
             tooltip: 'إضافة موظف',
           ),
         ],
@@ -40,7 +40,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: AppColors.textPrimary),
               decoration: const InputDecoration(
                 hintText: 'بحث بالاسم أو الجوال...',
                 prefixIcon: Icon(Icons.search),
@@ -197,18 +197,18 @@ class _UserTile extends StatelessWidget {
               children: [
                 Text(
                   user.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   user.phone,
-                  style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+                  style: TextStyle(color: AppColors.textHint, fontSize: 12),
                 ),
                 Text(
                   'منذ ${DateFormat('dd/MM/yyyy').format(user.createdAt)}',
-                  style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+                  style: TextStyle(color: AppColors.textHint, fontSize: 11),
                 ),
               ],
             ),
@@ -240,7 +240,7 @@ class _UserTile extends StatelessWidget {
                 value: r,
                 child: Text(
                   roleLabels[r] ?? '',
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: AppColors.textPrimary),
                 ),
               );
             }).toList(),
@@ -305,21 +305,21 @@ class _AddStaffDialogState extends State<_AddStaffDialog> {
         children: [
           TextField(
             controller: _nameCtrl,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'الاسم'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'رقم الجوال', hintText: '+966XXXXXXXXX'),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _passwordCtrl,
             obscureText: _obscure,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
               labelText: 'كلمة المرور',
               suffixIcon: IconButton(
@@ -332,7 +332,7 @@ class _AddStaffDialogState extends State<_AddStaffDialog> {
           DropdownButtonFormField<UserRole>(
             value: _selectedRole,
             dropdownColor: AppColors.surface,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'الصلاحية'),
             items: const [
               DropdownMenuItem(value: UserRole.admin, child: Text('إدارة')),

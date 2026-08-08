@@ -58,17 +58,17 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
         actions: [
           IconButton(
             onPressed: () => _showAddItemDialog(context),
-            icon: const Icon(Icons.add_circle_outline),
+            icon: Icon(Icons.add_circle_outline),
             tooltip: 'إضافة عنصر',
           ),
           IconButton(
             onPressed: () => ExcelImportService.downloadTemplate(),
-            icon: const Icon(Icons.download),
+            icon: Icon(Icons.download),
             tooltip: 'تنزيل قالب Excel',
           ),
           IconButton(
             onPressed: () => _importFromExcel(context),
-            icon: const Icon(Icons.upload_file),
+            icon: Icon(Icons.upload_file),
             tooltip: 'استيراد من Excel',
           ),
         ],
@@ -124,7 +124,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
                 const SizedBox(height: 12),
                 const Text('تحذيرات:', style: TextStyle(color: Colors.orange)),
                 ...importResult.errors.map((e) => Text('• $e',
-                    style: const TextStyle(fontSize: 12, color: Colors.orange))),
+                    style: TextStyle(fontSize: 12, color: Colors.orange))),
               ],
             ],
           ),
@@ -236,7 +236,7 @@ class _MenuItemTile extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         item.name,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textPrimary, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -249,17 +249,17 @@ class _MenuItemTile extends ConsumerWidget {
                         ),
                         child: Text(
                           '${item.optionGroups.length} خيارات',
-                          style: const TextStyle(color: AppColors.purple, fontSize: 10),
+                          style: TextStyle(color: AppColors.purple, fontSize: 10),
                         ),
                       ),
                     if (!item.isAvailable)
-                      const Icon(Icons.block, color: AppColors.error, size: 16),
+                      Icon(Icons.block, color: AppColors.error, size: 16),
                   ],
                 ),
                 Text(item.categoryName,
-                    style: const TextStyle(color: AppColors.textHint, fontSize: 12)),
+                    style: TextStyle(color: AppColors.textHint, fontSize: 12)),
                 Text('${item.price.toStringAsFixed(2)} ${AppStrings.sar}',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.purple, fontWeight: FontWeight.w600)),
               ],
             ),
@@ -279,7 +279,7 @@ class _MenuItemTile extends ConsumerWidget {
                       context: context,
                       builder: (_) => _MenuItemDialog(item: item),
                     ),
-                    icon: const Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
+                    icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -295,7 +295,7 @@ class _MenuItemTile extends ConsumerWidget {
                         isDuplicate: true,
                       ),
                     ),
-                    icon: const Icon(Icons.copy, color: AppColors.purple, size: 18),
+                    icon: Icon(Icons.copy, color: AppColors.purple, size: 18),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                     tooltip: 'نسخ',
@@ -303,7 +303,7 @@ class _MenuItemTile extends ConsumerWidget {
                   const SizedBox(width: 4),
                   IconButton(
                     onPressed: () => _confirmDelete(context, item),
-                    icon: const Icon(Icons.delete, color: AppColors.error, size: 18),
+                    icon: Icon(Icons.delete, color: AppColors.error, size: 18),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
@@ -318,7 +318,7 @@ class _MenuItemTile extends ConsumerWidget {
 
   Widget _placeholder() => Container(
         width: 60, height: 60, color: AppColors.surfaceLight,
-        child: const Icon(Icons.restaurant, color: AppColors.textHint, size: 24),
+        child: Icon(Icons.restaurant, color: AppColors.textHint, size: 24),
       );
 
   void _confirmDelete(BuildContext context, MenuItemModel item) {
@@ -375,7 +375,7 @@ class _CategoriesTab extends ConsumerWidget {
           context: context,
           builder: (_) => const _CategoryDialog(),
         ),
-        child: const Icon(Icons.add),
+        child: Icon(Icons.add),
       ),
     );
   }
@@ -398,11 +398,11 @@ class _CategoryTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.label_outline, color: AppColors.purple, size: 24),
+          Icon(Icons.label_outline, color: AppColors.purple, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(cat.name,
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 16)),
@@ -417,11 +417,11 @@ class _CategoryTile extends StatelessWidget {
               context: context,
               builder: (_) => _CategoryDialog(cat: cat),
             ),
-            icon: const Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
+            icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
           ),
           IconButton(
             onPressed: () => _confirmDelete(context),
-            icon: const Icon(Icons.delete, color: AppColors.error, size: 18),
+            icon: Icon(Icons.delete, color: AppColors.error, size: 18),
           ),
         ],
       ),
@@ -564,7 +564,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
               // Header
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
@@ -572,13 +572,13 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                   children: [
                     Text(
                       widget.isDuplicate ? 'نسخة صنف' : widget.item != null ? AppStrings.editItem : AppStrings.addItem,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const Spacer(),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close, color: Colors.white),
+                      icon: Icon(Icons.close, color: Colors.white),
                     ),
                   ],
                 ),
@@ -613,7 +613,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                       border: Border.all(color: Colors.red.withValues(alpha: 0.4)),
                     ),
                     child: Text(_saveError!,
-                        style: const TextStyle(color: Colors.red, fontSize: 12)),
+                        style: TextStyle(color: Colors.red, fontSize: 12)),
                   ),
                 ),
               // Save button
@@ -663,11 +663,11 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Image.network(_imageUrl!, fit: BoxFit.cover))
-                      : const Column(
+                      : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.add_photo_alternate, color: AppColors.textHint, size: 36),
-                            SizedBox(height: 6),
+                            const SizedBox(height: 6),
                             Text('اضغط لرفع صورة',
                                 style: TextStyle(color: AppColors.textHint, fontSize: 13)),
                           ],
@@ -677,21 +677,21 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
           const SizedBox(height: 14),
           TextField(
             controller: _nameCtrl,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'اسم العنصر *'),
           ),
           const SizedBox(height: 10),
           TextField(
             controller: _descCtrl,
             maxLines: 2,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'الوصف'),
           ),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
             initialValue: _selectedCategoryId,
             dropdownColor: AppColors.surface,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'الفئة *'),
             items: categories
                 .where((c) => c.isActive)
@@ -712,7 +712,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                 child: TextField(
                   controller: _priceCtrl,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                       labelText: 'السعر *', suffix: Text(AppStrings.sar)),
                 ),
@@ -722,7 +722,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                 child: TextField(
                   controller: _discountCtrl,
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(labelText: 'الخصم %', hintText: '10'),
                 ),
               ),
@@ -731,7 +731,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
           const SizedBox(height: 10),
           Row(
             children: [
-              const Text('متوفر:', style: TextStyle(color: AppColors.textSecondary)),
+              Text('متوفر:', style: TextStyle(color: AppColors.textSecondary)),
               const Spacer(),
               Switch(
                 value: _isAvailable,
@@ -751,7 +751,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: Row(
             children: [
-              const Text(
+              Text(
                 'مجموعات الخيارات',
                 style: TextStyle(
                     color: AppColors.textPrimary,
@@ -761,27 +761,27 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
               const Spacer(),
               IconButton(
                 onPressed: () => _applyTemplate(context),
-                icon: const Icon(Icons.library_books_outlined, size: 20),
+                icon: Icon(Icons.library_books_outlined, size: 20),
                 tooltip: 'تطبيق قالب',
                 color: AppColors.purple,
               ),
               if (_optionGroups.isNotEmpty)
                 IconButton(
                   onPressed: () => _saveAsTemplate(context),
-                  icon: const Icon(Icons.bookmark_add_outlined, size: 20),
+                  icon: Icon(Icons.bookmark_add_outlined, size: 20),
                   tooltip: 'حفظ كقالب',
                   color: AppColors.purple,
                 ),
               TextButton.icon(
                 onPressed: _addOptionGroup,
-                icon: const Icon(Icons.add, size: 18),
+                icon: Icon(Icons.add, size: 18),
                 label: const Text('إضافة مجموعة'),
               ),
             ],
           ),
         ),
         if (_optionGroups.isEmpty)
-          const Expanded(
+          Expanded(
             child: Center(
               child: Text(
                 'لا توجد خيارات\nاضغط "إضافة مجموعة" لإضافة خيارات',
@@ -914,7 +914,7 @@ class _OptionGroupTile extends StatelessWidget {
           children: [
             Expanded(
               child: Text(group.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
             ),
             _badge(
@@ -933,17 +933,17 @@ class _OptionGroupTile extends StatelessWidget {
           children: [
             IconButton(
               onPressed: onEdit,
-              icon: const Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
+              icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
             IconButton(
               onPressed: onDelete,
-              icon: const Icon(Icons.delete, color: AppColors.error, size: 18),
+              icon: Icon(Icons.delete, color: AppColors.error, size: 18),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
-            const Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
+            Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
           ],
         ),
         children: group.options.map((opt) {
@@ -957,11 +957,11 @@ class _OptionGroupTile extends StatelessWidget {
               size: 18,
             ),
             title: Text(opt.name,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
             trailing: opt.priceAdjustment != 0
                 ? Text(
                     '${opt.priceAdjustment > 0 ? '+' : ''}${opt.priceAdjustment.toStringAsFixed(0)} ر',
-                    style: const TextStyle(color: AppColors.success, fontSize: 12),
+                    style: TextStyle(color: AppColors.success, fontSize: 12),
                   )
                 : null,
           );
@@ -1040,7 +1040,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
           children: [
             Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
@@ -1048,13 +1048,13 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                 children: [
                   Text(
                     widget.group != null ? 'تعديل مجموعة خيارات' : 'إضافة مجموعة خيارات',
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                   const Spacer(),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: Icon(Icons.close, color: Colors.white),
                   ),
                 ],
               ),
@@ -1067,14 +1067,14 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                   children: [
                     TextField(
                       controller: _nameCtrl,
-                      style: const TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(color: AppColors.textPrimary),
                       decoration: const InputDecoration(
                           labelText: 'اسم المجموعة *',
                           hintText: 'مثال: الصوص، الحجم، الإضافات'),
                     ),
                     const SizedBox(height: 14),
                     // Type selector
-                    const Text('نوع الاختيار:',
+                    Text('نوع الاختيار:',
                         style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                     const SizedBox(height: 8),
                     Row(
@@ -1102,7 +1102,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                     // Required toggle
                     Row(
                       children: [
-                        const Text('إجباري:',
+                        Text('إجباري:',
                             style: TextStyle(color: AppColors.textSecondary)),
                         const Spacer(),
                         Switch(
@@ -1111,17 +1111,17 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                         ),
                       ],
                     ),
-                    const Divider(color: AppColors.surfaceLight),
+                    Divider(color: AppColors.surfaceLight),
                     // Options list
                     Row(
                       children: [
-                        const Text('الخيارات:',
+                        Text('الخيارات:',
                             style: TextStyle(
                                 color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
                         const Spacer(),
                         TextButton.icon(
                           onPressed: _addOption,
-                          icon: const Icon(Icons.add, size: 16),
+                          icon: Icon(Icons.add, size: 16),
                           label: const Text('إضافة'),
                         ),
                       ],
@@ -1132,9 +1132,9 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                           onDelete: () => setState(() => _options.removeAt(e.key)),
                         )),
                     if (_options.isEmpty)
-                      const Center(
+                      Center(
                         child: Padding(
-                          padding: EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(12),
                           child: Text('لا توجد خيارات بعد',
                               style: TextStyle(color: AppColors.textHint)),
                         ),
@@ -1155,7 +1155,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                     border: Border.all(color: Colors.red.withValues(alpha: 0.35)),
                   ),
                   child: Text(_error!,
-                      style: const TextStyle(color: Colors.red, fontSize: 12)),
+                      style: TextStyle(color: Colors.red, fontSize: 12)),
                 ),
               ),
             Padding(
@@ -1258,22 +1258,22 @@ class _OptionRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(opt.name,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+                style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
           ),
           if (opt.priceAdjustment != 0)
             Text(
               '${opt.priceAdjustment > 0 ? '+' : ''}${opt.priceAdjustment.toStringAsFixed(0)} ر',
-              style: const TextStyle(color: AppColors.success, fontSize: 13),
+              style: TextStyle(color: AppColors.success, fontSize: 13),
             ),
           IconButton(
             onPressed: onEdit,
-            icon: const Icon(Icons.edit, color: AppColors.textSecondary, size: 16),
+            icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 16),
             padding: const EdgeInsets.symmetric(horizontal: 4),
             constraints: const BoxConstraints(),
           ),
           IconButton(
             onPressed: onDelete,
-            icon: const Icon(Icons.close, color: AppColors.error, size: 16),
+            icon: Icon(Icons.close, color: AppColors.error, size: 16),
             padding: const EdgeInsets.symmetric(horizontal: 4),
             constraints: const BoxConstraints(),
           ),
@@ -1324,7 +1324,7 @@ class _ItemOptionDialogState extends State<_ItemOptionDialog> {
         children: [
           TextField(
             controller: _nameCtrl,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(
                 labelText: 'اسم الخيار *', hintText: 'مثال: كاتشب، جبنة إضافية'),
           ),
@@ -1332,7 +1332,7 @@ class _ItemOptionDialogState extends State<_ItemOptionDialog> {
           TextField(
             controller: _priceCtrl,
             keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(
               labelText: 'فرق السعر (ريال)',
               hintText: '0 = مجاني · 5 = يُضاف · -2 = يُخصم',
@@ -1424,7 +1424,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
         children: [
           TextField(
             controller: _nameCtrl,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'اسم الفئة *'),
           ),
         ],
@@ -1484,22 +1484,22 @@ class _TemplateTile extends StatelessWidget {
         border: Border.all(color: AppColors.purpleDark.withValues(alpha: 0.3)),
       ),
       child: ListTile(
-        leading: const Icon(Icons.library_books, color: AppColors.purple),
-        title: Text(template.name, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        leading: Icon(Icons.library_books, color: AppColors.purple),
+        title: Text(template.name, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
         subtitle: Text('${template.groups.length} مجموعة خيارات',
-            style: const TextStyle(color: AppColors.textHint, fontSize: 12)),
+            style: TextStyle(color: AppColors.textHint, fontSize: 12)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
+              icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
               onPressed: () => showDialog(
                 context: context,
                 builder: (_) => _EditTemplateDialog(template: template),
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete, color: AppColors.error, size: 18),
+              icon: Icon(Icons.delete, color: AppColors.error, size: 18),
               onPressed: () => _confirmDelete(context),
             ),
           ],
@@ -1548,16 +1548,16 @@ class _TemplateGroupsPreview extends StatelessWidget {
           children: template.groups.map((g) => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(g.name, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.purple)),
+              Text(g.name, style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.purple)),
               const SizedBox(height: 4),
               ...g.options.map((o) => Padding(
                 padding: const EdgeInsets.only(right: 12, bottom: 2),
                 child: Text(
                   '• ${o.name}${o.priceAdjustment != 0 ? ' (+${o.priceAdjustment.toStringAsFixed(0)} ر.س)' : ''}',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
               )),
-              const Divider(),
+              Divider(),
             ],
           )).toList(),
         ),
@@ -1640,7 +1640,7 @@ class _PickTemplateDialog extends StatelessWidget {
           itemBuilder: (_, i) {
             final t = templates[i];
             return ListTile(
-              leading: const Icon(Icons.library_books, color: AppColors.purple),
+              leading: Icon(Icons.library_books, color: AppColors.purple),
               title: Text(t.name),
               subtitle: Text('${t.groups.length} مجموعة'),
               onTap: () => Navigator.pop(context, t),

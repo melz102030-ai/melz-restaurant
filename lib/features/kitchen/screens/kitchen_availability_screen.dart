@@ -20,7 +20,7 @@ class KitchenAvailabilityScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('توفر الأصناف'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
+          icon: Icon(Icons.arrow_back_ios),
           onPressed: () => context.pop(),
         ),
       ),
@@ -99,7 +99,7 @@ class _CategorySection extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 section.title,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -108,7 +108,7 @@ class _CategorySection extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 '(${section.items.length})',
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textHint,
                   fontSize: 13,
                 ),
@@ -273,7 +273,7 @@ class _ItemTileState extends State<_ItemTile> {
                           .map((g) =>
                               '${g.name}: ${g.options.map((o) => o.name).join('، ')}')
                           .join(' | '),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.textHint,
                         fontSize: 11,
                       ),
@@ -297,6 +297,6 @@ class _ItemTileState extends State<_ItemTile> {
           color: AppColors.surfaceLight,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.fastfood, color: AppColors.textHint, size: 26),
+        child: Icon(Icons.fastfood, color: AppColors.textHint, size: 26),
       );
 }

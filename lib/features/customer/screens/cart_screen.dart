@@ -171,8 +171,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       try {
         js.context.callMethod('requestNotifyPermission', []);
       } catch (_) {}
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('شكراً لطلبك! 🎉 يمكنك تتبع طلبك أول بأول'),
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('شكراً لطلبك! 🎉 يمكنك تتبع طلبك أول بأول'),
         backgroundColor: AppColors.purple,
       ));
       context.go('/track/$orderId');
@@ -206,7 +206,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       appBar: AppBar(
         title: const Text(AppStrings.myCart),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
+          icon: Icon(Icons.arrow_back_ios),
           onPressed: () => context.pop(),
         ),
         actions: [
@@ -235,7 +235,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                   ),
                 );
               },
-              icon: const Icon(Icons.delete_outline, color: AppColors.error),
+              icon: Icon(Icons.delete_outline, color: AppColors.error),
               label: const Text(
                 'تفريغ',
                 style: TextStyle(color: AppColors.error),
@@ -270,11 +270,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Row(
+                            Row(
                               children: [
                                 Icon(Icons.note_alt_outlined,
                                     color: AppColors.textSecondary, size: 20),
-                                SizedBox(width: 8),
+                                const SizedBox(width: 8),
                                 Text(
                                   AppStrings.notes,
                                   style: TextStyle(
@@ -288,7 +288,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                             TextField(
                               controller: _notesController,
                               maxLines: 3,
-                              style: const TextStyle(color: AppColors.textPrimary),
+                              style: TextStyle(color: AppColors.textPrimary),
                               decoration: const InputDecoration(
                                 hintText: AppStrings.notesHint,
                                 border: OutlineInputBorder(),
@@ -336,7 +336,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         ? '—'
                                         : '${deliveryFee.toStringAsFixed(2)} ${AppStrings.sar}')
                                     : 'مجاناً'),
-                            const Divider(color: AppColors.surfaceLight),
+                            Divider(color: AppColors.surfaceLight),
                             _PriceRow(
                               AppStrings.total,
                               '${total.toStringAsFixed(2)} ${AppStrings.sar}',
@@ -353,7 +353,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                 ),
                                 child: Text(
                                   'الحد الأدنى للطلب ${settings.minOrderAmount.toStringAsFixed(0)} ${AppStrings.sar}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: AppColors.warning,
                                     fontSize: 13,
                                   ),
@@ -381,7 +381,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             )
           : Container(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: AppColors.surface,
                 boxShadow: [
                   BoxShadow(
@@ -408,7 +408,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.access_time,
+                          Icon(Icons.access_time,
                               color: AppColors.error, size: 18),
                           const SizedBox(width: 8),
                           Expanded(
@@ -416,7 +416,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                               !settings.isOpen
                                   ? 'المطعم مغلق حالياً من قِبل الإدارة'
                                   : 'المطعم مغلق · يفتح ${settings.openTimeLabel}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: AppColors.error, fontSize: 13),
                             ),
                           ),
@@ -484,7 +484,7 @@ class _CartItemTile extends ConsumerWidget {
               children: [
                 Text(
                   cartItem.item.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -494,7 +494,7 @@ class _CartItemTile extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     cartItem.optionsSummary,
-                    style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+                    style: TextStyle(color: AppColors.textHint, fontSize: 11),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -502,7 +502,7 @@ class _CartItemTile extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   '${cartItem.unitPrice.toStringAsFixed(2)} ${AppStrings.sar}',
-                  style: const TextStyle(color: AppColors.purple, fontSize: 13),
+                  style: TextStyle(color: AppColors.purple, fontSize: 13),
                 ),
               ],
             ),
@@ -531,7 +531,7 @@ class _CartItemTile extends ConsumerWidget {
                       child: Text(
                         '${cartItem.quantity}',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -549,8 +549,8 @@ class _CartItemTile extends ConsumerWidget {
               // Delete
               InkWell(
                 onTap: () => cart.deleteItem(cartItem.cartKey),
-                child: const Padding(
-                  padding: EdgeInsets.all(4),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
                   child: Icon(Icons.delete_outline,
                       color: AppColors.textHint, size: 16),
                 ),
@@ -566,8 +566,8 @@ class _CartItemTile extends ConsumerWidget {
     return Container(
       width: 64,
       height: 64,
-      decoration: const BoxDecoration(color: AppColors.surfaceLight),
-      child: const Icon(Icons.restaurant, color: AppColors.textHint, size: 28),
+      decoration: BoxDecoration(color: AppColors.surfaceLight),
+      child: Icon(Icons.restaurant, color: AppColors.textHint, size: 28),
     );
   }
 }
@@ -653,14 +653,14 @@ class _DeliveryLocationCard extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         addressNote!,
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     )
                   else if (!hasLocation)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 2),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         'عبر GPS أو التحديد اليدوي على الخريطة',
                         style: TextStyle(color: AppColors.textSecondary, fontSize: 12),

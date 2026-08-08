@@ -275,7 +275,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                     onChanged: (v) => setState(() => _isOpen = v),
                     icon: Icons.store,
                   ),
-                  const Divider(color: AppColors.surfaceLight),
+                  Divider(color: AppColors.surfaceLight),
                   _SwitchRow(
                     label: 'قبول الطلبات',
                     subtitle: 'السماح بتقديم طلبات جديدة',
@@ -343,7 +343,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             ),
 
             const SizedBox(height: 16),
-            const Divider(color: AppColors.surfaceLight),
+            Divider(color: AppColors.surfaceLight),
             const SizedBox(height: 16),
 
             // Logout button
@@ -374,11 +374,11 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                     if (mounted) context.go('/login');
                   }
                 },
-                icon: const Icon(Icons.logout, color: AppColors.error),
+                icon: Icon(Icons.logout, color: AppColors.error),
                 label: const Text('تسجيل الخروج',
                     style: TextStyle(color: AppColors.error)),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.error),
+                  side: BorderSide(color: AppColors.error),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
@@ -409,14 +409,14 @@ class _SectionTitle extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
           ),
           const SizedBox(width: 8),
-          const Expanded(child: Divider(color: AppColors.surfaceLight)),
+          Expanded(child: Divider(color: AppColors.surfaceLight)),
         ],
       ),
     );
@@ -448,7 +448,7 @@ class _Field extends StatelessWidget {
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
-      style: const TextStyle(color: AppColors.textPrimary),
+      style: TextStyle(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
@@ -484,9 +484,9 @@ class _SwitchRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(color: AppColors.textPrimary)),
+              Text(label, style: TextStyle(color: AppColors.textPrimary)),
               if (subtitle != null)
-                Text(subtitle!, style: const TextStyle(color: AppColors.textHint, fontSize: 12)),
+                Text(subtitle!, style: TextStyle(color: AppColors.textHint, fontSize: 12)),
             ],
           ),
         ),
@@ -517,7 +517,7 @@ class _ImagePicker extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: onPick,
@@ -562,11 +562,11 @@ class _ImagePicker extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() => const Column(
+  Widget _placeholder() => Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.add_photo_alternate, color: AppColors.textHint, size: 32),
-          SizedBox(height: 4),
+          const SizedBox(height: 4),
           Text('رفع صورة', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
         ],
       );
@@ -617,12 +617,12 @@ class _TimePickerTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textHint, fontSize: 11)),
                   const SizedBox(height: 2),
                   Text(
                     displayText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -631,7 +631,7 @@ class _TimePickerTile extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.edit, color: AppColors.textHint, size: 16),
+            Icon(Icons.edit, color: AppColors.textHint, size: 16),
           ],
         ),
       ),

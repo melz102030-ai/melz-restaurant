@@ -55,7 +55,7 @@ class _LoginSheetContentState extends ConsumerState<_LoginSheetContent> {
     return Container(
       constraints:
           BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -110,7 +110,7 @@ class _QuickCustomerPreviewButton extends StatelessWidget {
               height: 16,
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.amber),
             )
-          : const Icon(Icons.flash_on, size: 18, color: Colors.amber),
+          : Icon(Icons.flash_on, size: 18, color: Colors.amber),
       label: const Text('معاينة سريعة — دخول كعميل مباشرة'),
       style: OutlinedButton.styleFrom(
         foregroundColor: Colors.amber.shade800,

@@ -98,7 +98,7 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
+          icon: Icon(Icons.arrow_back_ios),
           onPressed: () => context.pop(),
         ),
       ),
@@ -114,7 +114,7 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
                   child: GradientContainer(
                     borderRadius: 20,
                     padding: const EdgeInsets.all(20),
-                    child: const Icon(
+                    child: Icon(
                       Icons.admin_panel_settings,
                       size: 48,
                       color: Colors.white,
@@ -129,7 +129,7 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
                 ).animate().fadeIn(),
 
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'هذه الصفحة مخصصة للإدارة وفريق المطبخ فقط',
                   style: TextStyle(color: AppColors.textSecondary),
                 ).animate().fadeIn(delay: 100.ms),
@@ -144,7 +144,7 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: AppColors.textPrimary),
                         decoration: const InputDecoration(
                           labelText: 'رقم الجوال',
                           prefixIcon: Icon(Icons.phone),
@@ -156,10 +156,10 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
-                        style: const TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: 'كلمة المرور',
-                          prefixIcon: const Icon(Icons.lock),
+                          prefixIcon: Icon(Icons.lock),
                           suffixIcon: IconButton(
                             icon: Icon(
                               _obscurePassword

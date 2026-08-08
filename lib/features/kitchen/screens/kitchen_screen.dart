@@ -104,7 +104,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
             const Text(AppStrings.kitchenDisplay),
             Text(
               'مجموع النشط: ${ordersAsync.maybeWhen(data: (d) => d.length, orElse: () => 0)} طلب',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -113,13 +113,13 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
           if (_alarmPlaying)
             TextButton.icon(
               onPressed: _stopAlarm,
-              icon: const Icon(Icons.volume_off, size: 18, color: Colors.redAccent),
+              icon: Icon(Icons.volume_off, size: 18, color: Colors.redAccent),
               label: const Text('إيقاف', style: TextStyle(color: Colors.redAccent, fontSize: 12)),
             ),
           // Availability management
           IconButton(
             onPressed: _openAvailability,
-            icon: const Icon(Icons.restaurant_menu),
+            icon: Icon(Icons.restaurant_menu),
             tooltip: 'إدارة توفر الأصناف',
           ),
           // Logout
@@ -128,7 +128,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
               await ref.read(authProvider.notifier).logout();
               if (context.mounted) context.go('/login');
             },
-            icon: const Icon(Icons.logout),
+            icon: Icon(Icons.logout),
             tooltip: 'خروج',
           ),
         ],
@@ -269,7 +269,7 @@ class _TabLabel extends StatelessWidget {
             ),
             child: Text(
               '$count',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
@@ -507,7 +507,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                     children: [
                       Text(
                         order.customerName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 15,
@@ -515,7 +515,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                       ),
                       Text(
                         order.customerPhone,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppColors.textHint,
                           fontSize: 12,
                         ),
@@ -546,12 +546,12 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.delivery_dining,
+                            Icon(Icons.delivery_dining,
                                 size: 12, color: AppColors.statusOutForDelivery),
                             const SizedBox(width: 3),
                             Text(
                               order.driverName!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.statusOutForDelivery,
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -567,7 +567,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                 IconButton(
                   onPressed: () =>
                       launchUrl(Uri(scheme: 'tel', path: order.customerPhone)),
-                  icon: const Icon(Icons.call, color: AppColors.success, size: 20),
+                  icon: Icon(Icons.call, color: AppColors.success, size: 20),
                   tooltip: 'اتصل بالعميل',
                 ),
 
@@ -648,7 +648,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                     ] else
                       Text(
                         DateFormat('hh:mm a').format(order.createdAt),
-                        style: const TextStyle(color: AppColors.textHint, fontSize: 10),
+                        style: TextStyle(color: AppColors.textHint, fontSize: 10),
                       ),
                   ],
                 ),
@@ -675,7 +675,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                         child: Center(
                           child: Text(
                             '×${item.quantity}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppColors.purple,
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
@@ -687,7 +687,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                       Expanded(
                         child: Text(
                           item.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 14,
                           ),
@@ -712,12 +712,12 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.note, color: AppColors.warning, size: 16),
+                  Icon(Icons.note, color: AppColors.warning, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       order.notes!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.warning,
                         fontSize: 13,
                       ),
@@ -738,7 +738,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                     controller: _timeCtrl,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    style: const TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(
                       labelText: 'وقت التحضير (دقائق)',
                       hintText: 'مثال: 20',
@@ -750,7 +750,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                   TextField(
                     controller: _notesCtrl,
                     maxLines: 2,
-                    style: const TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(
                       labelText: 'ملاحظة للعميل',
                       hintText: 'مثال: تأخير بسيط...',
@@ -843,7 +843,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                                     ),
                                     child: Text(
                                       'بانتظار تأكيد: ${order.driverName}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.warning,
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -852,7 +852,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                                   ),
                                   IconButton(
                                     onPressed: _unassignDriver,
-                                    icon: const Icon(Icons.close,
+                                    icon: Icon(Icons.close,
                                         size: 16, color: AppColors.error),
                                     tooltip: 'إلغاء تعيين المندوب',
                                     padding: EdgeInsets.zero,
@@ -914,7 +914,7 @@ class _ActionBtn extends StatelessWidget {
       child: ElevatedButton.icon(
         onPressed: onTap,
         icon: Icon(icon, size: 15),
-        label: Text(label, style: const TextStyle(fontSize: 12)),
+        label: Text(label, style: TextStyle(fontSize: 12)),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
@@ -948,7 +948,7 @@ class _AssignDriverDialog extends ConsumerWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: AppColors.primaryGradient,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
@@ -965,12 +965,12 @@ class _AssignDriverDialog extends ConsumerWidget {
                 ),
                 error: (e, _) => Padding(
                   padding: const EdgeInsets.all(32),
-                  child: Text('خطأ: $e', style: const TextStyle(color: AppColors.error)),
+                  child: Text('خطأ: $e', style: TextStyle(color: AppColors.error)),
                 ),
                 data: (drivers) {
                   if (drivers.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(32),
+                    return Padding(
+                      padding: const EdgeInsets.all(32),
                       child: Text(
                         'لا يوجد مناديب مسجّلين بعد — أضفهم من لوحة الإدارة',
                         style: TextStyle(color: AppColors.textHint),
@@ -1009,7 +1009,7 @@ class _AssignDriverDialog extends ConsumerWidget {
                           child: Icon(Icons.delivery_dining, color: statusColor),
                         ),
                         title: Text(d.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
                         subtitle: Text(
                           !d.isAvailable

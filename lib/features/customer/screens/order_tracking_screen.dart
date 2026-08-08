@@ -28,7 +28,7 @@ class OrderTrackingScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text(AppStrings.trackOrder),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
+          icon: Icon(Icons.arrow_back_ios),
           onPressed: () => context.go('/home'),
         ),
       ),
@@ -277,7 +277,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
                         const SizedBox(height: 4),
                         Text(
                           'إجمالي وقت التحضير: ${order.estimatedMinutes} دقيقة',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.textHint,
                             fontSize: 11,
                           ),
@@ -289,13 +289,13 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
                   const SizedBox(height: 4),
                   Text(
                     'الوقت المتوقع: ${order.estimatedTime}',
-                    style: const TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                 ],
                 const SizedBox(height: 8),
                 Text(
                   'رقم الطلب: #${order.id.substring(0, 8).toUpperCase()}',
-                  style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+                  style: TextStyle(color: AppColors.textHint, fontSize: 12),
                 ),
               ],
             ),
@@ -309,7 +309,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'تتبع الطلب',
                     style: TextStyle(
                       color: AppColors.textPrimary,
@@ -345,7 +345,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
                               ),
                               child: Center(
                                 child: isDone
-                                    ? const Icon(Icons.check, color: Colors.white, size: 16)
+                                    ? Icon(Icons.check, color: Colors.white, size: 16)
                                     : isCurrent
                                         ? const SizedBox(
                                             width: 12,
@@ -402,7 +402,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
                       color: AppColors.error.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.cancel, color: AppColors.error, size: 28),
+                    child: Icon(Icons.cancel, color: AppColors.error, size: 28),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -423,10 +423,10 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
                       Icon(Icons.restaurant, color: AppColors.textSecondary, size: 18),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 8),
                       Text(
                         'ملاحظة من المطبخ',
                         style: TextStyle(
@@ -439,7 +439,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
                   const SizedBox(height: 8),
                   Text(
                     order.kitchenNotes!,
-                    style: const TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: AppColors.textPrimary),
                   ),
                 ],
               ),
@@ -452,7 +452,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'العناصر المطلوبة',
                   style: TextStyle(
                     color: AppColors.textPrimary,
@@ -474,47 +474,47 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
                           ),
                           child: Text(
                             '×${item.quantity}',
-                            style: const TextStyle(color: AppColors.purple, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.bold),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             item.name,
-                            style: const TextStyle(color: AppColors.textPrimary),
+                            style: TextStyle(color: AppColors.textPrimary),
                           ),
                         ),
                         Text(
                           '${item.total.toStringAsFixed(2)} ${AppStrings.sar}',
-                          style: const TextStyle(color: AppColors.textSecondary),
+                          style: TextStyle(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const Divider(color: AppColors.surfaceLight),
+                Divider(color: AppColors.surfaceLight),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(AppStrings.subtotal, style: TextStyle(color: AppColors.textSecondary)),
+                    Text(AppStrings.subtotal, style: TextStyle(color: AppColors.textSecondary)),
                     Text('${order.subtotal.toStringAsFixed(2)} ${AppStrings.sar}',
-                        style: const TextStyle(color: AppColors.textSecondary)),
+                        style: TextStyle(color: AppColors.textSecondary)),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(AppStrings.deliveryFee, style: TextStyle(color: AppColors.textSecondary)),
+                    Text(AppStrings.deliveryFee, style: TextStyle(color: AppColors.textSecondary)),
                     Text('${order.deliveryFee.toStringAsFixed(2)} ${AppStrings.sar}',
-                        style: const TextStyle(color: AppColors.textSecondary)),
+                        style: TextStyle(color: AppColors.textSecondary)),
                   ],
                 ),
-                const Divider(color: AppColors.surfaceLight),
+                Divider(color: AppColors.surfaceLight),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       AppStrings.total,
                       style: TextStyle(
                         color: AppColors.textPrimary,
@@ -524,7 +524,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
                     ),
                     Text(
                       '${order.total.toStringAsFixed(2)} ${AppStrings.sar}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: AppColors.purple,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -542,11 +542,11 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
           GlassMorphCard(
             child: Row(
               children: [
-                const Icon(Icons.access_time, color: AppColors.textSecondary, size: 18),
+                Icon(Icons.access_time, color: AppColors.textSecondary, size: 18),
                 const SizedBox(width: 8),
                 Text(
                   'وقت الطلب: ${DateFormat('dd/MM/yyyy - hh:mm a', 'ar').format(order.createdAt)}',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
               ],
             ),
@@ -618,7 +618,7 @@ class _PlayWhileWaitingCard extends StatelessWidget {
                 color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.videogame_asset, color: Colors.white, size: 24),
+              child: Icon(Icons.videogame_asset, color: Colors.white, size: 24),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -636,7 +636,7 @@ class _PlayWhileWaitingCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_left, color: Colors.white, size: 22),
+            Icon(Icons.chevron_left, color: Colors.white, size: 22),
           ],
         ),
       ),
@@ -674,7 +674,7 @@ class _QuickActionButton extends StatelessWidget {
             Flexible(
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -706,7 +706,7 @@ class _DriverInfoCard extends StatelessWidget {
               color: AppColors.statusOutForDelivery.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.two_wheeler,
+            child: Icon(Icons.two_wheeler,
                 color: AppColors.statusOutForDelivery, size: 24),
           ),
           const SizedBox(width: 12),
@@ -714,13 +714,13 @@ class _DriverInfoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'مندوب التوصيل',
                   style: TextStyle(color: AppColors.textHint, fontSize: 11),
                 ),
                 Text(
                   order.driverName!,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -733,7 +733,7 @@ class _DriverInfoCard extends StatelessWidget {
             IconButton(
               onPressed: () =>
                   launchUrl(Uri(scheme: 'tel', path: order.driverPhone)),
-              icon: const Icon(Icons.call, color: AppColors.success),
+              icon: Icon(Icons.call, color: AppColors.success),
               tooltip: 'اتصل بالمندوب',
             ),
         ],
@@ -751,11 +751,11 @@ class _DeliveredThankYouCard extends StatelessWidget {
       borderColor: AppColors.success.withOpacity(0.5),
       child: Column(
         children: [
-          const Icon(Icons.favorite, color: AppColors.success, size: 40)
+          Icon(Icons.favorite, color: AppColors.success, size: 40)
               .animate()
               .scale(duration: 500.ms, curve: Curves.elasticOut),
           const SizedBox(height: 10),
-          const Text(
+          Text(
             'شكراً لطلبك من Meals! 💜',
             style: TextStyle(
               color: AppColors.textPrimary,
@@ -765,7 +765,7 @@ class _DeliveredThankYouCard extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'يسعدنا لو شاركتنا رأيك — تقييمك يعني لنا الكثير ويساعد الآخرين',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             textAlign: TextAlign.center,

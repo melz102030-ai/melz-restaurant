@@ -24,6 +24,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     (icon: Icons.people, label: 'الأعضاء', route: '/admin/users'),
     (icon: Icons.delivery_dining, label: 'المناديب', route: '/admin/drivers'),
     (icon: Icons.map_outlined, label: 'مناطق التوصيل', route: '/admin/delivery-zones'),
+    (icon: Icons.palette_outlined, label: 'المظهر', route: '/admin/appearance'),
     (icon: Icons.settings, label: 'الإعدادات', route: '/admin/settings'),
   ];
 
@@ -46,7 +47,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                   // Logo
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: AppColors.primaryGradient,
                     ),
                     child: Row(
@@ -66,7 +67,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                         Expanded(
                           child: Text(
                             user?.name ?? 'الإدارة',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
                             ),
@@ -112,7 +113,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: ListTile(
-                      leading: const Icon(Icons.logout, color: AppColors.error),
+                      leading: Icon(Icons.logout, color: AppColors.error),
                       title: const Text(
                         'تسجيل الخروج',
                         style: TextStyle(color: AppColors.error),

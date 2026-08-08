@@ -98,7 +98,7 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
           Text(
             _isSignUp ? 'إنشاء حساب جديد' : 'مرحباً بك!',
             style: widget.compact
-                ? const TextStyle(
+                ? TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -106,7 +106,7 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
                 : Theme.of(context).textTheme.headlineMedium,
           ),
           const SizedBox(height: 6),
-          const Text(
+          Text(
             'أدخل رقم جوالك وكلمة المرور للمتابعة',
             style: TextStyle(color: AppColors.textSecondary),
           ),
@@ -114,13 +114,13 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
 
           if (_isSignUp) ...[
             Text('الاسم',
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _nameController,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: AppColors.textPrimary),
               decoration: const InputDecoration(
                 hintText: 'اسمك',
                 prefixIcon: Icon(Icons.person_outline),
@@ -132,7 +132,7 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
           ],
 
           Text(AppStrings.phoneNumber,
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
@@ -154,7 +154,7 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
                         value: c['code'],
                         child: Text('${c['flag']} ${c['code']}',
                             style:
-                                const TextStyle(color: AppColors.textPrimary)),
+                                TextStyle(color: AppColors.textPrimary)),
                       );
                     }).toList(),
                     onChanged: (v) {
@@ -169,7 +169,7 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                   textAlign: TextAlign.left,
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 18,
                       letterSpacing: 1.5),
@@ -190,17 +190,17 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
           const SizedBox(height: 16),
 
           Text('كلمة المرور',
-              style: const TextStyle(
+              style: TextStyle(
                   color: AppColors.textSecondary,
                   fontWeight: FontWeight.w500)),
           const SizedBox(height: 8),
           TextFormField(
             controller: _passwordController,
             obscureText: _obscurePassword,
-            style: const TextStyle(color: AppColors.textPrimary),
+            style: TextStyle(color: AppColors.textPrimary),
             decoration: InputDecoration(
               hintText: '••••••••',
-              prefixIcon: const Icon(Icons.lock_outline),
+              prefixIcon: Icon(Icons.lock_outline),
               suffixIcon: IconButton(
                 icon: Icon(_obscurePassword
                     ? Icons.visibility
@@ -221,14 +221,14 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
           if (_isSignUp) ...[
             const SizedBox(height: 16),
             Text('تأكيد كلمة المرور',
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             TextFormField(
               controller: _confirmPasswordController,
               obscureText: _obscurePassword,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: AppColors.textPrimary),
               decoration: const InputDecoration(
                 hintText: '••••••••',
                 prefixIcon: Icon(Icons.lock_outline),
@@ -260,7 +260,7 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
                 _isSignUp
                     ? 'لديك حساب بالفعل؟ تسجيل الدخول'
                     : 'ليس لديك حساب؟ إنشاء حساب جديد',
-                style: const TextStyle(color: AppColors.purple),
+                style: TextStyle(color: AppColors.purple),
               ),
             ),
           ),

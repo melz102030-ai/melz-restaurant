@@ -25,7 +25,7 @@ class AdminReportsScreen extends ConsumerWidget {
               ref.invalidate(adminOrderStatsProvider);
               ref.invalidate(dailyStatsProvider);
             },
-            icon: const Icon(Icons.refresh),
+            icon: Icon(Icons.refresh),
           ),
         ],
       ),
@@ -85,7 +85,7 @@ class AdminReportsScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'معدل الإكمال',
                             style: TextStyle(
                               color: AppColors.textPrimary,
@@ -104,7 +104,7 @@ class AdminReportsScreen extends ConsumerWidget {
                                   children: [
                                     Text(
                                       '${(rate * 100).toStringAsFixed(1)}%',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.success,
                                         fontSize: 22,
                                         fontWeight: FontWeight.bold,
@@ -112,7 +112,7 @@ class AdminReportsScreen extends ConsumerWidget {
                                     ),
                                     Text(
                                       '$completed من $total',
-                                      style: const TextStyle(color: AppColors.textSecondary),
+                                      style: TextStyle(color: AppColors.textSecondary),
                                     ),
                                   ],
                                 ),
@@ -145,7 +145,7 @@ class AdminReportsScreen extends ConsumerWidget {
                 data: (data) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'الإيرادات اليومية',
                       style: TextStyle(
                         color: AppColors.textPrimary,
@@ -162,7 +162,7 @@ class AdminReportsScreen extends ConsumerWidget {
                             minY: 0,
                             gridData: FlGridData(
                               show: true,
-                              getDrawingHorizontalLine: (_) => const FlLine(
+                              getDrawingHorizontalLine: (_) => FlLine(
                                 color: AppColors.surfaceLight,
                                 strokeWidth: 1,
                               ),
@@ -183,7 +183,7 @@ class AdminReportsScreen extends ConsumerWidget {
                                     final parts = date.split('-');
                                     return Text(
                                       '${parts[2]}/${parts[1]}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.textHint,
                                         fontSize: 9,
                                       ),
@@ -235,7 +235,7 @@ class AdminReportsScreen extends ConsumerWidget {
 
                     const SizedBox(height: 20),
 
-                    const Text(
+                    Text(
                       'عدد الطلبات اليومي',
                       style: TextStyle(
                         color: AppColors.textPrimary,
@@ -256,7 +256,7 @@ class AdminReportsScreen extends ConsumerWidget {
                                 getTooltipItem: (group, _, rod, __) {
                                   return BarTooltipItem(
                                     '${rod.toY.toInt()} طلب',
-                                    const TextStyle(color: AppColors.manjawi),
+                                    TextStyle(color: AppColors.manjawi),
                                   );
                                 },
                               ),
@@ -273,7 +273,7 @@ class AdminReportsScreen extends ConsumerWidget {
                                     final parts = date.split('-');
                                     return Text(
                                       '${parts[2]}/${parts[1]}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: AppColors.textHint,
                                         fontSize: 9,
                                       ),
@@ -293,7 +293,7 @@ class AdminReportsScreen extends ConsumerWidget {
                                 barRods: [
                                   BarChartRodData(
                                     toY: (e.value['orders'] as int).toDouble(),
-                                    gradient: const LinearGradient(
+                                    gradient: LinearGradient(
                                       colors: [AppColors.manjawiDark, AppColors.manjawiLight],
                                       begin: Alignment.bottomCenter,
                                       end: Alignment.topCenter,
@@ -326,7 +326,7 @@ class AdminReportsScreen extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'الأكثر مبيعاً',
                         style: TextStyle(
                           color: AppColors.textPrimary,
@@ -364,7 +364,7 @@ class AdminReportsScreen extends ConsumerWidget {
                                       children: [
                                         Text(
                                           item['name'] as String,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             color: AppColors.textPrimary,
                                             fontSize: 13,
                                           ),
@@ -389,7 +389,7 @@ class AdminReportsScreen extends ConsumerWidget {
                                   const SizedBox(width: 12),
                                   Text(
                                     '$count',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppColors.purple,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -468,7 +468,7 @@ class _SummaryCard extends StatelessWidget {
           ),
           Text(
             title,
-            style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+            style: TextStyle(color: AppColors.textHint, fontSize: 12),
           ),
         ],
       ),

@@ -51,7 +51,7 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
             const Text('لوحة المندوب'),
             Text(
               user.name,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -61,7 +61,7 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
               await ref.read(authProvider.notifier).logout();
               if (context.mounted) context.go('/login');
             },
-            icon: const Icon(Icons.logout),
+            icon: Icon(Icons.logout),
             tooltip: 'خروج',
           ),
         ],
@@ -104,12 +104,12 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                       children: [
                         Text(
                           user.isAvailable ? 'متاح لاستلام طلبات جديدة' : 'غير متاح حالياً',
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.textPrimary, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           'الطلبات النشطة: ${(ordersAsync.valueOrNull ?? const []).length}',
-                          style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+                          style: TextStyle(color: AppColors.textHint, fontSize: 12),
                         ),
                       ],
                     ),
@@ -131,7 +131,7 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
 
             const SizedBox(height: 20),
 
-            const Text(
+            Text(
               'الطلب الحالي',
               style: TextStyle(
                   color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
@@ -156,7 +156,7 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
               const SizedBox(height: 24),
               Text(
                 'طابور الانتظار (${queued.length})',
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
               ),
               const SizedBox(height: 10),
@@ -243,7 +243,7 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
               const Spacer(),
               Text(
                 '#${order.id.substring(0, 6).toUpperCase()}',
-                style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+                style: TextStyle(color: AppColors.textHint, fontSize: 12),
               ),
             ],
           ),
@@ -256,14 +256,14 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
                   children: [
                     Text(
                       order.customerName,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.bold,
                           fontSize: 16),
                     ),
                     Text(
                       order.customerPhone,
-                      style: const TextStyle(color: AppColors.textHint, fontSize: 13),
+                      style: TextStyle(color: AppColors.textHint, fontSize: 13),
                     ),
                   ],
                 ),
@@ -271,7 +271,7 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
               IconButton(
                 onPressed: () =>
                     launchUrl(Uri(scheme: 'tel', path: order.customerPhone)),
-                icon: const Icon(Icons.call, color: AppColors.success),
+                icon: Icon(Icons.call, color: AppColors.success),
                 tooltip: 'اتصل بالعميل',
               ),
             ],
@@ -280,12 +280,12 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
             const SizedBox(height: 8),
             Row(
               children: [
-                const Icon(Icons.note_alt_outlined, color: AppColors.textHint, size: 16),
+                Icon(Icons.note_alt_outlined, color: AppColors.textHint, size: 16),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     order.deliveryAddress!,
-                    style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
                 ),
               ],
@@ -295,36 +295,36 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
             const SizedBox(height: 10),
             OutlinedButton.icon(
               onPressed: _openMap,
-              icon: const Icon(Icons.map_outlined, size: 18),
+              icon: Icon(Icons.map_outlined, size: 18),
               label: const Text('فتح الموقع في خرائط جوجل'),
             ),
           ],
           const SizedBox(height: 14),
-          const Divider(color: AppColors.surfaceLight),
+          Divider(color: AppColors.surfaceLight),
           ...order.items.map(
             (item) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 3),
               child: Row(
                 children: [
                   Text('×${item.quantity}',
-                      style: const TextStyle(color: AppColors.purple, fontWeight: FontWeight.bold)),
+                      style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.bold)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(item.name,
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                   ),
                 ],
               ),
             ),
           ),
-          const Divider(color: AppColors.surfaceLight),
+          Divider(color: AppColors.surfaceLight),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('الإجمالي',
+              Text('الإجمالي',
                   style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
               Text('${order.total.toStringAsFixed(2)} ${AppStrings.sar}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       color: AppColors.purple, fontWeight: FontWeight.bold, fontSize: 15)),
             ],
           ),
@@ -369,7 +369,7 @@ class _QueuedOrderTile extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Text('$position',
-                style: const TextStyle(color: AppColors.textHint, fontWeight: FontWeight.bold)),
+                style: TextStyle(color: AppColors.textHint, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -377,18 +377,18 @@ class _QueuedOrderTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(order.customerName,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
                 Text(
                   order.status == OrderStatus.ready ? 'بانتظار تأكيدك' : 'في الطريق',
-                  style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+                  style: TextStyle(color: AppColors.textHint, fontSize: 11),
                 ),
               ],
             ),
           ),
           Text(
             DateFormat('hh:mm a').format(order.createdAt),
-            style: const TextStyle(color: AppColors.textHint, fontSize: 11),
+            style: TextStyle(color: AppColors.textHint, fontSize: 11),
           ),
         ],
       ),

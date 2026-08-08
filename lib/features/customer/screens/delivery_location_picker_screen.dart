@@ -190,7 +190,7 @@ class _DeliveryLocationPickerScreenState
       appBar: AppBar(
         title: const Text('تحديد موقع التوصيل'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
+          icon: Icon(Icons.arrow_back_ios),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -248,10 +248,10 @@ class _DeliveryLocationPickerScreenState
                         child: TextField(
                           controller: _searchCtrl,
                           textInputAction: TextInputAction.search,
-                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                          style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
                           decoration: InputDecoration(
                             hintText: 'ابحث عن عنوان أو حي أو معلم...',
-                            hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
+                            hintStyle: TextStyle(color: AppColors.textHint, fontSize: 13),
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                             prefixIcon: _searching
@@ -263,10 +263,10 @@ class _DeliveryLocationPickerScreenState
                                       child: CircularProgressIndicator(strokeWidth: 2),
                                     ),
                                   )
-                                : const Icon(Icons.search, color: AppColors.textHint),
+                                : Icon(Icons.search, color: AppColors.textHint),
                             suffixIcon: _searchCtrl.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.close, size: 18, color: AppColors.textHint),
+                                    icon: Icon(Icons.close, size: 18, color: AppColors.textHint),
                                     onPressed: () => setState(() {
                                       _searchCtrl.clear();
                                       _searchResults = [];
@@ -293,16 +293,16 @@ class _DeliveryLocationPickerScreenState
                             padding: const EdgeInsets.symmetric(vertical: 4),
                             itemCount: _searchResults.length,
                             separatorBuilder: (_, __) =>
-                                const Divider(height: 1, color: AppColors.surfaceLight),
+                                Divider(height: 1, color: AppColors.surfaceLight),
                             itemBuilder: (_, i) {
                               final r = _searchResults[i];
                               return ListTile(
                                 dense: true,
-                                leading: const Icon(Icons.location_on_outlined,
+                                leading: Icon(Icons.location_on_outlined,
                                     color: AppColors.purple, size: 20),
                                 title: Text(
                                   r.displayName,
-                                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                                  style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -322,7 +322,7 @@ class _DeliveryLocationPickerScreenState
                               BoxShadow(color: Colors.black26, blurRadius: 8),
                             ],
                           ),
-                          child: const Text(
+                          child: Text(
                             'ابحث عن عنوانك، أو حرّك الخريطة لتحديد موقعك بدقة، أو استخدم زر GPS',
                             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
                             textAlign: TextAlign.center,
@@ -344,7 +344,7 @@ class _DeliveryLocationPickerScreenState
                             height: 20,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(Icons.my_location, color: AppColors.purple),
+                        : Icon(Icons.my_location, color: AppColors.purple),
                   ),
                 ),
               ],
@@ -352,7 +352,7 @@ class _DeliveryLocationPickerScreenState
           ),
           Container(
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.surface,
               boxShadow: [
                 BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -4)),
@@ -363,7 +363,7 @@ class _DeliveryLocationPickerScreenState
               children: [
                 TextField(
                   controller: _noteCtrl,
-                  style: const TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: AppColors.textPrimary),
                   decoration: const InputDecoration(
                     labelText: 'تفاصيل إضافية (رقم المبنى، الدور، علامة مميزة...)',
                     prefixIcon: Icon(Icons.note_alt_outlined),

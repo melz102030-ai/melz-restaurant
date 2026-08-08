@@ -200,7 +200,7 @@ class _HeartDodgeGameScreenState extends ConsumerState<HeartDodgeGameScreen>
                       },
                       child: Container(
                         decoration:
-                            const BoxDecoration(gradient: AppColors.heroGradient),
+                            BoxDecoration(gradient: AppColors.heroGradient),
                         child: Stack(
                           children: [
                             ..._obstacles.map((o) => _ObstacleWidget(
@@ -451,12 +451,12 @@ class _ScoreChip extends StatelessWidget {
           Icon(icon, color: color, size: 18),
           const SizedBox(width: 8),
           Text('$value',
-              style: const TextStyle(
+              style: TextStyle(
                   color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(width: 6),
           Expanded(
             child: Text(label,
-                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                style: TextStyle(color: Colors.white70, fontSize: 11),
                 overflow: TextOverflow.ellipsis),
           ),
         ],
@@ -497,7 +497,7 @@ class _StartOverlay extends StatelessWidget {
                     color: AppColors.red.withOpacity(0.2),
                     border: Border.all(color: AppColors.red, width: 2),
                   ),
-                  child: const Icon(Icons.close_rounded,
+                  child: Icon(Icons.close_rounded,
                       color: Colors.white, size: 34),
                 ),
                 const SizedBox(height: 14),
@@ -508,7 +508,7 @@ class _StartOverlay extends StatelessWidget {
                         fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
                 Text('نقاطك: $score',
-                    style: const TextStyle(color: Colors.white70, fontSize: 15)),
+                    style: TextStyle(color: Colors.white70, fontSize: 15)),
                 if (score > 0 && score >= best) ...[
                   const SizedBox(height: 4),
                   const Text('🎉 رقم قياسي جديد!',
@@ -516,7 +516,7 @@ class _StartOverlay extends StatelessWidget {
                           TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
                 ],
               ] else ...[
-                const Icon(Icons.favorite, color: Color(0xFFFF6B9D), size: 56),
+                Icon(Icons.favorite, color: Color(0xFFFF6B9D), size: 56),
                 const SizedBox(height: 14),
                 const Text('احمِ القلب من الاصطدام',
                     style: TextStyle(
