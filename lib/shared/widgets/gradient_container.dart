@@ -49,15 +49,12 @@ class GlassMorphCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(borderRadius ?? 16),
-        border: Border.all(
-          color: borderColor ?? AppColors.purpleDark.withOpacity(0.5),
-          width: 1,
-        ),
+        border: borderColor != null ? Border.all(color: borderColor!, width: 1) : null,
         boxShadow: [
           BoxShadow(
-            color: AppColors.purpleDark.withOpacity(0.2),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
         ],
       ),

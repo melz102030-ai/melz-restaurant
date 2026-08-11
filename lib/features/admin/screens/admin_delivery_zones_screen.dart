@@ -57,7 +57,7 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               color: AppColors.cardBackground,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.purpleDark.withOpacity(0.3)),
+              border: Border.all(color: Colors.black.withOpacity(0.06)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,7 +167,7 @@ class _ZoneTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.purpleDark.withOpacity(0.2)),
+        border: Border.all(color: Colors.black.withOpacity(0.06)),
       ),
       child: Row(
         children: [

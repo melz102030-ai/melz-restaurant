@@ -144,7 +144,7 @@ class AdminDashboard extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: AppColors.cardBackground,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.purpleDark.withOpacity(0.3)),
+                      border: Border.all(color: Colors.black.withOpacity(0.06)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

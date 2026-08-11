@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
 
+const double _railCollapsedWidth = 64;
+const double _railExpandedWidth = 220;
+
 class AdminShell extends ConsumerStatefulWidget {
   final Widget child;
   const AdminShell({super.key, required this.child});
@@ -17,15 +20,15 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   bool _expanded = false;
 
   static const _navItems = [
-    (icon: Icons.dashboard, label: 'لوحة التحكم', route: '/admin'),
-    (icon: Icons.restaurant_menu, label: 'القائمة', route: '/admin/menu'),
-    (icon: Icons.receipt_long, label: 'الطلبات', route: '/admin/orders'),
-    (icon: Icons.bar_chart, label: 'التقارير', route: '/admin/reports'),
-    (icon: Icons.people, label: 'الأعضاء', route: '/admin/users'),
-    (icon: Icons.delivery_dining, label: 'المناديب', route: '/admin/drivers'),
+    (icon: Icons.dashboard_outlined, label: 'لوحة التحكم', route: '/admin'),
+    (icon: Icons.restaurant_menu_outlined, label: 'القائمة', route: '/admin/menu'),
+    (icon: Icons.receipt_long_outlined, label: 'الطلبات', route: '/admin/orders'),
+    (icon: Icons.bar_chart_outlined, label: 'التقارير', route: '/admin/reports'),
+    (icon: Icons.people_outline, label: 'الأعضاء', route: '/admin/users'),
+    (icon: Icons.delivery_dining_outlined, label: 'المناديب', route: '/admin/drivers'),
     (icon: Icons.map_outlined, label: 'مناطق التوصيل', route: '/admin/delivery-zones'),
     (icon: Icons.palette_outlined, label: 'المظهر', route: '/admin/appearance'),
-    (icon: Icons.settings, label: 'الإعدادات', route: '/admin/settings'),
+    (icon: Icons.settings_outlined, label: 'الإعدادات', route: '/admin/settings'),
   ];
 
   int _selectedIndexForLocation(String loc) {
@@ -51,64 +54,91 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     final selectedIndex = _selectedIndexForLocation(loc);
 
     return Scaffold(
-      body: Row(
+      body: Stack(
         children: [
-          NavigationRail(
-            extended: _expanded,
-            backgroundColor: AppColors.surface,
-            minWidth: 64,
-            minExtendedWidth: 220,
-            selectedIndex: selectedIndex,
-            onDestinationSelected: (i) => context.go(_navItems[i].route),
-            leading: Column(
-              children: [
-                const SizedBox(height: 8),
-                IconButton(
-                  icon: Icon(_expanded ? Icons.menu_open : Icons.menu, color: AppColors.purple),
-                  tooltip: _expanded ? 'طي القائمة' : 'توسيع القائمة',
-                  onPressed: () => setState(() => _expanded = !_expanded),
-                ),
-                if (_expanded) ...[
-                  const SizedBox(height: 6),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      user?.name ?? 'الإدارة',
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
+          // المحتوى: يترك مساحة ثابتة بعرض اللوحة المطوية فقط، فلا يتحرك عند التوسيع
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: _railCollapsedWidth,
+            right: 0,
+            child: widget.child,
+          ),
+
+          // اللوحة الجانبية: تطفو فوق المحتوى (تغطيه) بدل أن تدفعه عند التوسيع
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: 0,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              width: _expanded ? _railExpandedWidth : _railCollapsedWidth,
+              child: Material(
+                color: AppColors.surface,
+                elevation: _expanded ? 6 : 0,
+                shadowColor: Colors.black.withOpacity(0.15),
+                child: NavigationRail(
+                  extended: _expanded,
+                  backgroundColor: Colors.transparent,
+                  minWidth: _railCollapsedWidth,
+                  minExtendedWidth: _railExpandedWidth,
+                  selectedIndex: selectedIndex,
+                  useIndicator: true,
+                  indicatorColor: AppColors.purple.withOpacity(0.12),
+                  indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  onDestinationSelected: (i) => context.go(_navItems[i].route),
+                  leading: Column(
+                    children: [
+                      const SizedBox(height: 6),
+                      IconButton(
+                        icon: Icon(_expanded ? Icons.menu_open : Icons.menu,
+                            color: AppColors.purple, size: 22),
+                        tooltip: _expanded ? 'طي القائمة' : 'توسيع القائمة',
+                        onPressed: () => setState(() => _expanded = !_expanded),
+                      ),
+                      if (_expanded) ...[
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            user?.name ?? 'الإدارة',
+                            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 8),
+                    ],
+                  ),
+                  trailing: Expanded(
+                    child: Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: IconButton(
+                          icon: Icon(Icons.logout, color: AppColors.error, size: 20),
+                          tooltip: 'تسجيل الخروج',
+                          onPressed: () async {
+                            await ref.read(authProvider.notifier).logout();
+                            if (context.mounted) context.go('/login');
+                          },
+                        ),
+                      ),
                     ),
                   ),
-                ],
-                const SizedBox(height: 12),
-              ],
-            ),
-            trailing: Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: IconButton(
-                    icon: Icon(Icons.logout, color: AppColors.error),
-                    tooltip: 'تسجيل الخروج',
-                    onPressed: () async {
-                      await ref.read(authProvider.notifier).logout();
-                      if (context.mounted) context.go('/login');
-                    },
-                  ),
+                  destinations: _navItems
+                      .map((item) => NavigationRailDestination(
+                            icon: Icon(item.icon, color: AppColors.textHint, size: 22),
+                            selectedIcon: Icon(item.icon, color: AppColors.purple, size: 22),
+                            label: Text(item.label),
+                          ))
+                      .toList(),
                 ),
               ),
             ),
-            destinations: _navItems
-                .map((item) => NavigationRailDestination(
-                      icon: Icon(item.icon, color: AppColors.textHint),
-                      selectedIcon: Icon(item.icon, color: AppColors.purple),
-                      label: Text(item.label),
-                    ))
-                .toList(),
           ),
-          VerticalDivider(width: 1, color: AppColors.surfaceLight),
-          Expanded(child: widget.child),
         ],
       ),
     );

@@ -664,7 +664,7 @@ class _QuickActionButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.purpleDark.withOpacity(0.3)),
+          border: Border.all(color: Colors.black.withOpacity(0.06)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

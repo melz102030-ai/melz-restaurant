@@ -50,14 +50,19 @@ class AppTheme {
       ),
       cardTheme: CardThemeData(
         color: AppColors.cardBackground,
-        elevation: 2,
-        shadowColor: AppColors.purple.withValues(alpha: 0.12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
+        elevation: 0,
+        shadowColor: Colors.black.withValues(alpha: 0.05),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(cardRadius),
+          side: BorderSide(color: AppColors.surfaceLight, width: 1),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.purple,
           foregroundColor: Colors.white,
+          elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(fieldRadius)),
           textStyle: _googleFont(settings.fontFamily, fontWeight: FontWeight.w600, fontSize: 16),
@@ -80,7 +85,7 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(fieldRadius),
-          borderSide: BorderSide(color: AppColors.purpleDark, width: 1),
+          borderSide: BorderSide(color: AppColors.surfaceLight, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(fieldRadius),
@@ -113,6 +118,8 @@ class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.surface,
+        elevation: 4,
+        surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(cardRadius)),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(

@@ -606,7 +606,7 @@ class _TimePickerTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceLight,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.purpleDark.withOpacity(0.3)),
+          border: Border.all(color: Colors.black.withOpacity(0.06)),
         ),
         child: Row(
           children: [

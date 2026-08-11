@@ -18,6 +18,37 @@ import '../../../shared/widgets/loading_widget.dart';
 
 const _uuid = Uuid();
 
+// زر إجراء صغير موحّد (تعديل/نسخ/حذف...) — خلفية دائرية خفيفة بلون الإجراء
+// بدل أيقونات متلاصقة بلا مسافات أو خلفية، لتمييزها عن بعضها بوضوح
+class _ActionIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  final String? tooltip;
+  const _ActionIcon({required this.icon, required this.color, required this.onTap, this.tooltip});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip ?? '',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(9),
+        child: Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+      ),
+    );
+  }
+}
+
 class MenuManagementScreen extends ConsumerStatefulWidget {
   const MenuManagementScreen({super.key});
 
@@ -212,7 +243,7 @@ class _MenuItemTile extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: item.isAvailable
-              ? AppColors.purpleDark.withValues(alpha: 0.3)
+              ? Colors.black.withValues(alpha: 0.06)
               : AppColors.error.withValues(alpha: 0.3),
         ),
       ),
@@ -274,18 +305,21 @@ class _MenuItemTile extends ConsumerWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  IconButton(
-                    onPressed: () => showDialog(
+                  _ActionIcon(
+                    icon: Icons.edit,
+                    color: AppColors.textSecondary,
+                    tooltip: 'تعديل',
+                    onTap: () => showDialog(
                       context: context,
                       builder: (_) => _MenuItemDialog(item: item),
                     ),
-                    icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
                   ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    onPressed: () => showDialog(
+                  const SizedBox(width: 6),
+                  _ActionIcon(
+                    icon: Icons.copy,
+                    color: AppColors.purple,
+                    tooltip: 'نسخ',
+                    onTap: () => showDialog(
                       context: context,
                       builder: (_) => _MenuItemDialog(
                         item: item.copyWith(
@@ -295,17 +329,13 @@ class _MenuItemTile extends ConsumerWidget {
                         isDuplicate: true,
                       ),
                     ),
-                    icon: Icon(Icons.copy, color: AppColors.purple, size: 18),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    tooltip: 'نسخ',
                   ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    onPressed: () => _confirmDelete(context, item),
-                    icon: Icon(Icons.delete, color: AppColors.error, size: 18),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  const SizedBox(width: 6),
+                  _ActionIcon(
+                    icon: Icons.delete,
+                    color: AppColors.error,
+                    tooltip: 'حذف',
+                    onTap: () => _confirmDelete(context, item),
                   ),
                 ],
               ),
@@ -394,7 +424,7 @@ class _CategoryTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.purpleDark.withValues(alpha: 0.3)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
@@ -412,16 +442,22 @@ class _CategoryTile extends StatelessWidget {
             onChanged: (v) => MenuService.updateCategory(cat.copyWith(isActive: v)),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          IconButton(
-            onPressed: () => showDialog(
+          const SizedBox(width: 4),
+          _ActionIcon(
+            icon: Icons.edit,
+            color: AppColors.textSecondary,
+            tooltip: 'تعديل',
+            onTap: () => showDialog(
               context: context,
               builder: (_) => _CategoryDialog(cat: cat),
             ),
-            icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
           ),
-          IconButton(
-            onPressed: () => _confirmDelete(context),
-            icon: Icon(Icons.delete, color: AppColors.error, size: 18),
+          const SizedBox(width: 6),
+          _ActionIcon(
+            icon: Icons.delete,
+            color: AppColors.error,
+            tooltip: 'حذف',
+            onTap: () => _confirmDelete(context),
           ),
         ],
       ),
@@ -907,7 +943,7 @@ class _OptionGroupTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.purpleDark.withValues(alpha: 0.3)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: ExpansionTile(
         title: Row(
@@ -931,18 +967,10 @@ class _OptionGroupTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              onPressed: onEdit,
-              icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            IconButton(
-              onPressed: onDelete,
-              icon: Icon(Icons.delete, color: AppColors.error, size: 18),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
+            _ActionIcon(icon: Icons.edit, color: AppColors.textSecondary, tooltip: 'تعديل', onTap: onEdit),
+            const SizedBox(width: 6),
+            _ActionIcon(icon: Icons.delete, color: AppColors.error, tooltip: 'حذف', onTap: onDelete),
+            const SizedBox(width: 6),
             Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
           ],
         ),
@@ -1265,18 +1293,9 @@ class _OptionRow extends StatelessWidget {
               '${opt.priceAdjustment > 0 ? '+' : ''}${opt.priceAdjustment.toStringAsFixed(0)} ر',
               style: TextStyle(color: AppColors.success, fontSize: 13),
             ),
-          IconButton(
-            onPressed: onEdit,
-            icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            constraints: const BoxConstraints(),
-          ),
-          IconButton(
-            onPressed: onDelete,
-            icon: Icon(Icons.close, color: AppColors.error, size: 16),
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            constraints: const BoxConstraints(),
-          ),
+          _ActionIcon(icon: Icons.edit, color: AppColors.textSecondary, tooltip: 'تعديل', onTap: onEdit),
+          const SizedBox(width: 4),
+          _ActionIcon(icon: Icons.close, color: AppColors.error, tooltip: 'حذف', onTap: onDelete),
         ],
       ),
     );
@@ -1481,7 +1500,7 @@ class _TemplateTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.purpleDark.withValues(alpha: 0.3)),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: ListTile(
         leading: Icon(Icons.library_books, color: AppColors.purple),
@@ -1491,16 +1510,21 @@ class _TemplateTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              icon: Icon(Icons.edit, color: AppColors.textSecondary, size: 18),
-              onPressed: () => showDialog(
+            _ActionIcon(
+              icon: Icons.edit,
+              color: AppColors.textSecondary,
+              tooltip: 'تعديل',
+              onTap: () => showDialog(
                 context: context,
                 builder: (_) => _EditTemplateDialog(template: template),
               ),
             ),
-            IconButton(
-              icon: Icon(Icons.delete, color: AppColors.error, size: 18),
-              onPressed: () => _confirmDelete(context),
+            const SizedBox(width: 6),
+            _ActionIcon(
+              icon: Icons.delete,
+              color: AppColors.error,
+              tooltip: 'حذف',
+              onTap: () => _confirmDelete(context),
             ),
           ],
         ),
