@@ -443,6 +443,7 @@ class _AddBtn extends StatelessWidget {
       );
 }
 
+// حبة (pill) موحّدة للتحكم بالكمية — بنفس تصميم شاشة السلة، بدل زرّين دائريين منفصلين
 class _QtyRow extends StatelessWidget {
   final int qty;
   final VoidCallback onAdd;
@@ -450,24 +451,50 @@ class _QtyRow extends StatelessWidget {
   const _QtyRow({required this.qty, required this.onAdd, required this.onRemove});
 
   @override
-  Widget build(BuildContext context) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _CircleBtn(icon: Icons.remove, color: AppColors.red, onTap: onRemove),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Text(
-              '$qty',
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _PillIconButton(icon: Icons.remove, onTap: onRemove),
+            SizedBox(
+              width: 24,
+              child: Text(
+                '$qty',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
             ),
-          ),
-          _CircleBtn(icon: Icons.add, color: AppColors.purple, onTap: onAdd),
-        ],
+            _PillIconButton(icon: Icons.add, onTap: onAdd),
+          ],
+        ),
       );
+}
+
+class _PillIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _PillIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(7),
+        child: Icon(icon, color: AppColors.textPrimary, size: 15),
+      ),
+    );
+  }
 }
 
 class _CircleBtn extends StatelessWidget {
