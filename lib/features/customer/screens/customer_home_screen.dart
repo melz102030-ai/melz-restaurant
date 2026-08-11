@@ -70,6 +70,67 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     }
   }
 
+  void _showQuickLoginSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceLight,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Text(
+              'دخول تجريبي لفريق العمل',
+              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            _QuickLoginTile(
+              icon: Icons.restaurant,
+              label: 'المطبخ',
+              onTap: () {
+                Navigator.pop(context);
+                _quickLogin(UserRole.kitchen);
+              },
+            ),
+            _QuickLoginTile(
+              icon: Icons.delivery_dining,
+              label: 'المندوب',
+              onTap: () {
+                Navigator.pop(context);
+                _quickLogin(UserRole.driver);
+              },
+            ),
+            _QuickLoginTile(
+              icon: Icons.admin_panel_settings_outlined,
+              label: 'الإدارة',
+              onTap: () {
+                Navigator.pop(context);
+                _quickLogin(UserRole.admin);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -257,30 +318,13 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         centerTitle: false,
-        // دخول مباشر سريع لفريق العمل (مطبخ/إدارة) — لمرحلة المعاينة فقط
-        leadingWidth: 120,
-        leading: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _StaffQuickIcon(
-              icon: Icons.restaurant,
-              tooltip: 'دخول المطبخ (معاينة)',
-              isLoading: _quickLoginRole == UserRole.kitchen,
-              onTap: () => _quickLogin(UserRole.kitchen),
-            ),
-            _StaffQuickIcon(
-              icon: Icons.delivery_dining,
-              tooltip: 'دخول المندوب (معاينة)',
-              isLoading: _quickLoginRole == UserRole.driver,
-              onTap: () => _quickLogin(UserRole.driver),
-            ),
-            _StaffQuickIcon(
-              icon: Icons.admin_panel_settings_outlined,
-              tooltip: 'دخول الإدارة (معاينة)',
-              isLoading: _quickLoginRole == UserRole.admin,
-              onTap: () => _quickLogin(UserRole.admin),
-            ),
-          ],
+        // دخول مباشر سريع لفريق العمل (مطبخ/مندوب/إدارة) — لمرحلة المعاينة فقط
+        // أيقونة واحدة تفتح قائمة، بدل ثلاث أيقونات ثابتة قد تتجاوز عرض الشاشات الضيقة
+        leading: _StaffQuickIcon(
+          icon: Icons.people_alt_outlined,
+          tooltip: 'دخول تجريبي لفريق العمل',
+          isLoading: _quickLoginRole != null,
+          onTap: () => _showQuickLoginSheet(context),
         ),
         title: Row(
           children: [
@@ -665,6 +709,23 @@ class _StaffQuickIcon extends StatelessWidget {
   }
 }
 
+class _QuickLoginTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _QuickLoginTile({required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: onTap,
+      leading: Icon(icon, color: AppColors.purple),
+      title: Text(label, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    );
+  }
+}
+
 // ── Sticky search + category bar ──────────────────────────────────────────────
 
 class _SearchCategoryBar extends StatelessWidget {
@@ -718,10 +779,16 @@ class _SearchCategoryBar extends StatelessWidget {
           ),
         ),
 
-        // Horizontal category chips
+        // Horizontal category chips — تلاشٍ خفيف عند الحواف يوضّح أن هناك مزيداً للتمرير
         SizedBox(
           height: 44,
-          child: ListView.builder(
+          child: ShaderMask(
+            shaderCallback: (rect) => const LinearGradient(
+              colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
+              stops: [0.0, 0.05, 0.95, 1.0],
+            ).createShader(rect),
+            blendMode: BlendMode.dstIn,
+            child: ListView.builder(
             controller: catBarScroll,
             scrollDirection: Axis.horizontal,
             padding:
@@ -764,6 +831,7 @@ class _SearchCategoryBar extends StatelessWidget {
                 ),
               );
             },
+            ),
           ),
         ),
       ],
