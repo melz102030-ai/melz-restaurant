@@ -171,6 +171,19 @@ class AuthService {
     await prefs.setString('user_name', name);
   }
 
+  // يحفظ موقع التوصيل الافتراضي للعميل — يُستخدم تلقائياً في المرات القادمة حتى يغيّره
+  static Future<void> updateSavedLocation(
+    String userId, {
+    required double lat,
+    required double lng,
+    String? address,
+  }) async {
+    await _db.collection(_colUsers).doc(userId).set(
+      {'savedLat': lat, 'savedLng': lng, 'savedAddress': address},
+      SetOptions(merge: true),
+    );
+  }
+
   static Stream<List<UserModel>> streamAllUsers() {
     return _db
         .collection(_colUsers)

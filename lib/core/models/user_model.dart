@@ -12,6 +12,10 @@ class UserModel {
   // Driver-only fields
   final bool isAvailable;
   final String? vehicleType;
+  // موقع التوصيل الافتراضي المحفوظ للعميل — يُستخدم تلقائياً حتى يغيّره
+  final double? savedLat;
+  final double? savedLng;
+  final String? savedAddress;
 
   const UserModel({
     required this.id,
@@ -22,7 +26,12 @@ class UserModel {
     this.fcmToken,
     this.isAvailable = true,
     this.vehicleType,
+    this.savedLat,
+    this.savedLng,
+    this.savedAddress,
   });
+
+  bool get hasSavedLocation => savedLat != null && savedLng != null;
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
     return UserModel(
@@ -39,6 +48,9 @@ class UserModel {
       fcmToken: map['fcmToken'],
       isAvailable: map['isAvailable'] ?? true,
       vehicleType: map['vehicleType'],
+      savedLat: (map['savedLat'] as num?)?.toDouble(),
+      savedLng: (map['savedLng'] as num?)?.toDouble(),
+      savedAddress: map['savedAddress'],
     );
   }
 
@@ -51,6 +63,9 @@ class UserModel {
       'fcmToken': fcmToken,
       'isAvailable': isAvailable,
       'vehicleType': vehicleType,
+      'savedLat': savedLat,
+      'savedLng': savedLng,
+      'savedAddress': savedAddress,
     };
   }
 
@@ -60,6 +75,9 @@ class UserModel {
     String? fcmToken,
     bool? isAvailable,
     String? vehicleType,
+    double? savedLat,
+    double? savedLng,
+    String? savedAddress,
   }) {
     return UserModel(
       id: id,
@@ -70,6 +88,9 @@ class UserModel {
       fcmToken: fcmToken ?? this.fcmToken,
       isAvailable: isAvailable ?? this.isAvailable,
       vehicleType: vehicleType ?? this.vehicleType,
+      savedLat: savedLat ?? this.savedLat,
+      savedLng: savedLng ?? this.savedLng,
+      savedAddress: savedAddress ?? this.savedAddress,
     );
   }
 }

@@ -65,13 +65,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   GradientContainer(
                     borderRadius: 50,
                     padding: const EdgeInsets.all(24),
-                    child: Text(
-                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'E',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: const Icon(
+                      Icons.person_rounded,
+                      color: Colors.white,
+                      size: 44,
                     ),
                   ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
                   const SizedBox(height: 16),

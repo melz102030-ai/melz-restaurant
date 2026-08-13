@@ -3,6 +3,7 @@ import 'dart:js' as js;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
@@ -36,12 +37,24 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   double? _deliveryLat;
   double? _deliveryLng;
   String? _deliveryAddressNote;
+  // هل راجع العميل موقع التوصيل بنفسه هذه الجلسة؟ يبقى false عند التحميل التلقائي
+  // للموقع الافتراضي المحفوظ، لعرض تأكيد قبل استخدامه دون مراجعة صريحة
+  bool _locationReviewed = true;
 
   @override
   void initState() {
     super.initState();
     // يبدأ بنفس طريقة الاستلام التي اختارها العميل من الشاشة الرئيسية
     _orderType = ref.read(orderTypeProvider);
+
+    // تحميل موقع التوصيل الافتراضي المحفوظ للعميل تلقائياً إن وُجد
+    final user = ref.read(authProvider);
+    if (user != null && user.hasSavedLocation) {
+      _deliveryLat = user.savedLat;
+      _deliveryLng = user.savedLng;
+      _deliveryAddressNote = user.savedAddress;
+      _locationReviewed = false;
+    }
   }
 
   @override
@@ -66,7 +79,95 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         _deliveryLat = result.lat;
         _deliveryLng = result.lng;
         _deliveryAddressNote = result.addressNote;
+        _locationReviewed = true;
       });
+    }
+  }
+
+  // عند استخدام الموقع الافتراضي المحفوظ دون مراجعة صريحة من العميل هذه الجلسة،
+  // نطلب تأكيداً قبل إرسال الطلب — لتفادي التوصيل لعنوان قديم دون انتباه العميل
+  Future<bool> _confirmSavedLocationIfNeeded() async {
+    if (_locationReviewed) return true;
+    final choice = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('تأكيد موقع التوصيل'),
+        content: Text(
+          _deliveryAddressNote != null && _deliveryAddressNote!.isNotEmpty
+              ? 'سيتم التوصيل إلى عنوانك المحفوظ:\n${_deliveryAddressNote!}\n\nهل هذا صحيح؟'
+              : 'سيتم التوصيل إلى موقعك المحفوظ سابقاً. هل هذا صحيح؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('تغيير الموقع'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('نعم، متابعة'),
+          ),
+        ],
+      ),
+    );
+    if (choice == true) {
+      setState(() => _locationReviewed = true);
+      return true;
+    }
+    if (choice == false) await _pickDeliveryLocation();
+    return false;
+  }
+
+  // تحذير إذا كان الموقع الحالي (GPS) بعيداً بشكل ملحوظ عن موقع التوصيل المحدد
+  Future<bool> _confirmDistanceIfFar() async {
+    const farThresholdKm = 2.0;
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return true; // تعذّر التحقق — لا نمنع إتمام الطلب
+      }
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium)
+          .timeout(const Duration(seconds: 6));
+      final distanceKm =
+          Geolocator.distanceBetween(pos.latitude, pos.longitude, _deliveryLat!, _deliveryLng!) /
+              1000;
+      if (distanceKm < farThresholdKm) return true;
+      if (!mounted) return true;
+
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.warning),
+              const SizedBox(width: 8),
+              const Expanded(child: Text('موقع التوصيل بعيد عن موقعك الحالي')),
+            ],
+          ),
+          content: Text(
+            'موقع التوصيل المحدد يبعد عن موقعك الحالي حوالي ${distanceKm.toStringAsFixed(1)} كم.\n'
+            'هل تريد المتابعة أم تعديل الموقع؟',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('تعديل الموقع'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.warning),
+              child: const Text('متابعة رغم ذلك'),
+            ),
+          ],
+        ),
+      );
+      if (proceed == false) await _pickDeliveryLocation();
+      return proceed == true;
+    } catch (_) {
+      return true; // تعذّر تحديد الموقع الحالي — لا نمنع إتمام الطلب
     }
   }
 
@@ -138,6 +239,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         backgroundColor: AppColors.error,
       ));
       return;
+    }
+
+    if (isDelivery) {
+      final locationOk = await _confirmSavedLocationIfNeeded();
+      if (!locationOk || !mounted) return;
+      final distanceOk = await _confirmDistanceIfFar();
+      if (!distanceOk || !mounted) return;
     }
 
     setState(() => _isPlacingOrder = true);

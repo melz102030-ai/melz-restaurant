@@ -11,6 +11,7 @@ import 'features/auth/screens/staff_login_screen.dart';
 import 'features/customer/screens/customer_home_screen.dart';
 import 'features/customer/screens/cart_screen.dart';
 import 'features/customer/screens/order_tracking_screen.dart';
+import 'features/customer/screens/order_history_screen.dart';
 import 'features/customer/screens/profile_screen.dart';
 import 'features/admin/screens/admin_shell.dart';
 import 'features/admin/screens/admin_dashboard.dart';
@@ -23,6 +24,7 @@ import 'features/admin/screens/admin_drivers_screen.dart';
 import 'features/admin/screens/admin_delivery_zones_screen.dart';
 import 'features/admin/screens/admin_working_hours_screen.dart';
 import 'features/admin/screens/admin_appearance_screen.dart';
+import 'features/admin/screens/admin_popup_ads_screen.dart';
 import 'features/kitchen/screens/kitchen_screen.dart';
 import 'features/kitchen/screens/kitchen_availability_screen.dart';
 import 'features/driver/screens/driver_screen.dart';
@@ -96,6 +98,10 @@ GoRouter _buildRouter(UserModel? user) {
             OrderTrackingScreen(orderId: state.pathParameters['orderId']!),
       ),
       GoRoute(
+        path: '/orders',
+        builder: (_, __) => const OrderHistoryScreen(),
+      ),
+      GoRoute(
         path: '/profile',
         builder: (_, __) => const ProfileScreen(),
       ),
@@ -149,6 +155,10 @@ GoRouter _buildRouter(UserModel? user) {
           GoRoute(
             path: '/admin/appearance',
             builder: (_, __) => const AdminAppearanceScreen(),
+          ),
+          GoRoute(
+            path: '/admin/popup-ads',
+            builder: (_, __) => const AdminPopupAdsScreen(),
           ),
         ],
       ),

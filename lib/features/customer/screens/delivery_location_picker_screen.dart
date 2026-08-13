@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -8,9 +9,11 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' as ll;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/delivery_zone_model.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/delivery_location_cache_provider.dart';
 import '../../../core/providers/delivery_zone_provider.dart';
 import '../../../core/providers/settings_provider.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
 
 class _SearchResult {
@@ -60,6 +63,9 @@ class _DeliveryLocationPickerScreenState
   bool _hasPicked = false;
   bool _searching = false;
   List<_SearchResult> _searchResults = [];
+  Timer? _geocodeDebounce;
+  String? _detectedAddress;
+  bool _reverseGeocoding = false;
 
   @override
   void initState() {
@@ -71,6 +77,7 @@ class _DeliveryLocationPickerScreenState
     if (widget.initialLat != null && widget.initialLng != null) {
       _center = ll.LatLng(widget.initialLat!, widget.initialLng!);
       _hasPicked = true;
+      _scheduleReverseGeocode(_center);
     } else {
       // موقع اكتُشف مسبقاً عند اختيار "توصيل" من الشاشة الرئيسية — يُستخدم فوراً
       // بدل تكرار طلب الإذن والانتظار على GPS من جديد
@@ -78,6 +85,7 @@ class _DeliveryLocationPickerScreenState
       if (cached != null) {
         _center = ll.LatLng(cached.lat, cached.lng);
         _hasPicked = true;
+        _scheduleReverseGeocode(_center);
       } else {
         WidgetsBinding.instance.addPostFrameCallback((_) => _useCurrentLocation());
       }
@@ -86,9 +94,52 @@ class _DeliveryLocationPickerScreenState
 
   @override
   void dispose() {
+    _geocodeDebounce?.cancel();
     _noteCtrl.dispose();
     _searchCtrl.dispose();
     super.dispose();
+  }
+
+  // ترجمة الإحداثيات إلى عنوان مقروء (اسم الحي/الشارع) — بعد توقف قصير عن
+  // تحريك الخريطة، لتفادي إغراق خدمة Nominatim بطلب لكل بكسل تحريك
+  void _scheduleReverseGeocode(ll.LatLng point) {
+    _geocodeDebounce?.cancel();
+    _geocodeDebounce = Timer(const Duration(milliseconds: 700), () => _reverseGeocode(point));
+  }
+
+  Future<void> _reverseGeocode(ll.LatLng point) async {
+    if (!mounted) return;
+    setState(() => _reverseGeocoding = true);
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=${point.latitude}&lon=${point.longitude}'
+        '&format=json&accept-language=ar&zoom=18',
+      );
+      final response = await http
+          .get(uri, headers: {'User-Agent': 'melz-restaurant-app'})
+          .timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) throw Exception('status ${response.statusCode}');
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final addr = data['address'] as Map<String, dynamic>?;
+      String? address;
+      if (addr != null) {
+        final parts = [
+          addr['neighbourhood'] ?? addr['suburb'] ?? addr['quarter'],
+          addr['road'],
+          addr['city'] ?? addr['town'] ?? addr['county'],
+        ].whereType<String>().where((s) => s.trim().isNotEmpty).toList();
+        address = parts.isNotEmpty ? parts.join('، ') : data['display_name'] as String?;
+      } else {
+        address = data['display_name'] as String?;
+      }
+      if (!mounted) return;
+      setState(() => _detectedAddress = address);
+    } catch (_) {
+      // تجاهل بصمت — العنوان النصي تحسين إضافي وليس شرطاً لتأكيد الموقع
+    } finally {
+      if (mounted) setState(() => _reverseGeocoding = false);
+    }
   }
 
   Future<void> _searchAddress(String query) async {
@@ -145,6 +196,7 @@ class _DeliveryLocationPickerScreenState
       _searchCtrl.text = r.displayName;
     });
     _mapController.move(target, 16);
+    _scheduleReverseGeocode(target);
   }
 
   Future<void> _useCurrentLocation() async {
@@ -174,6 +226,7 @@ class _DeliveryLocationPickerScreenState
         _hasPicked = true;
       });
       _mapController.move(target, 16);
+      _scheduleReverseGeocode(target);
       ref.read(cachedDeliveryLocationProvider.notifier).state =
           CachedLatLng(pos.latitude, pos.longitude);
     } catch (e) {
@@ -189,12 +242,29 @@ class _DeliveryLocationPickerScreenState
   }
 
   void _confirm() {
+    final extra = _noteCtrl.text.trim();
+    final combinedAddress = [
+      if (_detectedAddress != null && _detectedAddress!.trim().isNotEmpty) _detectedAddress!.trim(),
+      if (extra.isNotEmpty) extra,
+    ].join(' — ');
+
+    // يُحفظ كموقع افتراضي للعميل تلقائياً — يُستخدم في طلباته القادمة حتى يغيّره
+    final user = ref.read(authProvider);
+    if (user != null) {
+      AuthService.updateSavedLocation(
+        user.id,
+        lat: _center.latitude,
+        lng: _center.longitude,
+        address: combinedAddress.isEmpty ? null : combinedAddress,
+      );
+    }
+
     Navigator.pop(
       context,
       DeliveryLocationResult(
         lat: _center.latitude,
         lng: _center.longitude,
-        addressNote: _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim(),
+        addressNote: combinedAddress.isEmpty ? null : combinedAddress,
       ),
     );
   }
@@ -247,6 +317,7 @@ class _DeliveryLocationPickerScreenState
                           _center = center;
                           _hasPicked = true;
                         });
+                        _scheduleReverseGeocode(center);
                       }
                     },
                   ),
@@ -445,6 +516,28 @@ class _DeliveryLocationPickerScreenState
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Row(
+                  children: [
+                    Icon(Icons.location_on, color: AppColors.purple, size: 18),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: _reverseGeocoding
+                          ? Text('جاري تحديد العنوان...',
+                              style: TextStyle(color: AppColors.textHint, fontSize: 12))
+                          : Text(
+                              _detectedAddress ?? 'حرّك الخريطة لتحديد العنوان',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
                 TextField(
                   controller: _noteCtrl,
                   style: TextStyle(color: AppColors.textPrimary),

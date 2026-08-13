@@ -7,11 +7,14 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/category_model.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/models/popup_ad_model.dart';
 import '../../../core/models/promo_banner_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/models/app_theme_settings.dart';
@@ -19,12 +22,14 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
 import '../../../core/providers/delivery_location_cache_provider.dart';
 import '../../../core/providers/order_type_provider.dart';
+import '../../../core/providers/popup_ad_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/app_theme_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/menu_item_card.dart';
+import '../widgets/popup_ad_dialog.dart';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -45,6 +50,45 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   bool _isIosInstallable = false;
   bool _installBannerDismissed = false;
   UserRole? _quickLoginRole;
+  bool _popupAdChecked = false;
+
+  // إعلان الأدمن المنبثق — يظهر مرة واحدة فقط لكل حملة إعلانية لكل عميل
+  Future<void> _maybeShowPopupAd(PopupAdModel ad) async {
+    if (_popupAdChecked) return;
+    _popupAdChecked = true;
+    final prefs = await SharedPreferences.getInstance();
+    final seenKey = 'seen_popup_ad_${ad.id}';
+    if (prefs.getBool(seenKey) == true) return;
+    await prefs.setBool(seenKey, true);
+    if (!mounted) return;
+    final allItems = ref.read(menuItemsStreamProvider(null)).valueOrNull ?? [];
+    await showPopupAdDialog(
+      context,
+      ad: ad,
+      onTapAction: () => _handlePopupAdTap(ad, allItems),
+    );
+  }
+
+  void _handlePopupAdTap(PopupAdModel ad, List<MenuItemModel> allItems) {
+    switch (ad.linkType) {
+      case PopupAdLinkType.category:
+        if (ad.linkId != null) _selectCategory(ad.linkId);
+        break;
+      case PopupAdLinkType.item:
+        if (ad.linkId != null) {
+          final matches = allItems.where((i) => i.id == ad.linkId);
+          if (matches.isNotEmpty) _selectCategory(matches.first.categoryId);
+        }
+        break;
+      case PopupAdLinkType.url:
+        if (ad.externalUrl != null && ad.externalUrl!.isNotEmpty) {
+          launchUrl(Uri.parse(ad.externalUrl!), mode: LaunchMode.externalApplication);
+        }
+        break;
+      case PopupAdLinkType.none:
+        break;
+    }
+  }
 
   Future<void> _quickLogin(UserRole role) async {
     if (_quickLoginRole != null) return;
@@ -357,6 +401,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final cartCount = ref.watch(cartItemCountProvider);
     final activeOrder = ref.watch(activeOrderProvider);
 
+    final popupAd = ref.watch(activePopupAdProvider).valueOrNull;
+    if (popupAd != null && !_popupAdChecked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowPopupAd(popupAd));
+    }
+
     final categoriesAsync = ref.watch(categoriesStreamProvider);
     final allItemsAsync = ref.watch(menuItemsStreamProvider(null));
     final bannersAsync = ref.watch(activeBannersStreamProvider);
@@ -464,14 +513,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 icon: CircleAvatar(
                   radius: 16,
                   backgroundColor: AppColors.purpleDark,
-                  child: Text(
-                    user.name.isNotEmpty ? user.name[0] : 'ع',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: const Icon(Icons.person_rounded, color: Colors.white, size: 18),
                 ),
               ),
             ),
@@ -605,9 +647,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         hasActiveOrder: activeOrder != null,
         onMenuTap: () => _selectCategory(null),
         onSearchTap: _focusSearch,
-        onOrdersTap: activeOrder != null
-            ? () => context.push('/track/${activeOrder.id}')
-            : null,
+        onOrdersTap: () => context.push('/orders'),
         onProfileTap: () => context.push('/profile'),
         onCartTap: () => context.push('/cart'),
       ),
@@ -759,9 +799,8 @@ class _FloatingDockNav extends StatelessWidget {
                     _NavIcon(
                       icon: Icons.receipt_long_rounded,
                       label: 'طلبي',
-                      active: false,
+                      active: hasActiveOrder,
                       onTap: onOrdersTap,
-                      enabled: hasActiveOrder,
                     ),
                     _NavIcon(icon: Icons.person_rounded, label: 'حسابي', active: false, onTap: onProfileTap),
                   ],
