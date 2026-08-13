@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
@@ -9,10 +10,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/models/settings_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/drivers_provider.dart';
+import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/order_service.dart';
+import '../../../core/services/routing_service.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -233,16 +237,51 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
   }
 }
 
-class _CurrentOrderCard extends StatefulWidget {
+class _CurrentOrderCard extends ConsumerStatefulWidget {
   final OrderModel order;
   const _CurrentOrderCard({required this.order});
 
   @override
-  State<_CurrentOrderCard> createState() => _CurrentOrderCardState();
+  ConsumerState<_CurrentOrderCard> createState() => _CurrentOrderCardState();
 }
 
-class _CurrentOrderCardState extends State<_CurrentOrderCard> {
+class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
   bool _isUpdating = false;
+  Timer? _ticker;
+
+  bool get _isPreparing =>
+      widget.order.status == OrderStatus.pending ||
+      widget.order.status == OrderStatus.confirmed ||
+      widget.order.status == OrderStatus.preparing;
+  bool get _isReady => widget.order.status == OrderStatus.ready;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.order.estimatedMinutes != null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_CurrentOrderCard old) {
+    super.didUpdateWidget(old);
+    if (old.order.estimatedMinutes == null &&
+        widget.order.estimatedMinutes != null &&
+        _ticker == null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
 
   Future<void> _confirmPickup() async {
     setState(() => _isUpdating = true);
@@ -262,7 +301,7 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
     }
   }
 
-  void _openMap() {
+  void _openCustomerMap() {
     final order = widget.order;
     if (!order.hasDeliveryLocation) return;
     launchUrl(
@@ -271,14 +310,50 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
     );
   }
 
+  void _openRestaurantMap(double lat, double lng) {
+    launchUrl(
+      Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng'),
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
+  String _fmtCountdown(Duration d) {
+    if (d.isNegative) {
+      final over = d.abs();
+      return 'تأخر ${over.inMinutes} د';
+    }
+    final m = d.inMinutes.toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  Color _statusColor(OrderStatus s) {
+    switch (s) {
+      case OrderStatus.pending:
+        return AppColors.statusPending;
+      case OrderStatus.confirmed:
+        return AppColors.statusConfirmed;
+      case OrderStatus.preparing:
+        return AppColors.statusPreparing;
+      case OrderStatus.ready:
+        return AppColors.warning;
+      case OrderStatus.outForDelivery:
+        return AppColors.statusOutForDelivery;
+      case OrderStatus.delivered:
+        return AppColors.statusDelivered;
+      case OrderStatus.cancelled:
+        return AppColors.statusCancelled;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
-    final awaitingConfirm = order.status == OrderStatus.ready;
+    final settings = ref.watch(settingsProvider);
+    final statusColor = _statusColor(order.status);
 
     return GlassMorphCard(
-      borderColor: (awaitingConfirm ? AppColors.warning : AppColors.statusOutForDelivery)
-          .withOpacity(0.5),
+      borderColor: statusColor.withOpacity(0.5),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -287,14 +362,13 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: (awaitingConfirm ? AppColors.warning : AppColors.statusOutForDelivery)
-                      .withOpacity(0.12),
+                  color: statusColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  awaitingConfirm ? 'بانتظار تأكيدك' : 'في الطريق',
+                  order.status.label,
                   style: TextStyle(
-                    color: awaitingConfirm ? AppColors.warning : AppColors.statusOutForDelivery,
+                    color: statusColor,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -307,6 +381,41 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
               ),
             ],
           ),
+          if (order.estimatedMinutes != null && order.remainingTime != null) ...[
+            const SizedBox(height: 10),
+            Builder(builder: (_) {
+              final remaining = order.remainingTime!;
+              final isLate = remaining.isNegative;
+              final chipColor = isLate ? AppColors.error : AppColors.purple;
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: chipColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.timer_outlined, color: chipColor, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      isLate ? 'تجاوز وقت التحضير المتوقع' : 'وقت جاهزية الطلب:',
+                      style: TextStyle(color: chipColor, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    const Spacer(),
+                    Text(
+                      _fmtCountdown(remaining),
+                      style: TextStyle(
+                        color: chipColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
@@ -351,13 +460,35 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
               ],
             ),
           ],
-          if (order.hasDeliveryLocation) ...[
+          if (settings.hasRestaurantLocation || order.hasDeliveryLocation) ...[
             const SizedBox(height: 10),
-            OutlinedButton.icon(
-              onPressed: _openMap,
-              icon: Icon(Icons.map_outlined, size: 18),
-              label: const Text('فتح الموقع في خرائط جوجل'),
+            Row(
+              children: [
+                if (settings.hasRestaurantLocation)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          _openRestaurantMap(settings.restaurantLat!, settings.restaurantLng!),
+                      icon: Icon(Icons.storefront_outlined, size: 16),
+                      label: const Text('موقع المطعم', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+                if (settings.hasRestaurantLocation && order.hasDeliveryLocation)
+                  const SizedBox(width: 8),
+                if (order.hasDeliveryLocation)
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _openCustomerMap,
+                      icon: Icon(Icons.location_on_outlined, size: 16),
+                      label: const Text('موقع العميل', style: TextStyle(fontSize: 12)),
+                    ),
+                  ),
+              ],
             ),
+          ],
+          if (settings.hasRestaurantLocation && order.hasDeliveryLocation) ...[
+            const SizedBox(height: 10),
+            _DriverEtaCard(order: order, settings: settings),
           ],
           const SizedBox(height: 14),
           Divider(color: AppColors.surfaceLight),
@@ -389,17 +520,181 @@ class _CurrentOrderCardState extends State<_CurrentOrderCard> {
             ],
           ),
           const SizedBox(height: 14),
-          AppButton(
-            label: awaitingConfirm ? 'تأكيد استلام الطلب' : 'تم التسليم ✅',
-            icon: awaitingConfirm ? Icons.task_alt : Icons.done_all,
-            isLoading: _isUpdating,
-            width: double.infinity,
-            color: awaitingConfirm ? AppColors.warning : AppColors.success,
-            onPressed: awaitingConfirm ? _confirmPickup : _markDelivered,
-          ),
+          if (_isPreparing)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'بانتظار انتهاء التحضير في المطبخ',
+                style: TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+              ),
+            )
+          else
+            AppButton(
+              label: _isReady ? 'تأكيد استلام الطلب' : 'تم التسليم ✅',
+              icon: _isReady ? Icons.task_alt : Icons.done_all,
+              isLoading: _isUpdating,
+              width: double.infinity,
+              color: _isReady ? AppColors.warning : AppColors.success,
+              onPressed: _isReady ? _confirmPickup : _markDelivered,
+            ),
         ],
       ),
     ).animate().fadeIn().slideY(begin: 0.05);
+  }
+}
+
+// وقت الوصول التقديري: من المندوب إلى المطعم، ومن المطعم إلى العميل، حسب
+// شبكة الطرق الفعلية (OSRM) — يتحدّث دورياً مع تحرك المندوب
+class _DriverEtaCard extends StatefulWidget {
+  final OrderModel order;
+  final RestaurantSettings settings;
+  const _DriverEtaCard({required this.order, required this.settings});
+
+  @override
+  State<_DriverEtaCard> createState() => _DriverEtaCardState();
+}
+
+class _DriverEtaCardState extends State<_DriverEtaCard> {
+  int? _toRestaurant;
+  int? _toCustomer;
+  bool _loading = false;
+  Timer? _refreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) => _fetch());
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetch() async {
+    if (_loading) return;
+    setState(() => _loading = true);
+    try {
+      double? driverLat;
+      double? driverLng;
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission != LocationPermission.denied &&
+          permission != LocationPermission.deniedForever) {
+        try {
+          final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium)
+              .timeout(const Duration(seconds: 8));
+          driverLat = pos.latitude;
+          driverLng = pos.longitude;
+        } catch (_) {}
+      }
+
+      final toCustomer = await RoutingService.drivingDurationMinutes(
+        fromLat: widget.settings.restaurantLat!,
+        fromLng: widget.settings.restaurantLng!,
+        toLat: widget.order.deliveryLat!,
+        toLng: widget.order.deliveryLng!,
+      );
+
+      int? toRestaurant;
+      if (driverLat != null && driverLng != null) {
+        toRestaurant = await RoutingService.drivingDurationMinutes(
+          fromLat: driverLat,
+          fromLng: driverLng,
+          toLat: widget.settings.restaurantLat!,
+          toLng: widget.settings.restaurantLng!,
+        );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _toRestaurant = toRestaurant;
+        _toCustomer = toCustomer;
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final total =
+        (_toRestaurant != null && _toCustomer != null) ? _toRestaurant! + _toCustomer! : null;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.purple.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.purple.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.alt_route, color: AppColors.purple, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'الوقت التقديري حسب حركة المرور الحالية',
+                  style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+              if (_loading)
+                const SizedBox(
+                    width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+              else
+                InkWell(
+                  onTap: _fetch,
+                  child: Icon(Icons.refresh, size: 16, color: AppColors.purple),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _etaRow('منك إلى المطعم', _toRestaurant),
+          _etaRow('من المطعم إلى العميل', _toCustomer),
+          Divider(color: AppColors.purple.withOpacity(0.2), height: 14),
+          _etaRow('الإجمالي', total, bold: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _etaRow(String label, int? minutes, {bool bold = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+          Text(
+            minutes != null ? '$minutes د' : '—',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 12,
+              fontWeight: bold ? FontWeight.bold : FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -440,7 +735,7 @@ class _QueuedOrderTile extends StatelessWidget {
                     style: TextStyle(
                         color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
                 Text(
-                  order.status == OrderStatus.ready ? 'بانتظار تأكيدك' : 'في الطريق',
+                  order.status.label,
                   style: TextStyle(color: AppColors.textHint, fontSize: 11),
                 ),
               ],

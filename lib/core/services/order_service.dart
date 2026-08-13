@@ -122,6 +122,8 @@ class OrderService {
   }
 
   // الطلبات التي وافق عليها المندوب — جاهزة للاستلام أو في الطريق بالفعل
+  // تبقى ظاهرة للمندوب من لحظة قبوله وحتى التسليم — تشمل مراحل التحضير في
+  // المطبخ (قيد الانتظار/مؤكد/قيد التحضير)، لا فقط "جاهز"/"في الطريق"
   static Stream<List<OrderModel>> streamDriverOrders(String driverId) {
     return _db
         .collection(_colOrders)
@@ -132,7 +134,8 @@ class OrderService {
               .map((d) => OrderModel.fromMap(d.data(), d.id))
               .where((o) =>
                   o.driverAcceptedAt != null &&
-                  (o.status == OrderStatus.ready || o.status == OrderStatus.outForDelivery))
+                  o.status != OrderStatus.delivered &&
+                  o.status != OrderStatus.cancelled)
               .toList();
           orders.sort((a, b) =>
               (a.assignedAt ?? a.createdAt).compareTo(b.assignedAt ?? b.createdAt));
