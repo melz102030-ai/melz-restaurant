@@ -21,6 +21,7 @@ import 'features/admin/screens/admin_settings_screen.dart';
 import 'features/admin/screens/admin_users_screen.dart';
 import 'features/admin/screens/admin_drivers_screen.dart';
 import 'features/admin/screens/admin_delivery_zones_screen.dart';
+import 'features/admin/screens/admin_working_hours_screen.dart';
 import 'features/admin/screens/admin_appearance_screen.dart';
 import 'features/kitchen/screens/kitchen_screen.dart';
 import 'features/kitchen/screens/kitchen_availability_screen.dart';
@@ -140,6 +141,10 @@ GoRouter _buildRouter(UserModel? user) {
           GoRoute(
             path: '/admin/delivery-zones',
             builder: (_, __) => const AdminDeliveryZonesScreen(),
+          ),
+          GoRoute(
+            path: '/admin/working-hours',
+            builder: (_, __) => const AdminWorkingHoursScreen(),
           ),
           GoRoute(
             path: '/admin/appearance',

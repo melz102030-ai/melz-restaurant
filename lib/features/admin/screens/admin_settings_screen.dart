@@ -19,14 +19,11 @@ class AdminSettingsScreen extends ConsumerStatefulWidget {
 
 class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _nameCtrl = TextEditingController();
-  final _openTimeCtrl = TextEditingController();
-  final _closeTimeCtrl = TextEditingController();
   final _minOrderCtrl = TextEditingController();
   final _prepTimeCtrl = TextEditingController();
   final _whatsappCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _welcomeMsgCtrl = TextEditingController();
-  bool _isOpen = true;
   bool _allowOrders = true;
   bool _isSaving = false;
   bool _isLoaded = false;
@@ -37,38 +34,16 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     _loadSettings();
   }
 
-  Future<void> _pickTime(TextEditingController ctrl) async {
-    final parts = ctrl.text.split(':');
-    final h = int.tryParse(parts.isNotEmpty ? parts[0] : '8') ?? 8;
-    final m = int.tryParse(parts.length > 1 ? parts[1] : '0') ?? 0;
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay(hour: h, minute: m),
-      builder: (ctx, child) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: child!,
-      ),
-    );
-    if (picked != null && mounted) {
-      ctrl.text =
-          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-      setState(() {});
-    }
-  }
-
   Future<void> _loadSettings() async {
     final settings = await SettingsService.getSettings();
     if (mounted) {
       setState(() {
         _nameCtrl.text = settings.restaurantName;
-        _openTimeCtrl.text = settings.openTime;
-        _closeTimeCtrl.text = settings.closeTime;
         _minOrderCtrl.text = settings.minOrderAmount.toString();
         _prepTimeCtrl.text = settings.estimatedPrepTime.toString();
         _whatsappCtrl.text = settings.whatsappNumber;
         _addressCtrl.text = settings.address ?? '';
         _welcomeMsgCtrl.text = settings.welcomeMessage ?? '';
-        _isOpen = settings.isOpen;
         _allowOrders = settings.allowOrders;
         _isLoaded = true;
       });
@@ -78,8 +53,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _openTimeCtrl.dispose();
-    _closeTimeCtrl.dispose();
     _minOrderCtrl.dispose();
     _prepTimeCtrl.dispose();
     _whatsappCtrl.dispose();
@@ -96,9 +69,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
       final current = await SettingsService.getSettings();
       final settings = current.copyWith(
         restaurantName: _nameCtrl.text.trim(),
-        isOpen: _isOpen,
-        openTime: _openTimeCtrl.text.trim(),
-        closeTime: _closeTimeCtrl.text.trim(),
         minOrderAmount: double.tryParse(_minOrderCtrl.text) ?? 30,
         estimatedPrepTime: int.tryParse(_prepTimeCtrl.text) ?? 30,
         whatsappNumber: _whatsappCtrl.text.trim(),
@@ -166,54 +136,17 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
 
             const SizedBox(height: 24),
 
-            _SectionTitle(title: 'ساعات العمل', icon: Icons.access_time),
-            Row(
-              children: [
-                Expanded(
-                  child: _TimePickerTile(
-                    label: 'وقت الفتح',
-                    controller: _openTimeCtrl,
-                    onTap: () => _pickTime(_openTimeCtrl),
-                    icon: Icons.wb_sunny_outlined,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _TimePickerTile(
-                    label: 'وقت الإغلاق',
-                    controller: _closeTimeCtrl,
-                    onTap: () => _pickTime(_closeTimeCtrl),
-                    icon: Icons.nightlight_outlined,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+            _SectionTitle(title: 'الطلبات', icon: Icons.shopping_cart_outlined),
             GlassMorphCard(
-              child: Column(
-                children: [
-                  _SwitchRow(
-                    label: 'المطعم مفتوح',
-                    subtitle: 'تفعيل أو تعطيل الطلبات',
-                    value: _isOpen,
-                    onChanged: (v) => setState(() => _isOpen = v),
-                    icon: Icons.store,
-                  ),
-                  Divider(color: AppColors.surfaceLight),
-                  _SwitchRow(
-                    label: 'قبول الطلبات',
-                    subtitle: 'السماح بتقديم طلبات جديدة',
-                    value: _allowOrders,
-                    onChanged: (v) => setState(() => _allowOrders = v),
-                    icon: Icons.shopping_cart,
-                  ),
-                ],
+              child: _SwitchRow(
+                label: 'قبول الطلبات',
+                subtitle: 'السماح بتقديم طلبات جديدة (ساعات العمل التفصيلية في تبويب مستقل)',
+                value: _allowOrders,
+                onChanged: (v) => setState(() => _allowOrders = v),
+                icon: Icons.shopping_cart,
               ),
             ),
-
-            const SizedBox(height: 24),
-
-            _SectionTitle(title: 'الطلبات', icon: Icons.monetization_on),
+            const SizedBox(height: 12),
             _Field(
               controller: _minOrderCtrl,
               label: 'الحد الأدنى للطلب',
@@ -394,69 +327,3 @@ class _SwitchRow extends StatelessWidget {
   }
 }
 
-class _TimePickerTile extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final VoidCallback onTap;
-  final IconData icon;
-
-  const _TimePickerTile({
-    required this.label,
-    required this.controller,
-    required this.onTap,
-    required this.icon,
-  });
-
-  String _fmt(String hhmm) {
-    final parts = hhmm.split(':');
-    if (parts.length != 2) return hhmm;
-    final h = int.tryParse(parts[0]) ?? 0;
-    final m = int.tryParse(parts[1]) ?? 0;
-    final isPm = h >= 12;
-    final h12 = h == 0 ? 12 : (h > 12 ? h - 12 : h);
-    return '$h12:${m.toString().padLeft(2, '0')} ${isPm ? 'م' : 'ص'}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final displayText = controller.text.isEmpty ? '--:--' : _fmt(controller.text);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.black.withOpacity(0.06)),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.purple, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: TextStyle(
-                          color: AppColors.textHint, fontSize: 11)),
-                  const SizedBox(height: 2),
-                  Text(
-                    displayText,
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.edit, color: AppColors.textHint, size: 16),
-          ],
-        ),
-      ),
-    );
-  }
-}

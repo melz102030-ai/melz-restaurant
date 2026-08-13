@@ -1,3 +1,5 @@
+import 'work_shift_model.dart';
+
 class RestaurantSettings {
   final String restaurantName;
   final String? logoUrl;
@@ -16,6 +18,8 @@ class RestaurantSettings {
   final double? restaurantLat;
   final double? restaurantLng;
   final bool useDeliveryZones;
+  // جدول عمل تفصيلي: مفتاح اليوم (sun..sat) → قائمة شفتات ذلك اليوم (فارغة = عطلة)
+  final Map<String, List<WorkShift>> workingHours;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -35,19 +39,43 @@ class RestaurantSettings {
     this.restaurantLat,
     this.restaurantLng,
     this.useDeliveryZones = false,
+    this.workingHours = const {},
   });
 
   bool get hasRestaurantLocation => restaurantLat != null && restaurantLng != null;
 
+  // هل الجدول التفصيلي (شفتات لكل يوم) مُفعَّل؟ — يُفعَّل تلقائياً بمجرد أول حفظ
+  // من شاشة "ساعات العمل"، ويأخذ الأولوية على openTime/closeTime القديمة
+  bool get hasDetailedHours => workingHours.isNotEmpty;
+
   // هل المطعم مفتوح فعلياً الآن؟ (الوقت الحالي ضمن الجدول + المفتاح اليدوي)
   bool get effectivelyOpen {
     if (!isOpen || !allowOrders) return false;
+
+    if (hasDetailedHours) {
+      final now = DateTime.now();
+      final shifts = workingHours[dayKeyForWeekday(now.weekday)] ?? const [];
+      if (shifts.isEmpty) return false; // اليوم عطلة
+      for (final s in shifts) {
+        final open = _parseHHMM(s.open, now);
+        final close = _parseHHMM(s.close, now);
+        if (open == null || close == null) continue;
+        // معالجة تجاوز منتصف الليل (مثال: 22:00 - 02:00)
+        if (close.isBefore(open) || close.isAtSameMomentAs(open)) {
+          if (now.isAfter(open) || now.isBefore(close)) return true;
+        } else if (now.isAfter(open) && now.isBefore(close)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // نمط قديم: نطاق ساعات واحد يومي (قبل تفعيل الجدول التفصيلي)
     if (openTime.isEmpty || closeTime.isEmpty) return true;
     final now = DateTime.now();
     final open = _parseHHMM(openTime, now);
     final close = _parseHHMM(closeTime, now);
     if (open == null || close == null) return true;
-    // معالجة تجاوز منتصف الليل (مثال: 22:00 - 02:00)
     if (close.isBefore(open) || close.isAtSameMomentAs(open)) {
       return now.isAfter(open) || now.isBefore(close);
     }
@@ -63,7 +91,7 @@ class RestaurantSettings {
     return DateTime(date.year, date.month, date.day, h, m);
   }
 
-  String _fmtHHMM(String hhmm) {
+  static String fmtHHMM(String hhmm) {
     final parts = hhmm.split(':');
     if (parts.length != 2) return hhmm;
     final h = int.tryParse(parts[0]) ?? 0;
@@ -73,9 +101,27 @@ class RestaurantSettings {
     return '$h12:${m.toString().padLeft(2, '0')} ${isPm ? 'م' : 'ص'}';
   }
 
-  String get openTimeLabel => _fmtHHMM(openTime);
-  String get closeTimeLabel => _fmtHHMM(closeTime);
-  String get scheduleLabel => '${_fmtHHMM(openTime)} - ${_fmtHHMM(closeTime)}';
+  String get openTimeLabel => fmtHHMM(openTime);
+  String get closeTimeLabel => fmtHHMM(closeTime);
+  String get scheduleLabel => '${fmtHHMM(openTime)} - ${fmtHHMM(closeTime)}';
+
+  static Map<String, List<WorkShift>> _workingHoursFromMap(dynamic raw) {
+    if (raw is! Map) return const {};
+    final result = <String, List<WorkShift>>{};
+    raw.forEach((key, value) {
+      if (value is List) {
+        result[key as String] = value
+            .whereType<Map>()
+            .map((m) => WorkShift.fromMap(Map<String, dynamic>.from(m)))
+            .toList();
+      }
+    });
+    return result;
+  }
+
+  static Map<String, dynamic> _workingHoursToMap(Map<String, List<WorkShift>> hours) {
+    return hours.map((key, shifts) => MapEntry(key, shifts.map((s) => s.toMap()).toList()));
+  }
 
   factory RestaurantSettings.fromMap(Map<String, dynamic> map) {
     return RestaurantSettings(
@@ -96,6 +142,7 @@ class RestaurantSettings {
       restaurantLat: (map['restaurantLat'] as num?)?.toDouble(),
       restaurantLng: (map['restaurantLng'] as num?)?.toDouble(),
       useDeliveryZones: map['useDeliveryZones'] ?? false,
+      workingHours: _workingHoursFromMap(map['workingHours']),
     );
   }
 
@@ -118,6 +165,7 @@ class RestaurantSettings {
       'restaurantLat': restaurantLat,
       'restaurantLng': restaurantLng,
       'useDeliveryZones': useDeliveryZones,
+      'workingHours': _workingHoursToMap(workingHours),
     };
   }
 
@@ -139,6 +187,7 @@ class RestaurantSettings {
     double? restaurantLat,
     double? restaurantLng,
     bool? useDeliveryZones,
+    Map<String, List<WorkShift>>? workingHours,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -158,6 +207,7 @@ class RestaurantSettings {
       restaurantLat: restaurantLat ?? this.restaurantLat,
       restaurantLng: restaurantLng ?? this.restaurantLng,
       useDeliveryZones: useDeliveryZones ?? this.useDeliveryZones,
+      workingHours: workingHours ?? this.workingHours,
     );
   }
 }
