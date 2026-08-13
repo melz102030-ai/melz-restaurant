@@ -1962,8 +1962,9 @@ class _BannerDialogState extends ConsumerState<_BannerDialog> {
     try {
       String finalImageUrl = _imageUrl ?? '';
       if (_imageBytes != null) {
-        finalImageUrl =
-            await CloudinaryService.uploadImage(_imageBytes!, 'banner_${_uuid.v4()}.jpg');
+        finalImageUrl = await CloudinaryService.uploadImage(
+                _imageBytes!, 'banner_${_uuid.v4()}.jpg') ??
+            finalImageUrl;
       }
       final banner = PromoBannerModel(
         id: widget.banner?.id ?? '',
