@@ -23,18 +23,25 @@ class MenuItemListCard extends ConsumerWidget {
     final available = item.isAvailable;
 
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: 5),
       decoration: BoxDecoration(
         color: available ? AppColors.cardBackground : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: totalQty > 0
-              ? AppColors.purple.withValues(alpha: 0.4)
-              : AppColors.surfaceLight,
-        ),
+        borderRadius: BorderRadius.circular(20),
+        border: totalQty > 0
+            ? Border.all(color: AppColors.purple.withValues(alpha: 0.45), width: 1.4)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: totalQty > 0
+                ? AppColors.purple.withValues(alpha: 0.12)
+                : Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(20),
         onTap: available && item.hasOptions
             ? () => _showOptionsSheet(context, ref)
             : null,
@@ -44,10 +51,10 @@ class MenuItemListCard extends ConsumerWidget {
             children: [
               // Image
               ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(16),
                 child: SizedBox(
-                  width: 80,
-                  height: 80,
+                  width: 88,
+                  height: 88,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -143,8 +150,8 @@ class MenuItemListCard extends ConsumerWidget {
                             '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
                             style: TextStyle(
                               color: AppColors.purple,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
                             ),
                           ),
                           if (item.hasDiscount) ...[
@@ -273,15 +280,22 @@ class MenuItemGridCard extends ConsumerWidget {
     return Container(
       decoration: BoxDecoration(
         color: available ? AppColors.cardBackground : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: totalQty > 0
-              ? AppColors.purple.withValues(alpha: 0.4)
-              : AppColors.surfaceLight,
-        ),
+        borderRadius: BorderRadius.circular(18),
+        border: totalQty > 0
+            ? Border.all(color: AppColors.purple.withValues(alpha: 0.45), width: 1.4)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: totalQty > 0
+                ? AppColors.purple.withValues(alpha: 0.12)
+                : Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         onTap: available && item.hasOptions
             ? () => _showOptionsSheet(context, ref)
             : null,
@@ -290,7 +304,7 @@ class MenuItemGridCard extends ConsumerWidget {
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -440,11 +454,18 @@ class _MiniAddBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 26,
-          height: 26,
+          width: 28,
+          height: 28,
           decoration: BoxDecoration(
             gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.purple.withValues(alpha: 0.3),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: const Icon(Icons.add, color: Colors.white, size: 16),
         ),
@@ -480,13 +501,20 @@ class _AddBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 36,
-          height: 36,
+          width: 40,
+          height: 40,
           decoration: BoxDecoration(
             gradient: AppColors.primaryGradient,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(13),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.purple.withValues(alpha: 0.35),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: Colors.white, size: 21),
         ),
       );
 }

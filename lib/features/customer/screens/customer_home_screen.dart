@@ -3,6 +3,7 @@ import 'dart:js' as js;
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
@@ -15,6 +16,7 @@ import '../../../core/models/user_model.dart';
 import '../../../core/models/app_theme_settings.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
+import '../../../core/providers/order_type_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/app_theme_provider.dart';
 import '../../../core/services/auth_service.dart';
@@ -32,6 +34,7 @@ class CustomerHomeScreen extends ConsumerStatefulWidget {
 class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
+  final _searchFocusNode = FocusNode();
   final _catBarScroll = ScrollController();
   final Map<String, GlobalKey> _sectionKeys = {};
   String? _highlightedCatId;
@@ -205,8 +208,17 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _catBarScroll.dispose();
     super.dispose();
+  }
+
+  // زر "بحث" في التنقل السفلي — يمرّر لأعلى ثم يركّز على حقل البحث
+  void _focusSearch() {
+    _selectCategory(null);
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) _searchFocusNode.requestFocus();
+    });
   }
 
   // Detect which category section is currently in the upper viewport
@@ -315,6 +327,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final banners = bannersAsync.valueOrNull ?? [];
     final bestSellers = allItems.where((i) => i.isBestSeller).toList();
 
+    // أول تحميل فقط (لا بيانات مخزّنة بعد) — نعرض هيكلاً نابضاً بدل فراغ مفاجئ
+    final isInitialLoading = (categoriesAsync.isLoading && !categoriesAsync.hasValue) ||
+        (allItemsAsync.isLoading && !allItemsAsync.hasValue);
+
     // Filter items by search query (flat list, no grouping during search)
     final filteredItems = searchQuery.isEmpty
         ? allItems
@@ -333,6 +349,17 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         centerTitle: false,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(54),
+          child: _OrderTypeSelector(
+            deliveryEnabled: settings.deliveryEnabled,
+            selected: ref.watch(orderTypeProvider),
+            onChanged: (t) => ref.read(orderTypeProvider.notifier).state = t,
+          ),
+        ),
         // دخول مباشر سريع لفريق العمل (مطبخ/مندوب/إدارة) — لمرحلة المعاينة فقط
         // أيقونة واحدة تفتح قائمة، بدل ثلاث أيقونات ثابتة قد تتجاوز عرض الشاشات الضيقة
         leading: _StaffQuickIcon(
@@ -499,13 +526,16 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               fallbackImageUrl: coverImageUrl,
               screenWidth: screenWidth,
               onBannerTap: (b) => _handleBannerTap(b, allItems),
-            ),
+            ).animate().fadeIn(duration: 380.ms).slideY(begin: -0.04, curve: Curves.easeOut),
           ),
 
           // قسم الأكثر مبيعاً — وضع العرض العادي فقط، وعند وجود أصناف مميزة
           if (searchQuery.isEmpty && bestSellers.isNotEmpty)
             SliverToBoxAdapter(
-              child: _BestSellersSection(items: bestSellers),
+              child: _BestSellersSection(items: bestSellers)
+                  .animate()
+                  .fadeIn(duration: 380.ms, delay: 80.ms)
+                  .slideY(begin: 0.05, curve: Curves.easeOut),
             ),
 
           // Sticky search bar + category chips — stay at top after cover scrolls away
@@ -515,6 +545,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               height: 136,
               child: _SearchCategoryBar(
                 searchController: _searchController,
+                searchFocusNode: _searchFocusNode,
                 catBarScroll: _catBarScroll,
                 categories: categories,
                 highlightedCatId: _highlightedCatId,
@@ -533,7 +564,9 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           ),
 
           // ── Menu content ─────────────────────────────────────────────────────
-          if (searchQuery.isNotEmpty) ...[
+          if (isInitialLoading) ...[
+            const SliverToBoxAdapter(child: _MenuSkeletonLoader()),
+          ] else if (searchQuery.isNotEmpty) ...[
             // Search mode: flat filtered list
             if (filteredItems.isEmpty)
               const SliverToBoxAdapter(child: _EmptyState())
@@ -554,73 +587,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         ],
       ),
 
-      bottomNavigationBar: cartCount > 0
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                child: GestureDetector(
-                  onTap: () => context.push('/cart'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 14),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.purple.withValues(alpha: 0.4),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '$cartCount',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Text(
-                            'عرض السلة',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        Consumer(builder: (_, ref, __) {
-                          final total = ref.watch(cartTotalProvider);
-                          return Text(
-                            '${total.toStringAsFixed(0)} ${AppStrings.sar}',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            )
-          : null,
+      bottomNavigationBar: _CustomerBottomBar(
+        cartCount: cartCount,
+        cartTotal: ref.watch(cartTotalProvider),
+        onMenuTap: () => _selectCategory(null),
+        onSearchTap: _focusSearch,
+        onCartTap: () => context.push('/cart'),
+        onProfileTap: () => context.push('/profile'),
+      ),
     );
   }
 
@@ -683,6 +657,169 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   }
 }
 
+// ── تنقل سفلي دائم للعميل (القائمة/بحث/السلة/حسابي) ────────────────────────────
+
+class _CustomerBottomBar extends StatelessWidget {
+  final int cartCount;
+  final double cartTotal;
+  final VoidCallback onMenuTap;
+  final VoidCallback onSearchTap;
+  final VoidCallback onCartTap;
+  final VoidCallback onProfileTap;
+
+  const _CustomerBottomBar({
+    required this.cartCount,
+    required this.cartTotal,
+    required this.onMenuTap,
+    required this.onSearchTap,
+    required this.onCartTap,
+    required this.onProfileTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (cartCount > 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+                child: GestureDetector(
+                  onTap: onCartTap,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.purple.withValues(alpha: 0.35),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.22),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text('$cartCount',
+                              style: const TextStyle(
+                                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text('عرض السلة',
+                              style: TextStyle(
+                                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                        Text('${cartTotal.toStringAsFixed(0)} ${AppStrings.sar}',
+                            style: const TextStyle(
+                                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      ],
+                    ),
+                  ),
+                ),
+              ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.3, curve: Curves.easeOut),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _NavIcon(icon: Icons.restaurant_menu, label: 'القائمة', active: true, onTap: onMenuTap),
+                  _NavIcon(icon: Icons.search, label: 'بحث', active: false, onTap: onSearchTap),
+                  _NavIcon(
+                    icon: Icons.shopping_bag_outlined,
+                    label: 'السلة',
+                    active: false,
+                    onTap: onCartTap,
+                    badge: cartCount,
+                  ),
+                  _NavIcon(icon: Icons.person_outline, label: 'حسابي', active: false, onTap: onProfileTap),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NavIcon extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+  final int badge;
+
+  const _NavIcon({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+    this.badge = 0,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? AppColors.purple : AppColors.textHint;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: color, size: 23),
+                if (badge > 0)
+                  Positioned(
+                    top: -4,
+                    left: -6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      constraints: const BoxConstraints(minWidth: 15),
+                      decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(8)),
+                      child: Text('$badge',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(label,
+                style: TextStyle(
+                    color: color, fontSize: 10.5, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── أيقونة دخول سريع لفريق العمل (معاينة) ─────────────────────────────────────
 
 class _StaffQuickIcon extends StatelessWidget {
@@ -736,10 +873,136 @@ class _QuickLoginTile extends StatelessWidget {
   }
 }
 
+// ── محدد طريقة الاستلام (توصيل/استلام) ─────────────────────────────────────────
+
+class _OrderTypeSelector extends StatelessWidget {
+  final bool deliveryEnabled;
+  final OrderType selected;
+  final ValueChanged<OrderType> onChanged;
+
+  const _OrderTypeSelector({
+    required this.deliveryEnabled,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!deliveryEnabled) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceLight,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.storefront, size: 16, color: AppColors.textSecondary),
+              const SizedBox(width: 6),
+              Text('استلام من المطعم فقط',
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _OrderTypePill(
+                icon: Icons.delivery_dining,
+                label: 'توصيل',
+                active: selected == OrderType.delivery,
+                onTap: () => onChanged(OrderType.delivery),
+              ),
+            ),
+            Expanded(
+              child: _OrderTypePill(
+                icon: Icons.storefront,
+                label: 'استلام',
+                active: selected == OrderType.pickup,
+                onTap: () => onChanged(OrderType.pickup),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderTypePill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _OrderTypePill({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          gradient: active ? AppColors.primaryGradient : null,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: AppColors.purple.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: active ? Colors.white : AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: active ? Colors.white : AppColors.textSecondary,
+                fontSize: 13,
+                fontWeight: active ? FontWeight.bold : FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Sticky search + category bar ──────────────────────────────────────────────
 
 class _SearchCategoryBar extends StatelessWidget {
   final TextEditingController searchController;
+  final FocusNode? searchFocusNode;
   final ScrollController catBarScroll;
   final List<CategoryModel> categories;
   final String? highlightedCatId;
@@ -749,6 +1012,7 @@ class _SearchCategoryBar extends StatelessWidget {
 
   const _SearchCategoryBar({
     required this.searchController,
+    this.searchFocusNode,
     required this.catBarScroll,
     required this.categories,
     required this.highlightedCatId,
@@ -767,6 +1031,7 @@ class _SearchCategoryBar extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
           child: TextField(
             controller: searchController,
+            focusNode: searchFocusNode,
             style:
                 TextStyle(color: AppColors.textPrimary, fontSize: 14),
             decoration: InputDecoration(
@@ -1327,6 +1592,55 @@ class _WavyLinesPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WavyLinesPainter old) => true;
+}
+
+// ── Skeleton loader (أول تحميل) ─────────────────────────────────────────────────
+
+class _MenuSkeletonLoader extends StatelessWidget {
+  const _MenuSkeletonLoader();
+
+  Widget _box({double? w, double h = 14, double r = 8}) => Container(
+        width: w,
+        height: h,
+        decoration: BoxDecoration(color: AppColors.surfaceLight, borderRadius: BorderRadius.circular(r)),
+      );
+
+  Widget _cardSkeleton() => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: AppColors.cardBackground, borderRadius: BorderRadius.circular(18)),
+        child: Row(
+          children: [
+            _box(w: 84, h: 84, r: 16),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _box(w: 120),
+                  const SizedBox(height: 8),
+                  _box(w: 180, h: 11),
+                  const SizedBox(height: 10),
+                  _box(w: 60, h: 16),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        children: List.generate(5, (_) => _cardSkeleton()),
+      ),
+    ).animate(onPlay: (c) => c.repeat()).shimmer(
+          duration: 1200.ms,
+          color: AppColors.surface.withValues(alpha: 0.6),
+        );
+  }
 }
 
 // ── Empty state ───────────────────────────────────────────────────────────────

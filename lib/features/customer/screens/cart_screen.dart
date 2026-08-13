@@ -8,6 +8,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
+import '../../../core/providers/order_type_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/delivery_zone_provider.dart';
 import '../../../core/models/order_model.dart';
@@ -35,6 +36,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   double? _deliveryLat;
   double? _deliveryLng;
   String? _deliveryAddressNote;
+
+  @override
+  void initState() {
+    super.initState();
+    // يبدأ بنفس طريقة الاستلام التي اختارها العميل من الشاشة الرئيسية
+    _orderType = ref.read(orderTypeProvider);
+  }
 
   @override
   void dispose() {
