@@ -587,12 +587,18 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         ],
       ),
 
-      bottomNavigationBar: _CustomerBottomBar(
-        cartCount: cartCount,
-        cartTotal: ref.watch(cartTotalProvider),
+      floatingActionButton: _CartFab(
+        count: cartCount,
+        onTap: () => context.push('/cart'),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: _NotchedNavBar(
+        hasActiveOrder: activeOrder != null,
         onMenuTap: () => _selectCategory(null),
         onSearchTap: _focusSearch,
-        onCartTap: () => context.push('/cart'),
+        onOrdersTap: activeOrder != null
+            ? () => context.push('/track/${activeOrder.id}')
+            : null,
         onProfileTap: () => context.push('/profile'),
       ),
     );
@@ -657,110 +663,116 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   }
 }
 
-// ── تنقل سفلي دائم للعميل (القائمة/بحث/السلة/حسابي) ────────────────────────────
+// ── تنقل سفلي بفتحة دائرية (Notch) وزر سلة مرتفع في المنتصف ────────────────────
+// فكرة مختلفة عن الشريط المسطح المعتاد: البار نفسه "يحتضن" زر السلة العائم
+// بدل مجرد وضع أيقونة إضافية بين البقية.
 
-class _CustomerBottomBar extends StatelessWidget {
-  final int cartCount;
-  final double cartTotal;
+class _NotchedNavBar extends StatelessWidget {
+  final bool hasActiveOrder;
   final VoidCallback onMenuTap;
   final VoidCallback onSearchTap;
-  final VoidCallback onCartTap;
+  final VoidCallback? onOrdersTap;
   final VoidCallback onProfileTap;
 
-  const _CustomerBottomBar({
-    required this.cartCount,
-    required this.cartTotal,
+  const _NotchedNavBar({
+    required this.hasActiveOrder,
     required this.onMenuTap,
     required this.onSearchTap,
-    required this.onCartTap,
+    required this.onOrdersTap,
     required this.onProfileTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
+    return BottomAppBar(
+      color: AppColors.surface,
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 10,
+      elevation: 14,
+      padding: EdgeInsets.zero,
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (cartCount > 0)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-                child: GestureDetector(
-                  onTap: onCartTap,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.purple.withValues(alpha: 0.35),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.22),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text('$cartCount',
-                              style: const TextStyle(
-                                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                        ),
-                        const SizedBox(width: 12),
-                        const Expanded(
-                          child: Text('عرض السلة',
-                              style: TextStyle(
-                                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                        ),
-                        Text('${cartTotal.toStringAsFixed(0)} ${AppStrings.sar}',
-                            style: const TextStyle(
-                                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                      ],
-                    ),
-                  ),
-                ),
-              ).animate().fadeIn(duration: 250.ms).slideY(begin: 0.3, curve: Curves.easeOut),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _NavIcon(icon: Icons.restaurant_menu, label: 'القائمة', active: true, onTap: onMenuTap),
-                  _NavIcon(icon: Icons.search, label: 'بحث', active: false, onTap: onSearchTap),
-                  _NavIcon(
-                    icon: Icons.shopping_bag_outlined,
-                    label: 'السلة',
-                    active: false,
-                    onTap: onCartTap,
-                    badge: cartCount,
-                  ),
-                  _NavIcon(icon: Icons.person_outline, label: 'حسابي', active: false, onTap: onProfileTap),
-                ],
+        child: SizedBox(
+          height: 58,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NavIcon(icon: Icons.restaurant_menu_rounded, label: 'القائمة', active: true, onTap: onMenuTap),
+              _NavIcon(icon: Icons.search_rounded, label: 'بحث', active: false, onTap: onSearchTap),
+              const SizedBox(width: 48), // مساحة الفتحة لزر السلة العائم
+              _NavIcon(
+                icon: Icons.receipt_long_rounded,
+                label: 'طلبي',
+                active: false,
+                onTap: onOrdersTap,
+                enabled: hasActiveOrder,
               ),
-            ),
-          ],
+              _NavIcon(icon: Icons.person_rounded, label: 'حسابي', active: false, onTap: onProfileTap),
+            ],
+          ),
         ),
       ),
     );
+  }
+}
+
+// زر السلة العائم — يستقر داخل فتحة الشريط السفلي بدل أن يكون أيقونة عادية بينها
+class _CartFab extends StatelessWidget {
+  final int count;
+  final VoidCallback onTap;
+  const _CartFab({required this.count, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 58,
+        height: 58,
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.surface, width: 4),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.purple.withValues(alpha: 0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 25),
+            if (count > 0)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                  child: Container(
+                    key: ValueKey(count),
+                    padding: const EdgeInsets.all(3),
+                    constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.red,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.surface, width: 2),
+                    ),
+                    child: Text('$count',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    ).animate().scale(duration: 450.ms, curve: Curves.elasticOut);
   }
 }
 
@@ -768,47 +780,33 @@ class _NavIcon extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool active;
-  final VoidCallback onTap;
-  final int badge;
+  final VoidCallback? onTap;
+  final bool enabled;
 
   const _NavIcon({
     required this.icon,
     required this.label,
     required this.active,
     required this.onTap,
-    this.badge = 0,
+    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? AppColors.purple : AppColors.textHint;
+    final color = !enabled
+        ? AppColors.textHint.withValues(alpha: 0.35)
+        : active
+            ? AppColors.purple
+            : AppColors.textHint;
     return InkWell(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Icon(icon, color: color, size: 23),
-                if (badge > 0)
-                  Positioned(
-                    top: -4,
-                    left: -6,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                      constraints: const BoxConstraints(minWidth: 15),
-                      decoration: BoxDecoration(color: AppColors.red, borderRadius: BorderRadius.circular(8)),
-                      child: Text('$badge',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-              ],
-            ),
+            Icon(icon, color: color, size: 22),
             const SizedBox(height: 3),
             Text(label,
                 style: TextStyle(
