@@ -253,12 +253,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   // Animate the horizontal category bar to show the active chip
   void _scrollCatChipIntoView(String catId) {
     if (!_catBarScroll.hasClients) return;
-    final cats = ref.read(categoriesStreamProvider).valueOrNull ?? [];
+    final allItems = ref.read(menuItemsStreamProvider(null)).valueOrNull ?? [];
+    final cats = (ref.read(categoriesStreamProvider).valueOrNull ?? [])
+        .where((c) => allItems.any((i) => i.categoryId == c.id))
+        .toList();
     final idx = cats.indexWhere((c) => c.id == catId);
     if (idx < 0) return;
-    // Estimate chip width + gap; +1 for the "الكل" chip at start
     const chipW = 110.0;
-    final offset = (idx + 1) * chipW;
+    final offset = idx * chipW;
     _catBarScroll.animateTo(
       offset.clamp(0.0, _catBarScroll.position.maxScrollExtent),
       duration: const Duration(milliseconds: 280),
@@ -348,8 +350,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final searchQuery = ref.watch(searchQueryProvider);
     final displayStyle = ref.watch(appThemeProvider).menuDisplayStyle;
 
-    final categories = categoriesAsync.valueOrNull ?? [];
     final allItems = allItemsAsync.valueOrNull ?? [];
+    // الأقسام التي لا تحتوي أصنافاً لا تُعرض للعميل كأقسام مستقلة
+    final categories = (categoriesAsync.valueOrNull ?? [])
+        .where((c) => allItems.any((i) => i.categoryId == c.id))
+        .toList();
     final banners = bannersAsync.valueOrNull ?? [];
     final bestSellers = allItems.where((i) => i.isBestSeller).toList();
 
@@ -1113,16 +1118,12 @@ class _SearchCategoryBar extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            itemCount: categories.length + 1,
+            itemCount: categories.length,
             itemBuilder: (_, i) {
-              final isAll = i == 0;
-              final isSelected = isAll
-                  ? highlightedCatId == null
-                  : highlightedCatId == categories[i - 1].id;
-              final label =
-                  isAll ? AppStrings.allCategories : categories[i - 1].name;
-              final catId = isAll ? null : categories[i - 1].id;
-              final imageUrl = isAll ? null : categories[i - 1].imageUrl;
+              final isSelected = highlightedCatId == categories[i].id;
+              final label = categories[i].name;
+              final catId = categories[i].id;
+              final imageUrl = categories[i].imageUrl;
 
               return GestureDetector(
                 onTap: () => onCategoryTap(catId),
@@ -1161,9 +1162,9 @@ class _SearchCategoryBar extends StatelessWidget {
                                   imageUrl,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) =>
-                                      _CategoryIconFallback(isAll: isAll),
+                                      const _CategoryIconFallback(),
                                 )
-                              : _CategoryIconFallback(isAll: isAll),
+                              : const _CategoryIconFallback(),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1197,14 +1198,13 @@ class _SearchCategoryBar extends StatelessWidget {
 
 // دائرة متدرّجة بأيقونة عامة — تُستخدم عند غياب صورة الفئة أو فشل تحميلها
 class _CategoryIconFallback extends StatelessWidget {
-  final bool isAll;
-  const _CategoryIconFallback({required this.isAll});
+  const _CategoryIconFallback();
 
   @override
   Widget build(BuildContext context) => Container(
         decoration: BoxDecoration(gradient: AppColors.primaryGradient),
-        child: Icon(
-          isAll ? Icons.apps_rounded : Icons.restaurant_menu,
+        child: const Icon(
+          Icons.restaurant_menu,
           color: Colors.white,
           size: 20,
         ),
