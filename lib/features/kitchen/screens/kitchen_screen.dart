@@ -25,10 +25,7 @@ class KitchenScreen extends ConsumerStatefulWidget {
   ConsumerState<KitchenScreen> createState() => _KitchenScreenState();
 }
 
-class _KitchenScreenState extends ConsumerState<KitchenScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
+class _KitchenScreenState extends ConsumerState<KitchenScreen> {
   // Alarm state
   final Set<String> _knownPendingIds = {};
   bool _initialLoaded = false;
@@ -55,7 +52,6 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
     // محاولة تهيئة الصوت فور فتح شاشة المطبخ
     // (يعمل إذا وصل المستخدم عبر نقرة — أي تفاعل مسبق يكفي)
     WidgetsBinding.instance.addPostFrameCallback((_) => _primeAudio());
@@ -64,8 +60,77 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
   @override
   void dispose() {
     _stopAlarm();
-    _tabController.dispose();
     super.dispose();
+  }
+
+  // قسم واحد (عنوان + عدّاد + قائمة/شبكة الطلبات) كسلايفرز ضمن صفحة واحدة —
+  // بدل تبويبات تُخفي الطلب عن العين أثناء التنقل بينها
+  List<Widget> _section(String label, List<OrderModel> orders, Color color, String emptyMessage) {
+    final isWide = MediaQuery.of(context).size.width > 900;
+    return [
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(label,
+                  style: TextStyle(
+                      color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(width: 8),
+              if (orders.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+                  child: Text(
+                    '${orders.length}',
+                    style: const TextStyle(
+                        color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+      if (orders.isEmpty)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(emptyMessage, style: TextStyle(color: AppColors.textHint, fontSize: 13)),
+          ),
+        )
+      else if (isWide)
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 1.2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (_, i) => _KitchenOrderCard(order: orders[i], index: i),
+              childCount: orders.length,
+            ),
+          ),
+        )
+      else
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (_, i) => _KitchenOrderCard(order: orders[i], index: i),
+              childCount: orders.length,
+            ),
+          ),
+        ),
+    ];
   }
 
   @override
@@ -132,48 +197,6 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
             tooltip: 'خروج',
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          tabAlignment: TabAlignment.start,
-          tabs: [
-            Tab(
-              child: _TabLabel(
-                label: AppStrings.newOrders,
-                count: newOrders.length,
-                color: AppColors.statusPending,
-              ),
-            ),
-            Tab(
-              child: _TabLabel(
-                label: AppStrings.inProgress,
-                count: inProgress.length,
-                color: AppColors.statusPreparing,
-              ),
-            ),
-            Tab(
-              child: _TabLabel(
-                label: AppStrings.completed,
-                count: ready.length,
-                color: AppColors.statusReady,
-              ),
-            ),
-            Tab(
-              child: _TabLabel(
-                label: 'التوصيل',
-                count: delivering.length,
-                color: AppColors.statusOutForDelivery,
-              ),
-            ),
-            Tab(
-              child: _TabLabel(
-                label: 'مُسلَّمة',
-                count: delivered.length,
-                color: AppColors.statusDelivered,
-              ),
-            ),
-          ],
-        ),
       ),
       body: Column(
         children: [
@@ -209,34 +232,21 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
             child: ordersAsync.when(
               loading: () => const LoadingWidget(message: 'جاري تحميل الطلبات...'),
               error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error),
-              data: (_) => TabBarView(
-                controller: _tabController,
-                children: [
-                  // New orders
-                  _OrdersColumn(
-                    orders: newOrders,
-                    emptyMessage: 'لا توجد طلبات جديدة',
-                  ),
-                  // In progress
-                  _OrdersColumn(
-                    orders: inProgress,
-                    emptyMessage: 'لا توجد طلبات قيد التنفيذ',
-                  ),
-                  // Ready
-                  _OrdersColumn(
-                    orders: ready,
-                    emptyMessage: 'لا توجد طلبات جاهزة',
-                  ),
-                  // Out for delivery
-                  _OrdersColumn(
-                    orders: delivering,
-                    emptyMessage: 'لا توجد طلبات في الطريق حالياً',
-                  ),
-                  // Delivered (last 4 hours)
-                  _OrdersColumn(
-                    orders: delivered,
-                    emptyMessage: 'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات',
-                  ),
+              // كل الحالات في صفحة واحدة قابلة للتمرير بدل تبويبات تُخفي الطلب
+              // عن العين أثناء البحث بينها
+              data: (_) => CustomScrollView(
+                slivers: [
+                  ..._section(AppStrings.newOrders, newOrders, AppColors.statusPending,
+                      'لا توجد طلبات جديدة'),
+                  ..._section(AppStrings.inProgress, inProgress, AppColors.statusPreparing,
+                      'لا توجد طلبات قيد التنفيذ'),
+                  ..._section(
+                      AppStrings.completed, ready, AppColors.statusReady, 'لا توجد طلبات جاهزة'),
+                  ..._section('التوصيل', delivering, AppColors.statusOutForDelivery,
+                      'لا توجد طلبات في الطريق حالياً'),
+                  ..._section('مُسلَّمة', delivered, AppColors.statusDelivered,
+                      'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات'),
+                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
                 ],
               ),
             ),
@@ -247,78 +257,6 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen>
   }
 }
 
-class _TabLabel extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-  const _TabLabel({required this.label, required this.count, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(label),
-        if (count > 0) ...[
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              '$count',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _OrdersColumn extends ConsumerWidget {
-  final List<OrderModel> orders;
-  final String emptyMessage;
-  const _OrdersColumn({required this.orders, required this.emptyMessage});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (orders.isEmpty) {
-      return EmptyState(
-        message: emptyMessage,
-        icon: Icons.check_circle_outline,
-      );
-    }
-
-    final isWide = MediaQuery.of(context).size.width > 900;
-
-    if (isWide) {
-      return GridView.builder(
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 1.2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        itemCount: orders.length,
-        itemBuilder: (_, i) => _KitchenOrderCard(order: orders[i], index: i),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: orders.length,
-      itemBuilder: (_, i) => _KitchenOrderCard(order: orders[i], index: i),
-    );
-  }
-}
 
 class _KitchenOrderCard extends StatefulWidget {
   final OrderModel order;
@@ -395,6 +333,29 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
     } finally {
       if (mounted) setState(() => _isUpdating = false);
     }
+  }
+
+  // تأكيد الطلب (pending → confirmed) — إن كان هناك مندوب مُسنَد لم يوافق بعد،
+  // ننبّه المطبخ ونترك له الخيار: يتابع الآن أو ينتظر موافقة المندوب أولاً
+  Future<void> _confirmOrder() async {
+    if (widget.order.isAwaitingDriverAcceptance) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('المندوب لم يوافق بعد'),
+          content: Text(
+              'المندوب "${widget.order.driverName}" لم يوافق بعد على استلام هذا الطلب. '
+              'يمكنك تأكيد الطلب الآن على أي حال، أو الانتظار حتى يوافق.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('انتظار')),
+            ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true), child: const Text('تأكيد الآن')),
+          ],
+        ),
+      );
+      if (proceed != true) return;
+    }
+    if (mounted) await _updateStatus(OrderStatus.confirmed);
   }
 
   Future<void> _openAssignDriver() async {
@@ -727,6 +688,18 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
               ),
             ),
 
+          // معلومات التوصيل — متاحة من لحظة وصول الطلب، لا تنتظر جهوزيته
+          if (order.orderType == OrderType.delivery && !_isTerminal)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+              child: _DriverPanel(
+                order: order,
+                isUpdating: _isUpdating,
+                onAssign: _openAssignDriver,
+                onUnassign: _unassignDriver,
+              ),
+            ),
+
           // Expandable section
           if (_expanded) ...[
             Padding(
@@ -799,7 +772,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                               label: AppStrings.confirm,
                               color: AppColors.statusConfirmed,
                               icon: Icons.thumb_up,
-                              onTap: () => _updateStatus(OrderStatus.confirmed),
+                              onTap: _confirmOrder,
                             ),
                           if (order.status == OrderStatus.confirmed)
                             _ActionBtn(
@@ -815,53 +788,16 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                               icon: Icons.check_circle,
                               onTap: () => _updateStatus(OrderStatus.ready),
                             ),
-                          if (order.status == OrderStatus.ready) ...[
-                            if (order.orderType == OrderType.pickup)
-                              _ActionBtn(
-                                label: AppStrings.markDelivered,
-                                color: AppColors.statusDelivered,
-                                icon: Icons.done_all,
-                                onTap: () => _updateStatus(OrderStatus.delivered),
-                              )
-                            else if (order.driverId == null)
-                              _ActionBtn(
-                                label: 'تعيين مندوب',
-                                color: AppColors.purple,
-                                icon: Icons.delivery_dining,
-                                onTap: _openAssignDriver,
-                              )
-                            else
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.warning.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      'بانتظار تأكيد: ${order.driverName}',
-                                      style: TextStyle(
-                                        color: AppColors.warning,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    onPressed: _unassignDriver,
-                                    icon: Icon(Icons.close,
-                                        size: 16, color: AppColors.error),
-                                    tooltip: 'إلغاء تعيين المندوب',
-                                    padding: EdgeInsets.zero,
-                                    constraints:
-                                        const BoxConstraints(minWidth: 28, minHeight: 28),
-                                  ),
-                                ],
-                              ),
-                          ],
+                          // للاستلام من المطعم: يُنهي المطبخ الطلب مباشرة. للتوصيل: لوحة
+                          // المندوب أعلاه (تظهر منذ وصول الطلب) هي المسؤولة عن الإسناد/الحالة
+                          if (order.status == OrderStatus.ready &&
+                              order.orderType == OrderType.pickup)
+                            _ActionBtn(
+                              label: AppStrings.markDelivered,
+                              color: AppColors.statusDelivered,
+                              icon: Icons.done_all,
+                              onTap: () => _updateStatus(OrderStatus.delivered),
+                            ),
                           if (order.status == OrderStatus.outForDelivery)
                             _ActionBtn(
                               label: AppStrings.markDelivered,
@@ -923,6 +859,78 @@ class _ActionBtn extends StatelessWidget {
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
+      ),
+    );
+  }
+}
+
+// لوحة إسناد المندوب — تظهر منذ لحظة وصول الطلب (لا تنتظر الجاهزية)، وتوضح
+// هل المندوب وافق على الاستلام بعد أم لا زال بانتظار ردّه
+class _DriverPanel extends StatelessWidget {
+  final OrderModel order;
+  final bool isUpdating;
+  final VoidCallback onAssign;
+  final VoidCallback onUnassign;
+
+  const _DriverPanel({
+    required this.order,
+    required this.isUpdating,
+    required this.onAssign,
+    required this.onUnassign,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (order.driverId == null) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: OutlinedButton.icon(
+          onPressed: isUpdating ? null : onAssign,
+          icon: Icon(Icons.delivery_dining, size: 16),
+          label: const Text('تعيين مندوب', style: TextStyle(fontSize: 12)),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.purple,
+            side: BorderSide(color: AppColors.purple.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+      );
+    }
+
+    final accepted = order.driverAcceptedAt != null;
+    final color = accepted ? AppColors.success : AppColors.warning;
+    final canUnassign = order.status != OrderStatus.outForDelivery;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(accepted ? Icons.check_circle : Icons.hourglass_top, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              accepted
+                  ? 'المندوب ${order.driverName} وافق ✅'
+                  : 'بانتظار موافقة المندوب: ${order.driverName}',
+              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+          if (canUnassign)
+            IconButton(
+              onPressed: isUpdating ? null : onUnassign,
+              icon: Icon(Icons.close, size: 16, color: AppColors.error),
+              tooltip: 'إلغاء تعيين المندوب',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            ),
+        ],
       ),
     );
   }

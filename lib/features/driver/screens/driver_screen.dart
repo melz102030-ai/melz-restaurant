@@ -42,6 +42,7 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
     final currentOrder = ref.watch(currentDriverOrderProvider(user.id));
     final queued = ref.watch(queuedDriverOrdersProvider(user.id));
     final ordersAsync = ref.watch(driverActiveOrdersProvider(user.id));
+    final invitations = ref.watch(driverInvitationsProvider(user.id)).valueOrNull ?? const [];
 
     return Scaffold(
       appBar: AppBar(
@@ -128,6 +129,17 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                 ],
               ),
             ),
+
+            if (invitations.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Text(
+                'دعوات توصيل جديدة (${invitations.length})',
+                style: TextStyle(
+                    color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 10),
+              ...invitations.map((o) => _InvitationCard(order: o)),
+            ],
 
             const SizedBox(height: 20),
 
@@ -393,5 +405,104 @@ class _QueuedOrderTile extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// دعوة تعيين لم يردّ عليها المندوب بعد — قد تصل من لحظة وصول الطلب للمطبخ،
+// قبل أن يبدأ التحضير حتى
+class _InvitationCard extends StatefulWidget {
+  final OrderModel order;
+  const _InvitationCard({required this.order});
+
+  @override
+  State<_InvitationCard> createState() => _InvitationCardState();
+}
+
+class _InvitationCardState extends State<_InvitationCard> {
+  bool _isResponding = false;
+
+  Future<void> _respond(bool accepted) async {
+    setState(() => _isResponding = true);
+    try {
+      await OrderService.respondToDriverAssignment(widget.order.id, accepted: accepted);
+    } finally {
+      if (mounted) setState(() => _isResponding = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final order = widget.order;
+    return GlassMorphCard(
+      borderColor: AppColors.purple.withOpacity(0.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.notifications_active, color: AppColors.purple, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  order.customerName,
+                  style: TextStyle(
+                      color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ),
+              Text(
+                order.status.label,
+                style: TextStyle(color: AppColors.textHint, fontSize: 11),
+              ),
+            ],
+          ),
+          if (order.deliveryAddress != null && order.deliveryAddress!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              order.deliveryAddress!,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            '${order.items.length} صنف · ${order.total.toStringAsFixed(0)} ${AppStrings.sar}',
+            style: TextStyle(color: AppColors.textHint, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          if (_isResponding)
+            const Center(
+              child: SizedBox(
+                  width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _respond(false),
+                    icon: Icon(Icons.close, size: 16, color: AppColors.error),
+                    label: const Text('رفض'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.error,
+                      side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _respond(true),
+                    icon: const Icon(Icons.check, size: 16),
+                    label: const Text('قبول'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: 0.05);
   }
 }

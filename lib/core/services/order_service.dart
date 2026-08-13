@@ -99,8 +99,29 @@ class OrderService {
         });
   }
 
-  // Stream orders currently assigned to a driver (awaiting confirmation, or out for delivery)
+  // دعوات تعيين لم يردّ عليها المندوب بعد — تُعرض له كـ"قبول/رفض" بغض النظر عن
+  // مرحلة تجهيز الطلب (قد يُسنَد المندوب من لحظة وصول الطلب للمطبخ)
   // فلترة واحدة فقط في Firestore (driverId) والباقي في Dart لتجنب Composite Index
+  static Stream<List<OrderModel>> streamDriverInvitations(String driverId) {
+    return _db
+        .collection(_colOrders)
+        .where('driverId', isEqualTo: driverId)
+        .snapshots()
+        .map((snap) {
+          final orders = snap.docs
+              .map((d) => OrderModel.fromMap(d.data(), d.id))
+              .where((o) =>
+                  o.isAwaitingDriverAcceptance &&
+                  o.status != OrderStatus.delivered &&
+                  o.status != OrderStatus.cancelled)
+              .toList();
+          orders.sort((a, b) =>
+              (a.assignedAt ?? a.createdAt).compareTo(b.assignedAt ?? b.createdAt));
+          return orders;
+        });
+  }
+
+  // الطلبات التي وافق عليها المندوب — جاهزة للاستلام أو في الطريق بالفعل
   static Stream<List<OrderModel>> streamDriverOrders(String driverId) {
     return _db
         .collection(_colOrders)
@@ -110,7 +131,8 @@ class OrderService {
           final orders = snap.docs
               .map((d) => OrderModel.fromMap(d.data(), d.id))
               .where((o) =>
-                  o.status == OrderStatus.ready || o.status == OrderStatus.outForDelivery)
+                  o.driverAcceptedAt != null &&
+                  (o.status == OrderStatus.ready || o.status == OrderStatus.outForDelivery))
               .toList();
           orders.sort((a, b) =>
               (a.assignedAt ?? a.createdAt).compareTo(b.assignedAt ?? b.createdAt));
@@ -118,7 +140,8 @@ class OrderService {
         });
   }
 
-  // Assign a driver to a ready delivery order (awaiting the driver's confirmation)
+  // Assign a driver to a delivery order — من أي مرحلة تجهيز (حتى لحظة وصول الطلب)،
+  // بانتظار موافقة المندوب قبل اعتباره مسؤولاً فعلياً عنه
   static Future<void> assignDriver(
       String orderId, String driverId, String driverName, String? driverPhone) async {
     await _db.collection(_colOrders).doc(orderId).update({
@@ -126,17 +149,31 @@ class OrderService {
       'driverName': driverName,
       'driverPhone': driverPhone,
       'assignedAt': Timestamp.fromDate(DateTime.now()),
+      'driverAcceptedAt': null,
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
   }
 
-  // Kitchen/admin cancels a pending driver assignment (order stays "ready", unassigned)
+  // Kitchen/admin cancels a driver assignment (سواء بانتظار الموافقة أو بعدها)
   static Future<void> unassignDriver(String orderId) async {
     await _db.collection(_colOrders).doc(orderId).update({
       'driverId': null,
       'driverName': null,
       'driverPhone': null,
       'assignedAt': null,
+      'driverAcceptedAt': null,
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
+  // المندوب يردّ على دعوة تعيين: قبول (يثبّت driverAcceptedAt) أو رفض (يُلغي إسناده بالكامل)
+  static Future<void> respondToDriverAssignment(String orderId, {required bool accepted}) async {
+    if (!accepted) {
+      await unassignDriver(orderId);
+      return;
+    }
+    await _db.collection(_colOrders).doc(orderId).update({
+      'driverAcceptedAt': Timestamp.fromDate(DateTime.now()),
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
   }

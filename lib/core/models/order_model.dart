@@ -159,6 +159,7 @@ class OrderModel {
   final String? driverName;
   final String? driverPhone;
   final DateTime? assignedAt;
+  final DateTime? driverAcceptedAt;
   final DateTime? pickedUpAt;
 
   const OrderModel({
@@ -188,10 +189,14 @@ class OrderModel {
     this.driverName,
     this.driverPhone,
     this.assignedAt,
+    this.driverAcceptedAt,
     this.pickedUpAt,
   });
 
   bool get hasDeliveryLocation => deliveryLat != null && deliveryLng != null;
+
+  // هل المندوب مُسنَد لكن لم يوافق بعد على استلام الطلب؟
+  bool get isAwaitingDriverAcceptance => driverId != null && driverAcceptedAt == null;
 
   // الوقت المتبقي حتى الجاهزية (سالب = تأخير)
   Duration? get remainingTime {
@@ -244,6 +249,9 @@ class OrderModel {
       assignedAt: map['assignedAt'] is Timestamp
           ? (map['assignedAt'] as Timestamp).toDate()
           : null,
+      driverAcceptedAt: map['driverAcceptedAt'] is Timestamp
+          ? (map['driverAcceptedAt'] as Timestamp).toDate()
+          : null,
       pickedUpAt: map['pickedUpAt'] is Timestamp
           ? (map['pickedUpAt'] as Timestamp).toDate()
           : null,
@@ -279,6 +287,8 @@ class OrderModel {
       'driverName': driverName,
       'driverPhone': driverPhone,
       'assignedAt': assignedAt != null ? Timestamp.fromDate(assignedAt!) : null,
+      'driverAcceptedAt':
+          driverAcceptedAt != null ? Timestamp.fromDate(driverAcceptedAt!) : null,
       'pickedUpAt': pickedUpAt != null ? Timestamp.fromDate(pickedUpAt!) : null,
     };
   }
@@ -293,6 +303,7 @@ class OrderModel {
     String? driverName,
     String? driverPhone,
     DateTime? assignedAt,
+    DateTime? driverAcceptedAt,
     DateTime? pickedUpAt,
   }) {
     return OrderModel(
@@ -322,6 +333,7 @@ class OrderModel {
       driverName: driverName ?? this.driverName,
       driverPhone: driverPhone ?? this.driverPhone,
       assignedAt: assignedAt ?? this.assignedAt,
+      driverAcceptedAt: driverAcceptedAt ?? this.driverAcceptedAt,
       pickedUpAt: pickedUpAt ?? this.pickedUpAt,
     );
   }

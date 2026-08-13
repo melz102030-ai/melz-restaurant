@@ -58,7 +58,7 @@ final driverActiveOrderCountsProvider = Provider<Map<String, int>>((ref) {
   for (final o in orders) {
     final driverId = o.driverId;
     if (driverId == null) continue;
-    if (o.status == OrderStatus.ready || o.status == OrderStatus.outForDelivery) {
+    if (o.status != OrderStatus.delivered && o.status != OrderStatus.cancelled) {
       counts[driverId] = (counts[driverId] ?? 0) + 1;
     }
   }

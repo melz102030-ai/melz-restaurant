@@ -8,7 +8,13 @@ final allDriversProvider = StreamProvider<List<UserModel>>((ref) {
   return AuthService.streamDrivers();
 });
 
-// الطلبات النشطة (بانتظار التأكيد أو في الطريق) لمندوب معيّن — تُستخدم في لوحة المندوب
+// دعوات تعيين بانتظار ردّ المندوب (قبول/رفض) — قد تصل من لحظة وصول الطلب للمطبخ
+final driverInvitationsProvider =
+    StreamProvider.family<List<OrderModel>, String>((ref, driverId) {
+  return OrderService.streamDriverInvitations(driverId);
+});
+
+// الطلبات النشطة التي وافق عليها المندوب (جاهزة للاستلام أو في الطريق) — لوحة المندوب
 final driverActiveOrdersProvider =
     StreamProvider.family<List<OrderModel>, String>((ref, driverId) {
   return OrderService.streamDriverOrders(driverId);
