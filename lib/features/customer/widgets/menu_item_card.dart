@@ -457,17 +457,11 @@ class _MiniAddBtn extends StatelessWidget {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
+            color: AppColors.cardBackground,
             borderRadius: BorderRadius.circular(9),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.purple.withValues(alpha: 0.3),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            border: Border.all(color: AppColors.purple, width: 1.6),
           ),
-          child: const Icon(Icons.add, color: Colors.white, size: 16),
+          child: Icon(Icons.add, color: AppColors.purple, size: 16),
         ),
       );
 }
@@ -504,17 +498,11 @@ class _AddBtn extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
+            color: AppColors.cardBackground,
             borderRadius: BorderRadius.circular(13),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.purple.withValues(alpha: 0.35),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            border: Border.all(color: AppColors.purple, width: 1.8),
           ),
-          child: Icon(icon, color: Colors.white, size: 21),
+          child: Icon(icon, color: AppColors.purple, size: 21),
         ),
       );
 }
