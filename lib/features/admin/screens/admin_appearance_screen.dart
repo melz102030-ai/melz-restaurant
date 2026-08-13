@@ -453,22 +453,29 @@ class _FontPicker extends StatelessWidget {
         final isSelected = font == selected;
         TextStyle style;
         try {
-          style = GoogleFonts.getFont(font, fontWeight: FontWeight.w600, fontSize: 14);
+          style = GoogleFonts.getFont(font, fontWeight: FontWeight.w600, fontSize: 15);
         } catch (_) {
-          style = GoogleFonts.cairo(fontWeight: FontWeight.w600, fontSize: 14);
+          style = GoogleFonts.cairo(fontWeight: FontWeight.w600, fontSize: 15);
         }
+        final labelColor = isSelected ? Colors.white : AppColors.textPrimary;
+        final hintColor = isSelected ? Colors.white.withValues(alpha: 0.75) : AppColors.textHint;
         return GestureDetector(
           onTap: () => onChanged(font),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: isSelected ? AppColors.purple : AppColors.cardBackground,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: isSelected ? AppColors.purple : AppColors.surfaceLight),
             ),
-            child: Text(
-              font,
-              style: style.copyWith(color: isSelected ? Colors.white : AppColors.textPrimary),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // معاينة الخط بنص عربي فعلي بدل اسم الخط اللاتيني
+                Text('نص عربي', style: style.copyWith(color: labelColor)),
+                const SizedBox(height: 2),
+                Text(font, style: TextStyle(color: hintColor, fontSize: 10)),
+              ],
             ),
           ),
         );
