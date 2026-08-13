@@ -223,22 +223,35 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     });
   }
 
-  // Detect which category section is currently in the upper viewport
+  // Detect which category section is currently in the upper viewport.
+  // Runs after the frame settles — reading section positions synchronously
+  // inside the scroll listener returns the *previous* frame's layout (the
+  // new scroll offset hasn't been laid out yet), which is what caused the
+  // highlight to only catch up a good while after the next section's title
+  // had actually scrolled under the sticky bar.
   void _onScroll() {
     if (_suppressScrollDetection) return;
     if (ref.read(searchQueryProvider).isNotEmpty) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _detectVisibleSection());
+  }
+
+  void _detectVisibleSection() {
+    if (!mounted || _suppressScrollDetection) return;
 
     String? visible;
     double best = -double.infinity;
+    // حد التبديل = ارتفاع الشريط اللاصق (بحث + فئات) تماماً، بلا هامش إضافي،
+    // ليتحول الإطار فور وصول عنوان القسم التالي إلى أسفل الشريط مباشرة
+    const stickyBarHeight = 136.0;
 
     for (final entry in _sectionKeys.entries) {
       final ctx = entry.value.currentContext;
       if (ctx == null) continue;
       final box = ctx.findRenderObject() as RenderBox?;
-      if (box == null) continue;
+      if (box == null || !box.hasSize) continue;
       final dy = box.localToGlobal(Offset.zero).dy;
       // The section whose header most recently crossed the top zone
-      if (dy <= 160 && dy > best) {
+      if (dy <= stickyBarHeight && dy > best) {
         best = dy;
         visible = entry.key;
       }
