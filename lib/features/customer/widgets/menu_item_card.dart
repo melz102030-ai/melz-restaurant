@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
@@ -21,9 +22,9 @@ class MenuItemListCard extends ConsumerWidget {
           .fold(0, (s, c) => s + c.quantity),
     ));
     final available = item.isAvailable;
+    final glowColor = available ? _badgeGlowColor(item) : null;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 5),
+    final card = Container(
       decoration: BoxDecoration(
         color: available ? AppColors.cardBackground : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(20),
@@ -244,6 +245,13 @@ class MenuItemListCard extends ConsumerWidget {
         ),
       ),
     );
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      child: glowColor != null
+          ? _GlowBorder(color: glowColor, borderRadius: 20, child: card)
+          : card,
+    );
   }
 
   void _showOptionsSheet(BuildContext context, WidgetRef ref) {
@@ -276,8 +284,9 @@ class MenuItemGridCard extends ConsumerWidget {
           .fold(0, (s, c) => s + c.quantity),
     ));
     final available = item.isAvailable;
+    final glowColor = available ? _badgeGlowColor(item) : null;
 
-    return Container(
+    final card = Container(
       decoration: BoxDecoration(
         color: available ? AppColors.cardBackground : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(18),
@@ -398,6 +407,10 @@ class MenuItemGridCard extends ConsumerWidget {
         ),
       ),
     );
+
+    return glowColor != null
+        ? _GlowBorder(color: glowColor, borderRadius: 18, child: card)
+        : card;
   }
 
   void _showOptionsSheet(BuildContext context, WidgetRef ref) {
@@ -415,6 +428,76 @@ class MenuItemGridCard extends ConsumerWidget {
       );
 }
 
+// لون الإطار المتحرك حول البطاقة يطابق لون شارتها — الأحمر لـ"جديد" له الأولوية عند اجتماع الشارتين
+Color? _badgeGlowColor(MenuItemModel item) {
+  if (item.isNew) return AppColors.red;
+  if (item.isBestSeller) return AppColors.manjawi;
+  return null;
+}
+
+// إطار متحرك ولامع يلتف حول بطاقة "الأكثر مبيعاً"/"جديد" بلون شارتها
+class _GlowBorder extends StatefulWidget {
+  final Color color;
+  final double borderRadius;
+  final Widget child;
+  const _GlowBorder({
+    required this.color,
+    required this.borderRadius,
+    required this.child,
+  });
+
+  @override
+  State<_GlowBorder> createState() => _GlowBorderState();
+}
+
+class _GlowBorderState extends State<_GlowBorder> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 3))
+      ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.all(2.2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(widget.borderRadius + 2.2),
+            gradient: SweepGradient(
+              transform: GradientRotation(_controller.value * 2 * math.pi),
+              colors: [
+                widget.color.withValues(alpha: 0.15),
+                widget.color,
+                widget.color.withValues(alpha: 0.2),
+                widget.color,
+                widget.color.withValues(alpha: 0.15),
+              ],
+              stops: const [0.0, 0.25, 0.5, 0.75, 1.0],
+            ),
+            boxShadow: [
+              BoxShadow(color: widget.color.withValues(alpha: 0.35), blurRadius: 10),
+            ],
+          ),
+          child: child,
+        );
+      },
+    );
+  }
+}
+
 // شارات "الأكثر مبيعاً"/"جديد" أعلى-يسار صورة الصنف — لا تتعارض مع شارة "نفدت الكمية" أعلى-اليمين
 class _ItemBadges extends StatelessWidget {
   final MenuItemModel item;
@@ -428,7 +511,7 @@ class _ItemBadges extends StatelessWidget {
       children: [
         if (item.isBestSeller) _badge('الأكثر مبيعاً', AppColors.manjawi),
         if (item.isBestSeller && item.isNew) const SizedBox(height: 4),
-        if (item.isNew) _badge('جديد', AppColors.success),
+        if (item.isNew) _badge('جديد', AppColors.red),
       ],
     );
   }
