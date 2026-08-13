@@ -286,7 +286,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     double best = -double.infinity;
     // حد التبديل = ارتفاع الشريط اللاصق (بحث + فئات) تماماً، بلا هامش إضافي،
     // ليتحول الإطار فور وصول عنوان القسم التالي إلى أسفل الشريط مباشرة
-    const stickyBarHeight = 136.0;
+    const stickyBarHeight = 152.0;
 
     for (final entry in _sectionKeys.entries) {
       final ctx = entry.value.currentContext;
@@ -316,7 +316,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         .toList();
     final idx = cats.indexWhere((c) => c.id == catId);
     if (idx < 0) return;
-    const chipW = 110.0;
+    const chipW = 128.0;
     final offset = idx * chipW;
     _catBarScroll.animateTo(
       offset.clamp(0.0, _catBarScroll.position.maxScrollExtent),
@@ -596,7 +596,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           SliverPersistentHeader(
             pinned: true,
             delegate: _StickyBarDelegate(
-              height: 136,
+              height: 152,
               child: _SearchCategoryBar(
                 searchController: _searchController,
                 searchFocusNode: _searchFocusNode,
@@ -1158,7 +1158,7 @@ class _SearchCategoryBar extends StatelessWidget {
 
         // فئات كأيقونات دائرية بصور (مع fallback متدرّج عند غياب الصورة) — تلاشٍ خفيف عند الحواف
         SizedBox(
-          height: 80,
+          height: 96,
           child: ShaderMask(
             shaderCallback: (rect) => const LinearGradient(
               colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
@@ -1180,23 +1180,23 @@ class _SearchCategoryBar extends StatelessWidget {
               return GestureDetector(
                 onTap: () => onCategoryTap(catId),
                 child: Container(
-                  width: 62,
+                  width: 74,
                   margin: const EdgeInsets.only(left: 10),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
-                        width: 48,
-                        height: 48,
-                        padding: const EdgeInsets.all(2),
+                        width: 60,
+                        height: 60,
+                        padding: const EdgeInsets.all(2.5),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
                             color: isSelected
                                 ? AppColors.purple
                                 : Colors.transparent,
-                            width: 2,
+                            width: 2.4,
                           ),
                           boxShadow: isSelected
                               ? [
@@ -1219,7 +1219,7 @@ class _SearchCategoryBar extends StatelessWidget {
                               : const _CategoryIconFallback(),
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 5),
                       Text(
                         label,
                         maxLines: 1,
@@ -1229,7 +1229,7 @@ class _SearchCategoryBar extends StatelessWidget {
                           color: isSelected
                               ? AppColors.purple
                               : AppColors.textSecondary,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: isSelected
                               ? FontWeight.bold
                               : FontWeight.normal,
@@ -1258,7 +1258,7 @@ class _CategoryIconFallback extends StatelessWidget {
         child: const Icon(
           Icons.restaurant_menu,
           color: Colors.white,
-          size: 20,
+          size: 24,
         ),
       );
 }
