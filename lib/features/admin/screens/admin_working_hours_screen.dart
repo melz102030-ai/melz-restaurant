@@ -150,6 +150,7 @@ class _AdminWorkingHoursScreenState extends ConsumerState<AdminWorkingHoursScree
         children: [
           GlassMorphCard(
             child: Row(
+              textDirection: TextDirection.rtl,
               children: [
                 Icon(Icons.store, color: AppColors.textSecondary, size: 20),
                 const SizedBox(width: 12),
@@ -232,9 +233,11 @@ class _DayCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            textDirection: TextDirection.rtl,
             children: [
               Expanded(
                 child: Row(
+                  textDirection: TextDirection.rtl,
                   children: [
                     Text(label,
                         style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
@@ -268,19 +271,19 @@ class _DayCard extends StatelessWidget {
             ...shifts.asMap().entries.map((e) => Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Row(
+                    textDirection: TextDirection.rtl,
                     children: [
                       Expanded(
                         child: _TimeChip(
+                          prefix: 'من',
                           label: RestaurantSettings.fmtHHMM(e.value.open),
                           onTap: () => onEditShiftTime(e.key, true),
                         ),
                       ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(Icons.arrow_back, size: 14),
-                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _TimeChip(
+                          prefix: 'إلى',
                           label: RestaurantSettings.fmtHHMM(e.value.close),
                           onTap: () => onEditShiftTime(e.key, false),
                         ),
@@ -300,9 +303,10 @@ class _DayCard extends StatelessWidget {
 }
 
 class _TimeChip extends StatelessWidget {
+  final String prefix;
   final String label;
   final VoidCallback onTap;
-  const _TimeChip({required this.label, required this.onTap});
+  const _TimeChip({required this.prefix, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -316,10 +320,13 @@ class _TimeChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Row(
+          textDirection: TextDirection.rtl,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.access_time, size: 14, color: AppColors.purple),
             const SizedBox(width: 6),
+            Text('$prefix ',
+                style: TextStyle(color: AppColors.textHint, fontWeight: FontWeight.w500, fontSize: 12)),
             Text(label,
                 style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
           ],
