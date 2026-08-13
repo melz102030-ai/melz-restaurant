@@ -407,10 +407,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             ),
           ],
         ),
+        // زر السلة أُزيل من هنا — السلة أصبحت زراً عائماً واحداً في التنقل السفلي فقط
         actions: [
           if (user != null)
             Padding(
-              padding: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.only(left: 12),
               child: IconButton(
                 onPressed: () => context.push('/profile'),
                 icon: CircleAvatar(
@@ -427,42 +428,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                 ),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.only(left: 12),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  onPressed: () => context.push('/cart'),
-                  icon: Icon(Icons.shopping_bag_outlined,
-                      color: AppColors.textPrimary),
-                ),
-                if (cartCount > 0)
-                  Positioned(
-                    top: 6,
-                    left: 6,
-                    child: Container(
-                      width: 17,
-                      height: 17,
-                      decoration: BoxDecoration(
-                        color: AppColors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$cartCount',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ],
       ),
       body: CustomScrollView(
@@ -583,16 +548,13 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               const SliverToBoxAdapter(child: _EmptyState()),
           ],
 
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
       ),
 
-      floatingActionButton: _CartFab(
-        count: cartCount,
-        onTap: () => context.push('/cart'),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: _NotchedNavBar(
+      extendBody: true,
+      bottomNavigationBar: _FloatingDockNav(
+        cartCount: cartCount,
         hasActiveOrder: activeOrder != null,
         onMenuTap: () => _selectCategory(null),
         onSearchTap: _focusSearch,
@@ -600,6 +562,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
             ? () => context.push('/track/${activeOrder.id}')
             : null,
         onProfileTap: () => context.push('/profile'),
+        onCartTap: () => context.push('/cart'),
       ),
     );
   }
@@ -663,60 +626,99 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   }
 }
 
-// ── تنقل سفلي بفتحة دائرية (Notch) وزر سلة مرتفع في المنتصف ────────────────────
-// فكرة مختلفة عن الشريط المسطح المعتاد: البار نفسه "يحتضن" زر السلة العائم
-// بدل مجرد وضع أيقونة إضافية بين البقية.
+// ── تنقل سفلي عائم (Floating Dock) ──────────────────────────────────────────
+// كبسولة داكنة متدرّجة تطفو فوق المحتوى بهوامش من الجانبين (لا حواف مستقيمة
+// تلامس أطراف الشاشة)، وزر السلة الأبيض يبرز فوقها كنتوء منفصل بدل أن يكون
+// أيقونة عادية ضمن الصف — تباين واضح مع أي خلفية بيضاء/بيج خلفها.
 
-class _NotchedNavBar extends StatelessWidget {
+class _FloatingDockNav extends StatelessWidget {
+  final int cartCount;
   final bool hasActiveOrder;
   final VoidCallback onMenuTap;
   final VoidCallback onSearchTap;
   final VoidCallback? onOrdersTap;
   final VoidCallback onProfileTap;
+  final VoidCallback onCartTap;
 
-  const _NotchedNavBar({
+  static const double _pillHeight = 62;
+  static const double _pillBottomMargin = 10;
+  static const double _cartSize = 62;
+  static const double _cartOverlap = 26;
+  static const double _boxHeight = _pillBottomMargin + _pillHeight - _cartOverlap + _cartSize;
+
+  const _FloatingDockNav({
+    required this.cartCount,
     required this.hasActiveOrder,
     required this.onMenuTap,
     required this.onSearchTap,
     required this.onOrdersTap,
     required this.onProfileTap,
+    required this.onCartTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return BottomAppBar(
-      color: AppColors.surface,
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 10,
-      elevation: 14,
-      padding: EdgeInsets.zero,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 58,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavIcon(icon: Icons.restaurant_menu_rounded, label: 'القائمة', active: true, onTap: onMenuTap),
-              _NavIcon(icon: Icons.search_rounded, label: 'بحث', active: false, onTap: onSearchTap),
-              const SizedBox(width: 48), // مساحة الفتحة لزر السلة العائم
-              _NavIcon(
-                icon: Icons.receipt_long_rounded,
-                label: 'طلبي',
-                active: false,
-                onTap: onOrdersTap,
-                enabled: hasActiveOrder,
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.only(bottom: 4),
+      child: SizedBox(
+        height: _boxHeight,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: _pillBottomMargin,
+              height: _pillHeight,
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [AppColors.purpleDark, AppColors.manjawiDark],
+                    begin: Alignment.centerRight,
+                    end: Alignment.centerLeft,
+                  ),
+                  borderRadius: BorderRadius.circular(_pillHeight / 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.purpleDark.withValues(alpha: 0.4),
+                      blurRadius: 22,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _NavIcon(icon: Icons.restaurant_menu_rounded, label: 'القائمة', active: true, onTap: onMenuTap),
+                    _NavIcon(icon: Icons.search_rounded, label: 'بحث', active: false, onTap: onSearchTap),
+                    const SizedBox(width: _cartSize - 6), // مساحة نتوء زر السلة
+                    _NavIcon(
+                      icon: Icons.receipt_long_rounded,
+                      label: 'طلبي',
+                      active: false,
+                      onTap: onOrdersTap,
+                      enabled: hasActiveOrder,
+                    ),
+                    _NavIcon(icon: Icons.person_rounded, label: 'حسابي', active: false, onTap: onProfileTap),
+                  ],
+                ),
               ),
-              _NavIcon(icon: Icons.person_rounded, label: 'حسابي', active: false, onTap: onProfileTap),
-            ],
-          ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: _pillBottomMargin + _pillHeight - _cartOverlap,
+              child: Center(child: _CartFab(count: cartCount, onTap: onCartTap)),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// زر السلة العائم — يستقر داخل فتحة الشريط السفلي بدل أن يكون أيقونة عادية بينها
+// زر السلة العائم — دائرة بيضاء بارزة فوق الكبسولة الداكنة لضمان تباين قوي
 class _CartFab extends StatelessWidget {
   final int count;
   final VoidCallback onTap;
@@ -727,16 +729,16 @@ class _CartFab extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 58,
-        height: 58,
+        width: _FloatingDockNav._cartSize,
+        height: _FloatingDockNav._cartSize,
         decoration: BoxDecoration(
-          gradient: AppColors.primaryGradient,
+          color: Colors.white,
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.surface, width: 4),
+          border: Border.all(color: AppColors.purple.withValues(alpha: 0.25), width: 2),
           boxShadow: [
             BoxShadow(
-              color: AppColors.purple.withValues(alpha: 0.4),
-              blurRadius: 16,
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 14,
               offset: const Offset(0, 6),
             ),
           ],
@@ -745,7 +747,7 @@ class _CartFab extends StatelessWidget {
           clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            const Icon(Icons.shopping_bag_rounded, color: Colors.white, size: 25),
+            Icon(Icons.shopping_cart_rounded, color: AppColors.purple, size: 26),
             if (count > 0)
               Positioned(
                 top: -4,
@@ -761,7 +763,7 @@ class _CartFab extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: AppColors.red,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.surface, width: 2),
+                      border: Border.all(color: Colors.white, width: 2),
                     ),
                     child: Text('$count',
                         textAlign: TextAlign.center,
@@ -794,23 +796,23 @@ class _NavIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = !enabled
-        ? AppColors.textHint.withValues(alpha: 0.35)
+        ? Colors.white.withValues(alpha: 0.28)
         : active
-            ? AppColors.purple
-            : AppColors.textHint;
+            ? Colors.white
+            : Colors.white.withValues(alpha: 0.65);
     return InkWell(
       onTap: enabled ? onTap : null,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 22),
+            Icon(icon, color: color, size: 21),
             const SizedBox(height: 3),
             Text(label,
                 style: TextStyle(
-                    color: color, fontSize: 10.5, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
+                    color: color, fontSize: 10, fontWeight: active ? FontWeight.bold : FontWeight.normal)),
           ],
         ),
       ),
