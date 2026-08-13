@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
@@ -16,6 +17,7 @@ import '../../../core/models/user_model.dart';
 import '../../../core/models/app_theme_settings.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
+import '../../../core/providers/delivery_location_cache_provider.dart';
 import '../../../core/providers/order_type_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/app_theme_provider.dart';
@@ -296,6 +298,30 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     }
   }
 
+  // يُستدعى عند اختيار "توصيل" — يطلب إذن الموقع في لحظة الحاجة الفعلية (لا عند
+  // فتح التطبيق)، ويخزّن الموقع مؤقتاً ليُعاد استخدامه فوراً في شاشة اختيار
+  // موقع التوصيل لاحقاً دون تكرار الإذن أو الانتظار من جديد
+  Future<void> _maybeRequestDeliveryLocation() async {
+    if (ref.read(cachedDeliveryLocationProvider) != null) return;
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return; // التحديد اليدوي على الخريطة يبقى متاحاً دائماً لاحقاً
+      }
+      final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      if (mounted) {
+        ref.read(cachedDeliveryLocationProvider.notifier).state =
+            CachedLatLng(pos.latitude, pos.longitude);
+      }
+    } catch (_) {
+      // تجاهل بصمت — لا نزعج المستخدم برسالة خطأ لطلب لم يبدأه صراحة
+    }
+  }
+
   // نقر على بانر مرتبط بفئة أو صنف — ينقل للقسم المناسب في القائمة (نفس منطق حبات الفئات)
   void _handleBannerTap(PromoBannerModel banner, List<MenuItemModel> allItems) {
     if (banner.linkType == BannerLinkType.category && banner.linkId != null) {
@@ -357,7 +383,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           child: _OrderTypeSelector(
             deliveryEnabled: settings.deliveryEnabled,
             selected: ref.watch(orderTypeProvider),
-            onChanged: (t) => ref.read(orderTypeProvider.notifier).state = t,
+            onChanged: (t) {
+              ref.read(orderTypeProvider.notifier).state = t;
+              if (t == OrderType.delivery) _maybeRequestDeliveryLocation();
+            },
           ),
         ),
         // دخول مباشر سريع لفريق العمل (مطبخ/مندوب/إدارة) — لمرحلة المعاينة فقط

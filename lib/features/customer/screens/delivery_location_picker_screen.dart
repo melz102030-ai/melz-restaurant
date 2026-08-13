@@ -2,10 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' as ll;
 import '../../../core/constants/app_colors.dart';
+import '../../../core/providers/delivery_location_cache_provider.dart';
 import '../../../shared/widgets/app_button.dart';
 
 class _SearchResult {
@@ -27,7 +29,7 @@ class DeliveryLocationResult {
 }
 
 // اختيار موقع التوصيل عبر تحديد الموقع الحالي (GPS) أو تحريك الخريطة يدوياً
-class DeliveryLocationPickerScreen extends StatefulWidget {
+class DeliveryLocationPickerScreen extends ConsumerStatefulWidget {
   final double? initialLat;
   final double? initialLng;
   final String? initialNote;
@@ -40,12 +42,12 @@ class DeliveryLocationPickerScreen extends StatefulWidget {
   });
 
   @override
-  State<DeliveryLocationPickerScreen> createState() =>
+  ConsumerState<DeliveryLocationPickerScreen> createState() =>
       _DeliveryLocationPickerScreenState();
 }
 
 class _DeliveryLocationPickerScreenState
-    extends State<DeliveryLocationPickerScreen> {
+    extends ConsumerState<DeliveryLocationPickerScreen> {
   final _mapController = MapController();
   final _noteCtrl = TextEditingController();
   final _searchCtrl = TextEditingController();
@@ -67,7 +69,15 @@ class _DeliveryLocationPickerScreenState
       _center = ll.LatLng(widget.initialLat!, widget.initialLng!);
       _hasPicked = true;
     } else {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _useCurrentLocation());
+      // موقع اكتُشف مسبقاً عند اختيار "توصيل" من الشاشة الرئيسية — يُستخدم فوراً
+      // بدل تكرار طلب الإذن والانتظار على GPS من جديد
+      final cached = ref.read(cachedDeliveryLocationProvider);
+      if (cached != null) {
+        _center = ll.LatLng(cached.lat, cached.lng);
+        _hasPicked = true;
+      } else {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _useCurrentLocation());
+      }
     }
   }
 
@@ -161,6 +171,8 @@ class _DeliveryLocationPickerScreenState
         _hasPicked = true;
       });
       _mapController.move(target, 16);
+      ref.read(cachedDeliveryLocationProvider.notifier).state =
+          CachedLatLng(pos.latitude, pos.longitude);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
