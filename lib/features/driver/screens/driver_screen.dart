@@ -753,15 +753,15 @@ class _QueuedOrderTile extends StatelessWidget {
 
 // دعوة تعيين لم يردّ عليها المندوب بعد — قد تصل من لحظة وصول الطلب للمطبخ،
 // قبل أن يبدأ التحضير حتى
-class _InvitationCard extends StatefulWidget {
+class _InvitationCard extends ConsumerStatefulWidget {
   final OrderModel order;
   const _InvitationCard({required this.order});
 
   @override
-  State<_InvitationCard> createState() => _InvitationCardState();
+  ConsumerState<_InvitationCard> createState() => _InvitationCardState();
 }
 
-class _InvitationCardState extends State<_InvitationCard> {
+class _InvitationCardState extends ConsumerState<_InvitationCard> {
   bool _isResponding = false;
 
   Future<void> _respond(bool accepted) async {
@@ -776,6 +776,7 @@ class _InvitationCardState extends State<_InvitationCard> {
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
+    final settings = ref.watch(settingsProvider);
     return GlassMorphCard(
       borderColor: AppColors.purple.withOpacity(0.5),
       child: Column(
@@ -810,6 +811,10 @@ class _InvitationCardState extends State<_InvitationCard> {
             '${order.items.length} صنف · ${order.total.toStringAsFixed(0)} ${AppStrings.sar}',
             style: TextStyle(color: AppColors.textHint, fontSize: 12),
           ),
+          if (settings.hasRestaurantLocation && order.hasDeliveryLocation) ...[
+            const SizedBox(height: 10),
+            _DriverEtaCard(order: order, settings: settings),
+          ],
           const SizedBox(height: 12),
           if (_isResponding)
             const Center(
