@@ -767,7 +767,7 @@ class _DriverLiveMapCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final driver = ll.LatLng(order.driverLat!, order.driverLng!);
     final dest = ll.LatLng(order.deliveryLat!, order.deliveryLng!);
-    final bounds = ll.LatLngBounds.fromPoints([driver, dest]);
+    final bounds = LatLngBounds.fromPoints([driver, dest]);
 
     return GlassMorphCard(
       borderColor: AppColors.statusOutForDelivery.withOpacity(0.5),
