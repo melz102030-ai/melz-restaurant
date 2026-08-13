@@ -51,6 +51,41 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // تفعيل التوصيل (نُقل من شاشة الإعدادات العامة — إعداد يخص التوصيل تحديداً)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.black.withOpacity(0.06)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('تفعيل التوصيل',
+                          style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text(
+                        'السماح للعميل بالاختيار بين التوصيل والاستلام من المطعم',
+                        style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: settings.deliveryEnabled,
+                  activeColor: AppColors.purple,
+                  onChanged: (v) =>
+                      SettingsService.updateSettings(settings.copyWith(deliveryEnabled: v)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Restaurant base location
           Container(
             padding: const EdgeInsets.all(16),
@@ -115,6 +150,12 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
                           : null,
                     ),
                   ],
+                ),
+                Divider(height: 28, color: AppColors.surfaceLight),
+                _FlatFeeRow(
+                  initialFee: settings.deliveryFee,
+                  onSave: (fee) =>
+                      SettingsService.updateSettings(settings.copyWith(deliveryFee: fee)),
                 ),
               ],
             ),
@@ -220,6 +261,75 @@ class _ZoneTile extends StatelessWidget {
         ],
       ),
     ).animate(delay: Duration(milliseconds: index * 40)).fadeIn();
+  }
+}
+
+// رسم التوصيل الثابت — يُستخدم فقط عند إيقاف "التسعير حسب المسافة" أعلاه
+class _FlatFeeRow extends StatefulWidget {
+  final double initialFee;
+  final ValueChanged<double> onSave;
+  const _FlatFeeRow({required this.initialFee, required this.onSave});
+
+  @override
+  State<_FlatFeeRow> createState() => _FlatFeeRowState();
+}
+
+class _FlatFeeRowState extends State<_FlatFeeRow> {
+  late final _feeCtrl = TextEditingController(text: widget.initialFee.toString());
+  bool _dirty = false;
+
+  @override
+  void dispose() {
+    _feeCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('رسم التوصيل الثابت',
+                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(
+                'يُستخدم فقط عند إيقاف "التسعير حسب المسافة"',
+                style: TextStyle(color: AppColors.textHint, fontSize: 11),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _feeCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: TextStyle(color: AppColors.textPrimary),
+                onChanged: (_) => setState(() => _dirty = true),
+                decoration: InputDecoration(
+                  isDense: true,
+                  suffix: Text(AppStrings.sar),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        IconButton.filled(
+          onPressed: _dirty
+              ? () {
+                  final fee = double.tryParse(_feeCtrl.text.trim());
+                  if (fee == null) return;
+                  widget.onSave(fee);
+                  setState(() => _dirty = false);
+                }
+              : null,
+          icon: const Icon(Icons.check),
+          tooltip: 'حفظ رسم التوصيل',
+        ),
+      ],
+    );
   }
 }
 

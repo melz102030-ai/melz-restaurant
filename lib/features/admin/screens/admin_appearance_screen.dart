@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
@@ -7,8 +9,10 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/app_theme_settings.dart';
 import '../../../core/models/splash_image_model.dart';
 import '../../../core/providers/app_theme_provider.dart';
+import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/app_theme_service.dart';
 import '../../../core/services/cloudinary_service.dart';
+import '../../../core/services/settings_service.dart';
 import '../../../core/services/splash_image_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
@@ -28,7 +32,62 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
   AppThemeSettings? _draft;
   bool _isSaving = false;
 
+  Uint8List? _logoBytes;
+  Uint8List? _coverBytes;
+  bool _isSavingImages = false;
+
   AppThemeSettings _draftOrCurrent(AppThemeSettings current) => _draft ?? current;
+
+  Future<void> _pickBrandImage(bool isLogo) async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (result != null && result.files.single.bytes != null) {
+      setState(() {
+        if (isLogo) {
+          _logoBytes = result.files.single.bytes;
+        } else {
+          _coverBytes = result.files.single.bytes;
+        }
+      });
+    }
+  }
+
+  // يحفظ الشعار/الغلاف في وثيقة إعدادات المطعم عبر copyWith — منفصل عن حفظ
+  // ألوان/خط المظهر لأنهما وثيقتان مختلفتان في Firestore
+  Future<void> _saveBrandImages() async {
+    setState(() => _isSavingImages = true);
+    try {
+      final current = await SettingsService.getSettings();
+      String? logoUrl = current.logoUrl;
+      String? coverUrl = current.coverUrl;
+      if (_logoBytes != null) {
+        logoUrl = await CloudinaryService.uploadImage(_logoBytes!, 'logo.jpg') ?? logoUrl;
+      }
+      if (_coverBytes != null) {
+        coverUrl = await CloudinaryService.uploadImage(_coverBytes!, 'cover.jpg') ?? coverUrl;
+      }
+      await SettingsService.updateSettings(
+        current.copyWith(logoUrl: logoUrl, coverUrl: coverUrl),
+      );
+      if (mounted) {
+        setState(() {
+          _logoBytes = null;
+          _coverBytes = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('تم حفظ الشعار والغلاف'),
+          backgroundColor: AppColors.success,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingImages = false);
+    }
+  }
 
   void _update(AppThemeSettings current, AppThemeSettings Function(AppThemeSettings) fn) {
     setState(() => _draft = fn(_draftOrCurrent(current)));
@@ -132,6 +191,7 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
     final current = ref.watch(appThemeProvider);
     final settings = _draftOrCurrent(current);
     final hasChanges = _draft != null;
+    final restaurantSettings = ref.watch(settingsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -243,6 +303,42 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
                 ),
               ),
             ],
+          ),
+
+          const SizedBox(height: 24),
+          _SectionTitle('الشعار وصورة الغلاف'),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _ImagePicker(
+                  label: 'شعار المطعم',
+                  bytes: _logoBytes,
+                  networkUrl: restaurantSettings.logoUrl,
+                  onPick: () => _pickBrandImage(true),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ImagePicker(
+                  label: 'صورة الغلاف',
+                  bytes: _coverBytes,
+                  networkUrl: restaurantSettings.coverUrl,
+                  onPick: () => _pickBrandImage(false),
+                  aspectRatio: 2,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _isSavingImages ? null : _saveBrandImages,
+            icon: _isSavingImages
+                ? const SizedBox(
+                    width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.save_outlined),
+            label: Text(_isSavingImages ? 'جاري الحفظ...' : 'حفظ الشعار والغلاف'),
           ),
 
           const SizedBox(height: 24),
@@ -609,4 +705,82 @@ class _SplashImageTile extends StatelessWidget {
       ],
     );
   }
+}
+
+// ── منتقي شعار/غلاف المطعم ────────────────────────────────────────────────────
+
+class _ImagePicker extends StatelessWidget {
+  final String label;
+  final Uint8List? bytes;
+  final String? networkUrl;
+  final VoidCallback onPick;
+  final double aspectRatio;
+
+  const _ImagePicker({
+    required this.label,
+    this.bytes,
+    this.networkUrl,
+    required this.onPick,
+    this.aspectRatio = 1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = bytes != null || networkUrl != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: onPick,
+          child: AspectRatio(
+            aspectRatio: aspectRatio,
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surfaceLight,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: hasImage ? AppColors.purple : AppColors.purpleDark,
+                  width: hasImage ? 2 : 1,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(11),
+                child: bytes != null
+                    ? Image.memory(bytes!, fit: BoxFit.cover)
+                    : networkUrl != null
+                        ? Image.network(
+                            networkUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _placeholder(),
+                          )
+                        : _placeholder(),
+              ),
+            ),
+          ),
+        ),
+        if (hasImage)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              bytes != null ? 'صورة جديدة - اضغط حفظ' : 'محفوظة',
+              style: TextStyle(
+                color: bytes != null ? AppColors.warning : AppColors.success,
+                fontSize: 10,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _placeholder() => Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.add_photo_alternate, color: AppColors.textHint, size: 32),
+          const SizedBox(height: 4),
+          Text('رفع صورة', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+        ],
+      );
 }
