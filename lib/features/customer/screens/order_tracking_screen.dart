@@ -3,14 +3,18 @@ import 'dart:js' as js;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/providers/settings_provider.dart';
+import '../../../core/services/routing_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -205,8 +209,20 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
             const SizedBox(height: 16),
           ],
 
+          if (!isDelivered && !isCancelled) ...[
+            _TotalEtaCard(order: order),
+            const SizedBox(height: 16),
+          ],
+
           if (order.status == OrderStatus.outForDelivery && order.driverName != null) ...[
             _DriverInfoCard(order: order),
+            const SizedBox(height: 16),
+          ],
+
+          if (order.status == OrderStatus.outForDelivery &&
+              order.hasLiveDriverLocation &&
+              order.hasDeliveryLocation) ...[
+            _DriverLiveMapCard(order: order),
             const SizedBox(height: 16),
           ],
 
@@ -739,6 +755,242 @@ class _DriverInfoCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// خريطة حية تُظهر موقع المندوب المباشر ووجهة التوصيل
+class _DriverLiveMapCard extends StatelessWidget {
+  final OrderModel order;
+  const _DriverLiveMapCard({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final driver = ll.LatLng(order.driverLat!, order.driverLng!);
+    final dest = ll.LatLng(order.deliveryLat!, order.deliveryLng!);
+    final bounds = ll.LatLngBounds.fromPoints([driver, dest]);
+
+    return GlassMorphCard(
+      borderColor: AppColors.statusOutForDelivery.withOpacity(0.5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.map_outlined, color: AppColors.statusOutForDelivery, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                'موقع المندوب المباشر',
+                style: TextStyle(
+                    color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: SizedBox(
+              height: 200,
+              child: FlutterMap(
+                options: MapOptions(
+                  initialCameraFit: CameraFit.bounds(
+                    bounds: bounds,
+                    padding: const EdgeInsets.all(40),
+                  ),
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.melz.restaurant',
+                  ),
+                  MarkerLayer(markers: [
+                    Marker(
+                      point: driver,
+                      width: 42,
+                      height: 42,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.statusOutForDelivery,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 6),
+                          ],
+                        ),
+                        child: const Icon(Icons.two_wheeler, color: Colors.white, size: 22),
+                      ),
+                    ),
+                    Marker(
+                      point: dest,
+                      width: 38,
+                      height: 38,
+                      child: Icon(
+                        Icons.location_pin,
+                        color: AppColors.purple,
+                        size: 38,
+                        shadows: [Shadow(color: Colors.black.withOpacity(0.3), blurRadius: 4)],
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn();
+  }
+}
+
+// بطاقة الوقت الإجمالي المتوقع للوصول = الوقت المتبقي للتحضير + زمن التوصيل الفعلي
+// (محسوب عبر شبكة الطرق الحقيقية عبر OSRM، وليس تقديراً بالخط المستقيم)
+class _TotalEtaCard extends ConsumerStatefulWidget {
+  final OrderModel order;
+  const _TotalEtaCard({required this.order});
+
+  @override
+  ConsumerState<_TotalEtaCard> createState() => _TotalEtaCardState();
+}
+
+class _TotalEtaCardState extends ConsumerState<_TotalEtaCard> {
+  int? _deliveryMinutes;
+  bool _loadingDelivery = false;
+  Timer? _refreshTimer;
+  DateTime? _lastDriverLocationUsed;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDeliveryEstimate();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (mounted) _fetchDeliveryEstimate();
+    });
+  }
+
+  @override
+  void didUpdateWidget(_TotalEtaCard old) {
+    super.didUpdateWidget(old);
+    final updatedAt = widget.order.driverLocationUpdatedAt;
+    if (updatedAt != null && updatedAt != _lastDriverLocationUsed) {
+      _fetchDeliveryEstimate();
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchDeliveryEstimate() async {
+    final order = widget.order;
+    if (order.orderType != OrderType.delivery || !order.hasDeliveryLocation) return;
+
+    double? fromLat;
+    double? fromLng;
+    if (order.hasLiveDriverLocation) {
+      fromLat = order.driverLat;
+      fromLng = order.driverLng;
+      _lastDriverLocationUsed = order.driverLocationUpdatedAt;
+    } else {
+      final settings = ref.read(settingsProvider);
+      if (settings.hasRestaurantLocation) {
+        fromLat = settings.restaurantLat;
+        fromLng = settings.restaurantLng;
+      }
+    }
+    if (fromLat == null || fromLng == null) return;
+
+    setState(() => _loadingDelivery = true);
+    final minutes = await RoutingService.drivingDurationMinutes(
+      fromLat: fromLat,
+      fromLng: fromLng,
+      toLat: order.deliveryLat!,
+      toLng: order.deliveryLng!,
+    );
+    if (!mounted) return;
+    setState(() {
+      _loadingDelivery = false;
+      if (minutes != null) _deliveryMinutes = minutes;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final order = widget.order;
+
+    final prepRemaining = order.remainingTime;
+    final prepMinutes = (order.status == OrderStatus.ready ||
+            order.status == OrderStatus.outForDelivery)
+        ? 0
+        : (prepRemaining != null && !prepRemaining.isNegative ? prepRemaining.inMinutes : 0);
+
+    final prepKnown = order.status == OrderStatus.ready ||
+        order.status == OrderStatus.outForDelivery ||
+        order.estimatedMinutes != null;
+    final showDelivery = order.orderType == OrderType.delivery;
+    final totalKnown = prepKnown && (!showDelivery || _deliveryMinutes != null);
+    final totalMinutes = prepMinutes + (showDelivery ? (_deliveryMinutes ?? 0) : 0);
+
+    if (!prepKnown) return const SizedBox.shrink();
+    if (!totalKnown && _loadingDelivery) {
+      return GlassMorphCard(
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 10),
+            Text('جاري حساب الوقت الإجمالي المتوقع...',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          ],
+        ),
+      );
+    }
+    if (!totalKnown) return const SizedBox.shrink();
+
+    return GlassMorphCard(
+      borderColor: AppColors.purple.withOpacity(0.4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.purple.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.schedule, color: AppColors.purple, size: 26),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'الوقت الإجمالي المتوقع للوصول',
+                  style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  totalMinutes <= 0 ? 'قريباً جداً' : '≈ $totalMinutes دقيقة',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                if (showDelivery)
+                  Text(
+                    'تحضير: $prepMinutes د + توصيل: ${_deliveryMinutes ?? 0} د',
+                    style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn();
   }
 }
 

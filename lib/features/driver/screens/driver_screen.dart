@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,6 +26,8 @@ class DriverScreen extends ConsumerStatefulWidget {
 
 class _DriverScreenState extends ConsumerState<DriverScreen> {
   bool _togglingAvailability = false;
+  StreamSubscription<Position>? _positionSub;
+  String? _broadcastingOrderId;
 
   Future<void> _toggleAvailability(String driverId, bool value) async {
     setState(() => _togglingAvailability = true);
@@ -32,6 +36,46 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
     } finally {
       if (mounted) setState(() => _togglingAvailability = false);
     }
+  }
+
+  // يبث موقع المندوب الحي لطلبه الحالي أثناء وجود طلب نشط، ويتوقف عند غيابه
+  Future<void> _syncLocationBroadcast(OrderModel? currentOrder) async {
+    if (currentOrder == null) {
+      await _positionSub?.cancel();
+      _positionSub = null;
+      _broadcastingOrderId = null;
+      return;
+    }
+    if (_broadcastingOrderId == currentOrder.id) return;
+
+    await _positionSub?.cancel();
+    _broadcastingOrderId = currentOrder.id;
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return;
+    }
+    if (!await Geolocator.isLocationServiceEnabled()) return;
+
+    final orderId = currentOrder.id;
+    _positionSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 20,
+      ),
+    ).listen((position) {
+      OrderService.updateDriverLocation(orderId, position.latitude, position.longitude);
+    });
+  }
+
+  @override
+  void dispose() {
+    _positionSub?.cancel();
+    super.dispose();
   }
 
   @override
@@ -43,6 +87,10 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
     final queued = ref.watch(queuedDriverOrdersProvider(user.id));
     final ordersAsync = ref.watch(driverActiveOrdersProvider(user.id));
     final invitations = ref.watch(driverInvitationsProvider(user.id)).valueOrNull ?? const [];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncLocationBroadcast(currentOrder);
+    });
 
     return Scaffold(
       appBar: AppBar(

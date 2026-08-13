@@ -30,6 +30,8 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
   final Set<String> _knownPendingIds = {};
   bool _initialLoaded = false;
   bool _alarmPlaying = false;
+  // قسم "مُسلَّمة" مطوي افتراضياً — يتراكم فيه أكبر عدد من الطلبات وأقلها أهمية للمتابعة
+  bool _deliveredExpanded = false;
 
   void _primeAudio() {
     try { js.context.callMethod('primeKitchenAudio', []); } catch (_) {}
@@ -64,40 +66,61 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
   }
 
   // قسم واحد (عنوان + عدّاد + قائمة/شبكة الطلبات) كسلايفرز ضمن صفحة واحدة —
-  // بدل تبويبات تُخفي الطلب عن العين أثناء التنقل بينها
-  List<Widget> _section(String label, List<OrderModel> orders, Color color, String emptyMessage) {
+  // بدل تبويبات تُخفي الطلب عن العين أثناء التنقل بينها. يدعم الطي الاختياري
+  // (مثل قسم "مُسلَّمة" المطوي افتراضياً لأنه الأقل أهمية للمتابعة الحيّة)
+  List<Widget> _section(
+    String label,
+    List<OrderModel> orders,
+    Color color,
+    String emptyMessage, {
+    bool collapsible = false,
+    bool expanded = true,
+    VoidCallback? onToggle,
+  }) {
     final isWide = MediaQuery.of(context).size.width > 900;
+    final showContent = !collapsible || expanded;
     return [
       SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-          child: Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
-              Text(label,
-                  style: TextStyle(
-                      color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(width: 8),
-              if (orders.isNotEmpty)
+        child: InkWell(
+          onTap: collapsible ? onToggle : null,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+            child: Row(
+              children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
-                  child: Text(
-                    '${orders.length}',
-                    style: const TextStyle(
-                        color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                 ),
-            ],
+                const SizedBox(width: 8),
+                Text(label,
+                    style: TextStyle(
+                        color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(width: 8),
+                if (orders.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration:
+                        BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+                    child: Text(
+                      '${orders.length}',
+                      style: const TextStyle(
+                          color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                if (collapsible) ...[
+                  const Spacer(),
+                  Icon(expanded ? Icons.expand_less : Icons.expand_more,
+                      color: AppColors.textHint),
+                ],
+              ],
+            ),
           ),
         ),
       ),
-      if (orders.isEmpty)
+      if (!showContent)
+        const SliverToBoxAdapter(child: SizedBox.shrink())
+      else if (orders.isEmpty)
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -244,8 +267,15 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
                       AppStrings.completed, ready, AppColors.statusReady, 'لا توجد طلبات جاهزة'),
                   ..._section('التوصيل', delivering, AppColors.statusOutForDelivery,
                       'لا توجد طلبات في الطريق حالياً'),
-                  ..._section('مُسلَّمة', delivered, AppColors.statusDelivered,
-                      'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات'),
+                  ..._section(
+                    'مُسلَّمة',
+                    delivered,
+                    AppColors.statusDelivered,
+                    'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات',
+                    collapsible: true,
+                    expanded: _deliveredExpanded,
+                    onToggle: () => setState(() => _deliveredExpanded = !_deliveredExpanded),
+                  ),
                   const SliverToBoxAdapter(child: SizedBox(height: 40)),
                 ],
               ),

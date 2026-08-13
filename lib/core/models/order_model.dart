@@ -161,6 +161,9 @@ class OrderModel {
   final DateTime? assignedAt;
   final DateTime? driverAcceptedAt;
   final DateTime? pickedUpAt;
+  final double? driverLat;
+  final double? driverLng;
+  final DateTime? driverLocationUpdatedAt;
 
   const OrderModel({
     required this.id,
@@ -191,12 +194,17 @@ class OrderModel {
     this.assignedAt,
     this.driverAcceptedAt,
     this.pickedUpAt,
+    this.driverLat,
+    this.driverLng,
+    this.driverLocationUpdatedAt,
   });
 
   bool get hasDeliveryLocation => deliveryLat != null && deliveryLng != null;
 
   // هل المندوب مُسنَد لكن لم يوافق بعد على استلام الطلب؟
   bool get isAwaitingDriverAcceptance => driverId != null && driverAcceptedAt == null;
+
+  bool get hasLiveDriverLocation => driverLat != null && driverLng != null;
 
   // الوقت المتبقي حتى الجاهزية (سالب = تأخير)
   Duration? get remainingTime {
@@ -255,6 +263,11 @@ class OrderModel {
       pickedUpAt: map['pickedUpAt'] is Timestamp
           ? (map['pickedUpAt'] as Timestamp).toDate()
           : null,
+      driverLat: (map['driverLat'] as num?)?.toDouble(),
+      driverLng: (map['driverLng'] as num?)?.toDouble(),
+      driverLocationUpdatedAt: map['driverLocationUpdatedAt'] is Timestamp
+          ? (map['driverLocationUpdatedAt'] as Timestamp).toDate()
+          : null,
     );
   }
 
@@ -290,6 +303,11 @@ class OrderModel {
       'driverAcceptedAt':
           driverAcceptedAt != null ? Timestamp.fromDate(driverAcceptedAt!) : null,
       'pickedUpAt': pickedUpAt != null ? Timestamp.fromDate(pickedUpAt!) : null,
+      'driverLat': driverLat,
+      'driverLng': driverLng,
+      'driverLocationUpdatedAt': driverLocationUpdatedAt != null
+          ? Timestamp.fromDate(driverLocationUpdatedAt!)
+          : null,
     };
   }
 
@@ -305,6 +323,9 @@ class OrderModel {
     DateTime? assignedAt,
     DateTime? driverAcceptedAt,
     DateTime? pickedUpAt,
+    double? driverLat,
+    double? driverLng,
+    DateTime? driverLocationUpdatedAt,
   }) {
     return OrderModel(
       id: id,
@@ -335,6 +356,9 @@ class OrderModel {
       assignedAt: assignedAt ?? this.assignedAt,
       driverAcceptedAt: driverAcceptedAt ?? this.driverAcceptedAt,
       pickedUpAt: pickedUpAt ?? this.pickedUpAt,
+      driverLat: driverLat ?? this.driverLat,
+      driverLng: driverLng ?? this.driverLng,
+      driverLocationUpdatedAt: driverLocationUpdatedAt ?? this.driverLocationUpdatedAt,
     );
   }
 }

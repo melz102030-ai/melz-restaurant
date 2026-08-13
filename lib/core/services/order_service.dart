@@ -188,6 +188,19 @@ class OrderService {
     });
   }
 
+  // Driver broadcasts live GPS position while an order is active
+  static Future<void> updateDriverLocation(
+    String orderId,
+    double lat,
+    double lng,
+  ) async {
+    await _db.collection(_colOrders).doc(orderId).update({
+      'driverLat': lat,
+      'driverLng': lng,
+      'driverLocationUpdatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
   // Update order status
   static Future<void> updateOrderStatus(
     String orderId,
