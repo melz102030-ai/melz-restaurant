@@ -4,6 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../shared/widgets/animated_photo_collage.dart';
 import 'phone_password_form.dart';
 
 /// نافذة منبثقة مختصرة لتسجيل الدخول/إنشاء حساب — تُستخدم عند إتمام الطلب
@@ -52,40 +53,46 @@ class _LoginSheetContentState extends ConsumerState<_LoginSheetContent> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints:
-          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
-      decoration: BoxDecoration(
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Container(
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SingleChildScrollView(
-        padding: EdgeInsets.fromLTRB(
-          20,
-          14,
-          20,
-          20 + MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
           children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(2),
-                ),
+            const Positioned.fill(child: AnimatedPhotoCollageBackground()),
+            Positioned.fill(child: CollageScrim(color: AppColors.surface)),
+            SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                14,
+                20,
+                20 + MediaQuery.of(context).viewInsets.bottom,
               ),
-            ),
-            PhonePasswordForm(onSuccess: widget.onSuccess, compact: true),
-            const SizedBox(height: 16),
-            _QuickCustomerPreviewButton(
-              isLoading: _quickLoading,
-              onTap: _quickCustomerLogin,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceLight,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  PhonePasswordForm(onSuccess: widget.onSuccess, compact: true),
+                  const SizedBox(height: 16),
+                  _QuickCustomerPreviewButton(
+                    isLoading: _quickLoading,
+                    onTap: _quickCustomerLogin,
+                  ),
+                ],
+              ),
             ),
           ],
         ),

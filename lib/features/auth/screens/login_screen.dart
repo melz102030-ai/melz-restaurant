@@ -8,6 +8,7 @@ import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../shared/widgets/animated_photo_collage.dart';
 import '../widgets/phone_password_form.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -54,6 +55,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Positioned.fill(child: Container(
                     decoration: BoxDecoration(gradient: AppColors.heroGradient),
                   )),
+                  const Positioned.fill(child: AnimatedPhotoCollageBackground()),
+                  Positioned.fill(child: CollageScrim(color: AppColors.purpleDark)),
                   const Positioned.fill(child: _AnimatedBubbles(isDark: true)),
                   Positioned.fill(child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -85,6 +88,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Stack(
               children: [
                 Positioned.fill(child: Container(color: AppColors.background)),
+                const Positioned.fill(child: AnimatedPhotoCollageBackground()),
+                Positioned.fill(child: CollageScrim(color: AppColors.background)),
                 if (!isWide) const Positioned.fill(child: _AnimatedBubbles(isDark: false)),
                 Center(
                 child: SingleChildScrollView(

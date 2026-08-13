@@ -17,6 +17,14 @@ class SplashImageService {
         .map((snap) => snap.docs.map((d) => SplashImageModel.fromMap(d.data(), d.id)).toList());
   }
 
+  // روابط الصور النشطة فقط — تُستخدم في كولاج الخلفية المتحرك داخل التطبيق
+  // (شاشات الدخول/إنشاء الحساب)، بخلاف web/index.html الذي يقرأ Firestore مباشرة
+  static Stream<List<String>> streamActiveImageUrls() {
+    return streamImages().map(
+      (imgs) => imgs.where((i) => i.isActive).map((i) => i.imageUrl).toList(),
+    );
+  }
+
   static Future<String> addImage(String imageUrl, int sortOrder) async {
     final ref = _db.collection(_col).doc();
     await ref.set(SplashImageModel(id: ref.id, imageUrl: imageUrl, sortOrder: sortOrder).toMap());
