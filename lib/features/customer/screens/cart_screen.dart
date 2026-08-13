@@ -209,6 +209,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final total = cartTotal + deliveryFee;
     final locationMissing = isDelivery && (_deliveryLat == null || _deliveryLng == null);
     final outsideServiceArea = isDelivery && pricing.outsideServiceArea;
+    // عند التسعير بحسب النطاق، لا نعرض رسوم التوصيل ولا الإجمالي قبل تحديد
+    // الموقع — الرسم الفعلي يعتمد على المسافة ولا يجوز تخمينه مسبقاً
+    final pricePendingLocation = isDelivery && settings.useDeliveryZones && locationMissing;
 
     return Scaffold(
       appBar: AppBar(
@@ -339,17 +342,22 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                                         ? '${AppStrings.deliveryFee} (${pricing.zoneName})'
                                         : AppStrings.deliveryFee)
                                     : 'الاستلام من المطعم',
-                                isDelivery
-                                    ? (outsideServiceArea
-                                        ? '—'
-                                        : '${deliveryFee.toStringAsFixed(2)} ${AppStrings.sar}')
-                                    : 'مجاناً'),
+                                !isDelivery
+                                    ? 'مجاناً'
+                                    : pricePendingLocation
+                                        ? 'بعد تحديد الموقع'
+                                        : outsideServiceArea
+                                            ? '—'
+                                            : '${deliveryFee.toStringAsFixed(2)} ${AppStrings.sar}',
+                                valueColor: pricePendingLocation ? AppColors.textHint : null),
                             Divider(color: AppColors.surfaceLight),
                             _PriceRow(
                               AppStrings.total,
-                              '${total.toStringAsFixed(2)} ${AppStrings.sar}',
+                              pricePendingLocation
+                                  ? 'بعد تحديد الموقع'
+                                  : '${total.toStringAsFixed(2)} ${AppStrings.sar}',
                               isBold: true,
-                              valueColor: AppColors.purple,
+                              valueColor: pricePendingLocation ? AppColors.textHint : AppColors.purple,
                             ),
                             if (cartTotal < settings.minOrderAmount) ...[
                               const SizedBox(height: 8),

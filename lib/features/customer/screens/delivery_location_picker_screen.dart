@@ -7,7 +7,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' as ll;
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/delivery_zone_model.dart';
 import '../../../core/providers/delivery_location_cache_provider.dart';
+import '../../../core/providers/delivery_zone_provider.dart';
+import '../../../core/providers/settings_provider.dart';
 import '../../../shared/widgets/app_button.dart';
 
 class _SearchResult {
@@ -198,6 +201,26 @@ class _DeliveryLocationPickerScreenState
 
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
+    final zones = ref.watch(deliveryZonesProvider).valueOrNull ?? const <DeliveryZone>[];
+    final showServiceArea =
+        settings.useDeliveryZones && settings.hasRestaurantLocation && zones.isNotEmpty;
+    final maxRadiusKm =
+        showServiceArea ? zones.map((z) => z.maxDistanceKm).reduce((a, b) => a > b ? a : b) : null;
+
+    double? distanceFromRestaurantKm;
+    if (showServiceArea) {
+      distanceFromRestaurantKm = Geolocator.distanceBetween(
+            settings.restaurantLat!,
+            settings.restaurantLng!,
+            _center.latitude,
+            _center.longitude,
+          ) /
+          1000;
+    }
+    final isOutsideArea =
+        maxRadiusKm != null && (distanceFromRestaurantKm ?? 0) > maxRadiusKm;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('تحديد موقع التوصيل'),
@@ -220,8 +243,10 @@ class _DeliveryLocationPickerScreenState
                     onPositionChanged: (position, hasGesture) {
                       final center = position.center;
                       if (hasGesture && center != null) {
-                        _center = center;
-                        if (!_hasPicked) setState(() => _hasPicked = true);
+                        setState(() {
+                          _center = center;
+                          _hasPicked = true;
+                        });
                       }
                     },
                   ),
@@ -230,16 +255,63 @@ class _DeliveryLocationPickerScreenState
                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.melz.restaurant',
                     ),
+                    // دائرة شفافة توضّح النطاق الكامل الذي يوصّل له المطعم
+                    if (showServiceArea)
+                      CircleLayer(
+                        circles: [
+                          CircleMarker(
+                            point: ll.LatLng(settings.restaurantLat!, settings.restaurantLng!),
+                            radius: maxRadiusKm! * 1000,
+                            useRadiusInMeter: true,
+                            color: AppColors.purple.withOpacity(0.08),
+                            borderColor: AppColors.purple.withOpacity(0.6),
+                            borderStrokeWidth: 2,
+                          ),
+                        ],
+                      ),
                   ],
                 ),
                 // دبوس ثابت في منتصف الشاشة — الموقع المختار هو مركز الخريطة دائماً
                 IgnorePointer(
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 38),
-                    child: Icon(Icons.location_pin,
-                        size: 46, color: AppColors.purple, shadows: [
-                      Shadow(color: Colors.black.withOpacity(0.3), blurRadius: 4),
-                    ]),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (showServiceArea)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: (isOutsideArea ? AppColors.error : AppColors.success),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              isOutsideArea
+                                  ? 'خارج نطاق التوصيل'
+                                  : 'داخل نطاق التوصيل',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        Icon(Icons.location_pin,
+                            size: 46,
+                            color: isOutsideArea ? AppColors.error : AppColors.purple,
+                            shadows: [
+                              Shadow(color: Colors.black.withOpacity(0.3), blurRadius: 4),
+                            ]),
+                      ],
+                    ),
                   ),
                 ),
                 Positioned(
