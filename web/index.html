@@ -57,6 +57,66 @@
       overflow: hidden;
     }
 
+    /* ── Photo collage background (كولاج صور متحركة يديره الأدمن) ────── */
+    #splash-collage {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      display: none;
+      gap: 10px;
+      padding: 0 6px;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.7s ease;
+    }
+
+    #splash-collage.ready { opacity: 1; }
+
+    .collage-col {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .collage-track {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      animation-name: collageScroll;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+
+    .collage-col:nth-child(1) .collage-track { animation-duration: 34s; }
+    .collage-col:nth-child(2) .collage-track { animation-duration: 26s; }
+    .collage-col:nth-child(3) .collage-track { animation-duration: 30s; }
+
+    @keyframes collageScroll {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-50%); }
+    }
+
+    .collage-track img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+      border-radius: 16px;
+      box-shadow: 0 4px 18px rgba(74, 0, 128, 0.18);
+    }
+
+    .collage-scrim {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(180deg,
+        rgba(248, 245, 255, 0.55) 0%,
+        rgba(248, 245, 255, 0.82) 45%,
+        rgba(248, 245, 255, 0.94) 100%);
+      backdrop-filter: blur(1.5px);
+      -webkit-backdrop-filter: blur(1.5px);
+    }
+
     /* ── Floating background particles ─────────────────────────────── */
     .bg-particles {
       position: fixed;
@@ -187,6 +247,10 @@
 </head>
 <body>
 
+  <!-- كولاج صور متحرك (يديره الأدمن من لوحة المظهر) -->
+  <div id="splash-collage" aria-hidden="true"></div>
+  <div class="collage-scrim" aria-hidden="true"></div>
+
   <!-- Floating ambient particles -->
   <div class="bg-particles" aria-hidden="true">
     <svg viewBox="0 0 24 24" style="left:8%;  bottom:-30px; width:28px; height:28px; fill:rgba(106,13,173,.18); animation-duration:7.0s; animation-delay:0.0s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
@@ -253,6 +317,82 @@
             localStorage.setItem('mlz_logo', url);
             // Only update DOM if we didn't already show the cached logo
             if (!shownFromCache) showLogo(url);
+          }
+        })
+        .catch(function () {});
+    })();
+
+    // ── كولاج صور شاشة التحميل — يُقرأ من مجموعة splash_images في Firestore ──
+    (function () {
+      var CACHE_KEY = 'mlz_splash_images';
+      var collage = document.getElementById('splash-collage');
+
+      function buildCollage(urls) {
+        if (!urls || !urls.length) return;
+
+        var cols = window.innerWidth < 480 ? 2 : 3;
+        var heights = [170, 230, 190, 250, 210, 180];
+        var buckets = [];
+        var c;
+        for (c = 0; c < cols; c++) buckets.push([]);
+        urls.forEach(function (u, i) { buckets[i % cols].push(u); });
+
+        collage.innerHTML = '';
+        collage.style.display = 'flex';
+
+        buckets.forEach(function (list, ci) {
+          if (!list.length) return;
+          // نكرر القائمة مرتين لضمان تمرير لا نهائي سلس (النقلة = 50% من الطول)
+          var doubled = list.concat(list);
+          var col = document.createElement('div');
+          col.className = 'collage-col';
+          var track = document.createElement('div');
+          track.className = 'collage-track';
+          doubled.forEach(function (u, i) {
+            var img = document.createElement('img');
+            img.src = u;
+            img.alt = '';
+            img.style.height = heights[(i + ci * 2) % heights.length] + 'px';
+            track.appendChild(img);
+          });
+          col.appendChild(track);
+          collage.appendChild(col);
+        });
+
+        requestAnimationFrame(function () {
+          collage.classList.add('ready');
+        });
+      }
+
+      var cached = localStorage.getItem(CACHE_KEY);
+      var shownFromCache = false;
+      if (cached) {
+        try {
+          var parsed = JSON.parse(cached);
+          if (parsed && parsed.length) {
+            shownFromCache = true;
+            buildCollage(parsed);
+          }
+        } catch (e) {}
+      }
+
+      fetch('https://firestore.googleapis.com/v1/projects/melz-restaurant/databases/(default)/documents/splash_images?orderBy=sortOrder&pageSize=40&key=AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var docs = (data && data.documents) || [];
+          var urls = docs
+            .filter(function (d) {
+              var active = d.fields && d.fields.isActive;
+              return !active || active.booleanValue !== false;
+            })
+            .map(function (d) {
+              return d.fields && d.fields.imageUrl && d.fields.imageUrl.stringValue;
+            })
+            .filter(Boolean);
+
+          if (urls.length) {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(urls));
+            if (!shownFromCache) buildCollage(urls);
           }
         })
         .catch(function () {});
