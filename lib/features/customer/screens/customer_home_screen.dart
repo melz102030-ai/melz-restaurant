@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:js' as js;
 import 'dart:math' as math;
 
@@ -9,6 +10,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/models/category_model.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/models/promo_banner_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/models/app_theme_settings.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -282,6 +284,16 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     }
   }
 
+  // نقر على بانر مرتبط بفئة أو صنف — ينقل للقسم المناسب في القائمة (نفس منطق حبات الفئات)
+  void _handleBannerTap(PromoBannerModel banner, List<MenuItemModel> allItems) {
+    if (banner.linkType == BannerLinkType.category && banner.linkId != null) {
+      _selectCategory(banner.linkId);
+    } else if (banner.linkType == BannerLinkType.item && banner.linkId != null) {
+      final matches = allItems.where((i) => i.id == banner.linkId);
+      if (matches.isNotEmpty) _selectCategory(matches.first.categoryId);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
@@ -294,11 +306,14 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
     final categoriesAsync = ref.watch(categoriesStreamProvider);
     final allItemsAsync = ref.watch(menuItemsStreamProvider(null));
+    final bannersAsync = ref.watch(activeBannersStreamProvider);
     final searchQuery = ref.watch(searchQueryProvider);
     final displayStyle = ref.watch(appThemeProvider).menuDisplayStyle;
 
     final categories = categoriesAsync.valueOrNull ?? [];
     final allItems = allItemsAsync.valueOrNull ?? [];
+    final banners = bannersAsync.valueOrNull ?? [];
+    final bestSellers = allItems.where((i) => i.isBestSeller).toList();
 
     // Filter items by search query (flat list, no grouping during search)
     final filteredItems = searchQuery.isEmpty
@@ -477,32 +492,27 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               ),
             ),
 
-          // Cover / logo banner — scrolls away when user scrolls down
-          if (coverImageUrl != null)
+          // بانر عروض متحرك يديره الأدمن — أو الغلاف الثابت كـ fallback عند عدم وجود بانرات نشطة
+          SliverToBoxAdapter(
+            child: _PromoCarousel(
+              banners: banners,
+              fallbackImageUrl: coverImageUrl,
+              screenWidth: screenWidth,
+              onBannerTap: (b) => _handleBannerTap(b, allItems),
+            ),
+          ),
+
+          // قسم الأكثر مبيعاً — وضع العرض العادي فقط، وعند وجود أصناف مميزة
+          if (searchQuery.isEmpty && bestSellers.isNotEmpty)
             SliverToBoxAdapter(
-              child: _WavyCoverBanner(
-                child: Image.network(
-                  coverImageUrl,
-                  width: screenWidth,
-                  fit: BoxFit.fitWidth,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: screenWidth * 0.55,
-                    decoration: BoxDecoration(
-                        gradient: AppColors.heroGradient),
-                    child: const Center(
-                      child: Icon(Icons.restaurant,
-                          color: Colors.white, size: 72),
-                    ),
-                  ),
-                ),
-              ),
+              child: _BestSellersSection(items: bestSellers),
             ),
 
           // Sticky search bar + category chips — stay at top after cover scrolls away
           SliverPersistentHeader(
             pinned: true,
             delegate: _StickyBarDelegate(
-              height: 100,
+              height: 136,
               child: _SearchCategoryBar(
                 searchController: _searchController,
                 catBarScroll: _catBarScroll,
@@ -779,9 +789,9 @@ class _SearchCategoryBar extends StatelessWidget {
           ),
         ),
 
-        // Horizontal category chips — تلاشٍ خفيف عند الحواف يوضّح أن هناك مزيداً للتمرير
+        // فئات كأيقونات دائرية بصور (مع fallback متدرّج عند غياب الصورة) — تلاشٍ خفيف عند الحواف
         SizedBox(
-          height: 44,
+          height: 80,
           child: ShaderMask(
             shaderCallback: (rect) => const LinearGradient(
               colors: [Colors.transparent, Colors.black, Colors.black, Colors.transparent],
@@ -792,7 +802,7 @@ class _SearchCategoryBar extends StatelessWidget {
             controller: catBarScroll,
             scrollDirection: Axis.horizontal,
             padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             itemCount: categories.length + 1,
             itemBuilder: (_, i) {
               final isAll = i == 0;
@@ -802,31 +812,67 @@ class _SearchCategoryBar extends StatelessWidget {
               final label =
                   isAll ? AppStrings.allCategories : categories[i - 1].name;
               final catId = isAll ? null : categories[i - 1].id;
+              final imageUrl = isAll ? null : categories[i - 1].imageUrl;
 
               return GestureDetector(
                 onTap: () => onCategoryTap(catId),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.only(left: 8),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.purple
-                        : AppColors.surfaceLight,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: isSelected
-                          ? Colors.white
-                          : AppColors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
+                child: Container(
+                  width: 62,
+                  margin: const EdgeInsets.only(left: 10),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        width: 48,
+                        height: 48,
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.purple
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.purple.withValues(alpha: 0.35),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: ClipOval(
+                          child: imageUrl != null
+                              ? Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      _CategoryIconFallback(isAll: isAll),
+                                )
+                              : _CategoryIconFallback(isAll: isAll),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: isSelected
+                              ? AppColors.purple
+                              : AppColors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -837,6 +883,22 @@ class _SearchCategoryBar extends StatelessWidget {
       ],
     );
   }
+}
+
+// دائرة متدرّجة بأيقونة عامة — تُستخدم عند غياب صورة الفئة أو فشل تحميلها
+class _CategoryIconFallback extends StatelessWidget {
+  final bool isAll;
+  const _CategoryIconFallback({required this.isAll});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+        child: Icon(
+          isAll ? Icons.apps_rounded : Icons.restaurant_menu,
+          color: Colors.white,
+          size: 20,
+        ),
+      );
 }
 
 // ── Sticky header delegate ─────────────────────────────────────────────────────
@@ -867,6 +929,191 @@ class _StickyBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(_StickyBarDelegate old) =>
       old.child != child || old.height != height;
+}
+
+// ── Promo carousel ──────────────────────────────────────────────────────────
+
+class _PromoCarousel extends StatefulWidget {
+  final List<PromoBannerModel> banners;
+  final String? fallbackImageUrl;
+  final double screenWidth;
+  final void Function(PromoBannerModel banner) onBannerTap;
+
+  const _PromoCarousel({
+    required this.banners,
+    required this.fallbackImageUrl,
+    required this.screenWidth,
+    required this.onBannerTap,
+  });
+
+  @override
+  State<_PromoCarousel> createState() => _PromoCarouselState();
+}
+
+class _PromoCarouselState extends State<_PromoCarousel> {
+  final _pageController = PageController();
+  Timer? _timer;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _restartAutoPlay();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PromoCarousel old) {
+    super.didUpdateWidget(old);
+    if (old.banners.length != widget.banners.length) {
+      _page = 0;
+      _restartAutoPlay();
+    }
+  }
+
+  void _restartAutoPlay() {
+    _timer?.cancel();
+    if (widget.banners.length < 2) return;
+    _timer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!_pageController.hasClients) return;
+      final next = (_page + 1) % widget.banners.length;
+      _pageController.animateToPage(next,
+          duration: const Duration(milliseconds: 500), curve: Curves.easeInOut);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Widget _fallbackGradient(double height) => Container(
+        height: height,
+        decoration: BoxDecoration(gradient: AppColors.heroGradient),
+        child: const Center(
+          child: Icon(Icons.restaurant, color: Colors.white, size: 72),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final height = widget.screenWidth * 0.55;
+
+    // لا بانرات نشطة — نعود لسلوك الغلاف الثابت القديم كـ fallback
+    if (widget.banners.isEmpty) {
+      if (widget.fallbackImageUrl == null) return const SizedBox.shrink();
+      return _WavyCoverBanner(
+        child: Image.network(
+          widget.fallbackImageUrl!,
+          width: widget.screenWidth,
+          fit: BoxFit.fitWidth,
+          errorBuilder: (_, __, ___) => _fallbackGradient(height),
+        ),
+      );
+    }
+
+    return _WavyCoverBanner(
+      child: SizedBox(
+        height: height,
+        width: widget.screenWidth,
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: _pageController,
+              itemCount: widget.banners.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (_, i) {
+                final banner = widget.banners[i];
+                return GestureDetector(
+                  onTap: () => widget.onBannerTap(banner),
+                  child: Image.network(
+                    banner.imageUrl,
+                    width: widget.screenWidth,
+                    height: height,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _fallbackGradient(height),
+                  ),
+                );
+              },
+            ),
+            if (widget.banners.length > 1)
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(widget.banners.length, (i) {
+                    final active = i == _page;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 18 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(active ? 0.95 : 0.5),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Best sellers section ──────────────────────────────────────────────────────
+
+class _BestSellersSection extends StatelessWidget {
+  final List<MenuItemModel> items;
+  const _BestSellersSection({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Icon(Icons.local_fire_department,
+                    color: AppColors.manjawi, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'الأكثر مبيعاً',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 190,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: items.length,
+              itemBuilder: (_, i) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: SizedBox(width: 140, child: MenuItemGridCard(item: items[i])),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // ── PWA Install Banner ────────────────────────────────────────────────────────

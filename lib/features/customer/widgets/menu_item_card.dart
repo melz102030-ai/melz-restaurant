@@ -48,22 +48,33 @@ class MenuItemListCard extends ConsumerWidget {
                 child: SizedBox(
                   width: 80,
                   height: 80,
-                  child: ColorFiltered(
-                    colorFilter: available
-                        ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
-                        : const ColorFilter.matrix([
-                            0.2126, 0.7152, 0.0722, 0, 0,
-                            0.2126, 0.7152, 0.0722, 0, 0,
-                            0.2126, 0.7152, 0.0722, 0, 0,
-                            0,      0,      0,      1, 0,
-                          ]),
-                    child: item.imageUrl != null
-                        ? Image.network(
-                            item.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder(),
-                          )
-                        : _placeholder(),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ColorFiltered(
+                        colorFilter: available
+                            ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
+                            : const ColorFilter.matrix([
+                                0.2126, 0.7152, 0.0722, 0, 0,
+                                0.2126, 0.7152, 0.0722, 0, 0,
+                                0.2126, 0.7152, 0.0722, 0, 0,
+                                0,      0,      0,      1, 0,
+                              ]),
+                        child: item.imageUrl != null
+                            ? Image.network(
+                                item.imageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => _placeholder(),
+                              )
+                            : _placeholder(),
+                      ),
+                      if (available && (item.isBestSeller || item.isNew))
+                        Positioned(
+                          top: 4,
+                          left: 4,
+                          child: _ItemBadges(item: item),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -316,6 +327,12 @@ class MenuItemGridCard extends ConsumerWidget {
                           ),
                         ),
                       ),
+                    if (available && (item.isBestSeller || item.isNew))
+                      Positioned(
+                        top: 6,
+                        left: 6,
+                        child: _ItemBadges(item: item),
+                      ),
                   ],
                 ),
               ),
@@ -381,6 +398,37 @@ class MenuItemGridCard extends ConsumerWidget {
   Widget _placeholder() => Container(
         color: AppColors.surfaceLight,
         child: Icon(Icons.restaurant, color: AppColors.textHint, size: 32),
+      );
+}
+
+// شارات "الأكثر مبيعاً"/"جديد" أعلى-يسار صورة الصنف — لا تتعارض مع شارة "نفدت الكمية" أعلى-اليمين
+class _ItemBadges extends StatelessWidget {
+  final MenuItemModel item;
+  const _ItemBadges({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (item.isBestSeller) _badge('الأكثر مبيعاً', AppColors.manjawi),
+        if (item.isBestSeller && item.isNew) const SizedBox(height: 4),
+        if (item.isNew) _badge('جديد', AppColors.success),
+      ],
+    );
+  }
+
+  Widget _badge(String text, Color color) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+        ),
       );
 }
 

@@ -13,6 +13,8 @@ class MenuItemModel {
   final List<String> tags;
   final double? discountPercent;
   final List<OptionGroup> optionGroups;
+  final bool isBestSeller;
+  final bool isNew;
 
   const MenuItemModel({
     required this.id,
@@ -27,6 +29,8 @@ class MenuItemModel {
     this.tags = const [],
     this.discountPercent,
     this.optionGroups = const [],
+    this.isBestSeller = false,
+    this.isNew = false,
   });
 
   double get finalPrice {
@@ -55,6 +59,8 @@ class MenuItemModel {
       optionGroups: (map['optionGroups'] as List? ?? [])
           .map((g) => OptionGroup.fromMap(g as Map<String, dynamic>))
           .toList(),
+      isBestSeller: map['isBestSeller'] ?? false,
+      isNew: map['isNew'] ?? false,
     );
   }
 
@@ -71,6 +77,8 @@ class MenuItemModel {
       'tags': tags,
       'discountPercent': discountPercent,
       'optionGroups': optionGroups.map((g) => g.toMap()).toList(),
+      'isBestSeller': isBestSeller,
+      'isNew': isNew,
     };
   }
 
@@ -87,6 +95,8 @@ class MenuItemModel {
     List<String>? tags,
     double? discountPercent,
     List<OptionGroup>? optionGroups,
+    bool? isBestSeller,
+    bool? isNew,
   }) {
     return MenuItemModel(
       id: id ?? this.id,
@@ -101,6 +111,8 @@ class MenuItemModel {
       tags: tags ?? this.tags,
       discountPercent: discountPercent ?? this.discountPercent,
       optionGroups: optionGroups ?? this.optionGroups,
+      isBestSeller: isBestSeller ?? this.isBestSeller,
+      isNew: isNew ?? this.isNew,
     );
   }
 }
