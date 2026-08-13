@@ -302,6 +302,16 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
                       _update(current, (s) => s.copyWith(menuDisplayStyle: MenuDisplayStyle.grid)),
                 ),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _StyleChip(
+                  label: 'كروت أفقية',
+                  icon: Icons.view_carousel_outlined,
+                  selected: settings.menuDisplayStyle == MenuDisplayStyle.horizontal,
+                  onTap: () => _update(
+                      current, (s) => s.copyWith(menuDisplayStyle: MenuDisplayStyle.horizontal)),
+                ),
+              ),
             ],
           ),
 

@@ -596,8 +596,24 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     );
   }
 
-  // بنية العرض المشتركة بين وضع البحث ووضع الفئات: قائمة أو شبكة حسب إعداد الأدمن
+  // بنية العرض المشتركة بين وضع البحث ووضع الفئات: قائمة أو شبكة أو كروت أفقية حسب إعداد الأدمن
   Widget _itemsSliver(List<MenuItemModel> items, MenuDisplayStyle style) {
+    if (style == MenuDisplayStyle.horizontal) {
+      return SliverToBoxAdapter(
+        child: SizedBox(
+          height: 190,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            itemCount: items.length,
+            itemBuilder: (_, i) => Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: SizedBox(width: 140, child: MenuItemGridCard(item: items[i])),
+            ),
+          ),
+        ),
+      );
+    }
     if (style == MenuDisplayStyle.grid) {
       return SliverGrid(
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

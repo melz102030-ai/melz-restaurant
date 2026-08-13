@@ -1,4 +1,4 @@
-enum MenuDisplayStyle { list, grid }
+enum MenuDisplayStyle { list, grid, horizontal }
 
 enum CardStyle { rounded, sharp }
 
