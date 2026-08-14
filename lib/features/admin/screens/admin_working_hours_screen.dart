@@ -31,6 +31,9 @@ class AdminWorkingHoursScreen extends ConsumerStatefulWidget {
 class _AdminWorkingHoursScreenState extends ConsumerState<AdminWorkingHoursScreen> {
   final Map<String, List<WorkShift>> _hours = {for (final d in kWeekDays) d.$1: <WorkShift>[]};
   bool _isOpen = true;
+  // يُضبط فقط عند تفاعل الأدمن فعلياً مع مفتاح هذه الشاشة — يمنع الحفظ من
+  // الكتابة فوق تبديل "فتح/إغلاق" حدث من لوحة التحكم أثناء فتح هذه الشاشة
+  bool _isOpenTouched = false;
   bool _isLoaded = false;
   bool _isSaving = false;
 
@@ -118,7 +121,10 @@ class _AdminWorkingHoursScreenState extends ConsumerState<AdminWorkingHoursScree
     try {
       final current = await SettingsService.getSettings();
       await SettingsService.updateSettings(
-        current.copyWith(isOpen: _isOpen, workingHours: Map<String, List<WorkShift>>.from(_hours)),
+        current.copyWith(
+          isOpen: _isOpenTouched ? _isOpen : null,
+          workingHours: Map<String, List<WorkShift>>.from(_hours),
+        ),
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -164,7 +170,13 @@ class _AdminWorkingHoursScreenState extends ConsumerState<AdminWorkingHoursScree
                     ],
                   ),
                 ),
-                Switch(value: _isOpen, onChanged: (v) => setState(() => _isOpen = v)),
+                Switch(
+                  value: _isOpen,
+                  onChanged: (v) => setState(() {
+                    _isOpen = v;
+                    _isOpenTouched = true;
+                  }),
+                ),
               ],
             ),
           ),

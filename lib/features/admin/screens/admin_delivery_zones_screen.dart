@@ -15,20 +15,41 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
   const AdminDeliveryZonesScreen({super.key});
 
   Future<void> _pickRestaurantLocation(BuildContext context, WidgetRef ref) async {
-    final settings = ref.read(settingsProvider);
+    // تُستخدم فقط لتمركز الخريطة عند الفتح — الكتابة الفعلية تعتمد على نسخة
+    // حديثة من الإعدادات تُجلب بعد إغلاق شاشة الاختيار، حتى لا تُلغي أي
+    // تعديل آخر حدث في تلك الأثناء (قد تطول مدة اختيار الموقع على الخريطة)
+    final settingsForMap = ref.read(settingsProvider);
     final result = await Navigator.of(context, rootNavigator: true).push<DeliveryLocationResult>(
       MaterialPageRoute(
         builder: (_) => DeliveryLocationPickerScreen(
-          initialLat: settings.restaurantLat,
-          initialLng: settings.restaurantLng,
+          initialLat: settingsForMap.restaurantLat,
+          initialLng: settingsForMap.restaurantLng,
         ),
       ),
     );
     if (result != null) {
+      final current = await SettingsService.getSettings();
       await SettingsService.updateSettings(
-        settings.copyWith(restaurantLat: result.lat, restaurantLng: result.lng),
+        current.copyWith(restaurantLat: result.lat, restaurantLng: result.lng),
       );
     }
+  }
+
+  // كل تعديل هنا يجلب أحدث نسخة من الإعدادات قبل الكتابة مباشرة، بدل الاعتماد
+  // على النسخة المُشاهَدة في build() التي قد تكون تجاوزها الزمن
+  Future<void> _updateDeliveryEnabled(bool v) async {
+    final current = await SettingsService.getSettings();
+    await SettingsService.updateSettings(current.copyWith(deliveryEnabled: v));
+  }
+
+  Future<void> _updateUseDeliveryZones(bool v) async {
+    final current = await SettingsService.getSettings();
+    await SettingsService.updateSettings(current.copyWith(useDeliveryZones: v));
+  }
+
+  Future<void> _updateFlatFee(double fee) async {
+    final current = await SettingsService.getSettings();
+    await SettingsService.updateSettings(current.copyWith(deliveryFee: fee));
   }
 
   @override
@@ -78,8 +99,7 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
                 Switch(
                   value: settings.deliveryEnabled,
                   activeColor: AppColors.purple,
-                  onChanged: (v) =>
-                      SettingsService.updateSettings(settings.copyWith(deliveryEnabled: v)),
+                  onChanged: _updateDeliveryEnabled,
                 ),
               ],
             ),
@@ -144,18 +164,14 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
                     Switch(
                       value: settings.useDeliveryZones,
                       activeColor: AppColors.purple,
-                      onChanged: settings.hasRestaurantLocation
-                          ? (v) => SettingsService.updateSettings(
-                              settings.copyWith(useDeliveryZones: v))
-                          : null,
+                      onChanged: settings.hasRestaurantLocation ? _updateUseDeliveryZones : null,
                     ),
                   ],
                 ),
                 Divider(height: 28, color: AppColors.surfaceLight),
                 _FlatFeeRow(
                   initialFee: settings.deliveryFee,
-                  onSave: (fee) =>
-                      SettingsService.updateSettings(settings.copyWith(deliveryFee: fee)),
+                  onSave: _updateFlatFee,
                 ),
               ],
             ),

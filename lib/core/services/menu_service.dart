@@ -28,6 +28,7 @@ class MenuService {
       id: ref.id,
       name: cat.name,
       icon: cat.icon,
+      imageUrl: cat.imageUrl,
       sortOrder: cat.sortOrder,
       isActive: cat.isActive,
     ).toMap());

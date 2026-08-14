@@ -241,24 +241,29 @@ class _DeliveryLocationPickerScreenState
     }
   }
 
-  void _confirm() {
+  Future<void> _confirm() async {
     final extra = _noteCtrl.text.trim();
     final combinedAddress = [
       if (_detectedAddress != null && _detectedAddress!.trim().isNotEmpty) _detectedAddress!.trim(),
       if (extra.isNotEmpty) extra,
     ].join(' — ');
 
-    // يُحفظ كموقع افتراضي للعميل تلقائياً — يُستخدم في طلباته القادمة حتى يغيّره
+    // يُحفظ كموقع افتراضي للعميل تلقائياً — يُستخدم في طلباته القادمة حتى يغيّره.
+    // يُنتظر هنا كي لا يُفقد الخطأ بصمت، لكن فشل الحفظ لا يمنع تأكيد الموقع
+    // الحالي للطلب الجاري — العميل لا يحتاج معرفة تفاصيل هذا الحفظ الخلفي
     final user = ref.read(authProvider);
     if (user != null) {
-      AuthService.updateSavedLocation(
-        user.id,
-        lat: _center.latitude,
-        lng: _center.longitude,
-        address: combinedAddress.isEmpty ? null : combinedAddress,
-      );
+      try {
+        await AuthService.updateSavedLocation(
+          user.id,
+          lat: _center.latitude,
+          lng: _center.longitude,
+          address: combinedAddress.isEmpty ? null : combinedAddress,
+        );
+      } catch (_) {}
     }
 
+    if (!mounted) return;
     Navigator.pop(
       context,
       DeliveryLocationResult(
