@@ -10,13 +10,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
-import '../../../core/models/settings_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/drivers_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/order_service.dart';
-import '../../../core/services/routing_service.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -486,10 +484,6 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
               ],
             ),
           ],
-          if (settings.hasRestaurantLocation && order.hasDeliveryLocation) ...[
-            const SizedBox(height: 10),
-            _DriverEtaCard(order: order, settings: settings),
-          ],
           const SizedBox(height: 14),
           Divider(color: AppColors.surfaceLight),
           ...order.items.map(
@@ -548,156 +542,6 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
   }
 }
 
-// وقت الوصول التقديري: من المندوب إلى المطعم، ومن المطعم إلى العميل، حسب
-// شبكة الطرق الفعلية (OSRM) — يتحدّث دورياً مع تحرك المندوب
-class _DriverEtaCard extends StatefulWidget {
-  final OrderModel order;
-  final RestaurantSettings settings;
-  const _DriverEtaCard({required this.order, required this.settings});
-
-  @override
-  State<_DriverEtaCard> createState() => _DriverEtaCardState();
-}
-
-class _DriverEtaCardState extends State<_DriverEtaCard> {
-  int? _toRestaurant;
-  int? _toCustomer;
-  bool _loading = false;
-  Timer? _refreshTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetch();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 60), (_) => _fetch());
-  }
-
-  @override
-  void dispose() {
-    _refreshTimer?.cancel();
-    super.dispose();
-  }
-
-  Future<void> _fetch() async {
-    if (_loading) return;
-    setState(() => _loading = true);
-    try {
-      double? driverLat;
-      double? driverLng;
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission != LocationPermission.denied &&
-          permission != LocationPermission.deniedForever) {
-        try {
-          final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.medium)
-              .timeout(const Duration(seconds: 8));
-          driverLat = pos.latitude;
-          driverLng = pos.longitude;
-        } catch (_) {}
-      }
-
-      final toCustomer = await RoutingService.drivingDurationMinutes(
-        fromLat: widget.settings.restaurantLat!,
-        fromLng: widget.settings.restaurantLng!,
-        toLat: widget.order.deliveryLat!,
-        toLng: widget.order.deliveryLng!,
-      );
-
-      int? toRestaurant;
-      if (driverLat != null && driverLng != null) {
-        toRestaurant = await RoutingService.drivingDurationMinutes(
-          fromLat: driverLat,
-          fromLng: driverLng,
-          toLat: widget.settings.restaurantLat!,
-          toLng: widget.settings.restaurantLng!,
-        );
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _toRestaurant = toRestaurant;
-        _toCustomer = toCustomer;
-      });
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final total =
-        (_toRestaurant != null && _toCustomer != null) ? _toRestaurant! + _toCustomer! : null;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.purple.withOpacity(0.06),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.purple.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.alt_route, color: AppColors.purple, size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  'الوقت التقديري حسب حركة المرور الحالية',
-                  style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.bold, fontSize: 12),
-                ),
-              ),
-              if (_loading)
-                const SizedBox(
-                    width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
-              else
-                InkWell(
-                  onTap: _fetch,
-                  child: Icon(Icons.refresh, size: 16, color: AppColors.purple),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _etaRow('منك إلى المطعم', _toRestaurant),
-          _etaRow('من المطعم إلى العميل', _toCustomer),
-          Divider(color: AppColors.purple.withOpacity(0.2), height: 14),
-          _etaRow('الإجمالي', total, bold: true),
-        ],
-      ),
-    );
-  }
-
-  Widget _etaRow(String label, int? minutes, {bool bold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 12,
-              fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-            ),
-          ),
-          Text(
-            minutes != null ? '$minutes د' : '—',
-            style: TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 12,
-              fontWeight: bold ? FontWeight.bold : FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _QueuedOrderTile extends StatelessWidget {
   final OrderModel order;
   final int position;
@@ -753,15 +597,15 @@ class _QueuedOrderTile extends StatelessWidget {
 
 // دعوة تعيين لم يردّ عليها المندوب بعد — قد تصل من لحظة وصول الطلب للمطبخ،
 // قبل أن يبدأ التحضير حتى
-class _InvitationCard extends ConsumerStatefulWidget {
+class _InvitationCard extends StatefulWidget {
   final OrderModel order;
   const _InvitationCard({required this.order});
 
   @override
-  ConsumerState<_InvitationCard> createState() => _InvitationCardState();
+  State<_InvitationCard> createState() => _InvitationCardState();
 }
 
-class _InvitationCardState extends ConsumerState<_InvitationCard> {
+class _InvitationCardState extends State<_InvitationCard> {
   bool _isResponding = false;
 
   Future<void> _respond(bool accepted) async {
@@ -776,7 +620,6 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
-    final settings = ref.watch(settingsProvider);
     return GlassMorphCard(
       borderColor: AppColors.purple.withOpacity(0.5),
       child: Column(
@@ -811,10 +654,6 @@ class _InvitationCardState extends ConsumerState<_InvitationCard> {
             '${order.items.length} صنف · ${order.total.toStringAsFixed(0)} ${AppStrings.sar}',
             style: TextStyle(color: AppColors.textHint, fontSize: 12),
           ),
-          if (settings.hasRestaurantLocation && order.hasDeliveryLocation) ...[
-            const SizedBox(height: 10),
-            _DriverEtaCard(order: order, settings: settings),
-          ],
           const SizedBox(height: 12),
           if (_isResponding)
             const Center(
