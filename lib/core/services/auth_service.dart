@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
@@ -232,32 +233,59 @@ class AuthService {
     return user;
   }
 
-  // إنشاء موظف مباشرة من الأدمن (بدون OTP — يسجّل دخوله عبر /staff-login بهذه الكلمة)
+  // إنشاء موظف مباشرة من الأدمن — يُنشئ حساب Firebase Auth حقيقياً (بنفس نمط
+  // البريد الوهمي المستخدم لعملاء الجوال/كلمة المرور) عبر تطبيق Firebase مؤقت
+  // منفصل، حتى لا تُستبدل جلسة الأدمن الحالي بجلسة الموظف الجديد فور إنشائه.
+  // يسجّل الموظف دخوله لاحقاً عبر /staff-login بنفس رقمه وكلمة المرور هذه.
   static Future<UserModel> createStaffUser(
       String phone, String name, UserRole role, String password) async {
-    // تحقق أولاً إن كان موجوداً
-    final q = await _db
-        .collection(_colUsers)
-        .where('phone', isEqualTo: phone)
-        .limit(1)
-        .get();
-    if (q.docs.isNotEmpty) {
-      final existing = UserModel.fromMap(q.docs.first.data(), q.docs.first.id);
-      await _db.collection(_colUsers).doc(existing.id).set(
-        {'role': role.name, 'name': name, 'staffPassword': password},
-        SetOptions(merge: true),
-      );
-      return existing.copyWith(name: name, role: role);
-    }
-    final ref = _db.collection(_colUsers).doc();
-    final user = UserModel(
-      id: ref.id,
-      phone: phone,
-      name: name,
-      role: role,
-      createdAt: DateTime.now(),
+    final tempApp = await Firebase.initializeApp(
+      name: 'staffCreate_${DateTime.now().microsecondsSinceEpoch}',
+      options: Firebase.app().options,
     );
-    await ref.set({...user.toMap(), 'staffPassword': password});
+    try {
+      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
+      final credential = await tempAuth.createUserWithEmailAndPassword(
+        email: _pseudoEmail(phone),
+        password: password,
+      );
+      final firebaseUser = credential.user;
+      if (firebaseUser == null) throw Exception('فشل إنشاء حساب الموظف');
+
+      final user = UserModel(
+        id: firebaseUser.uid,
+        phone: phone,
+        name: name,
+        role: role,
+        createdAt: DateTime.now(),
+      );
+      await _db.collection(_colUsers).doc(firebaseUser.uid).set(user.toMap());
+      return user;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'email-already-in-use') {
+        throw Exception('يوجد موظف مسجّل بهذا الرقم مسبقاً');
+      }
+      throw Exception(phonePasswordError(e.code));
+    } finally {
+      await tempApp.delete();
+    }
+  }
+
+  // ─── دخول فريق العمل (أدمن/مطبخ/مندوب) برقم الجوال + كلمة المرور ─────────
+  static Future<UserModel> loginStaff(String phone, String password) async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: _pseudoEmail(phone),
+      password: password,
+    );
+    final firebaseUser = credential.user;
+    if (firebaseUser == null) throw Exception('فشل تسجيل الدخول');
+    final doc = await _db.collection(_colUsers).doc(firebaseUser.uid).get();
+    if (!doc.exists) throw Exception('بيانات الموظف غير موجودة');
+    final user = UserModel.fromMap(doc.data()!, doc.id);
+    if (user.role == UserRole.customer) {
+      await _auth.signOut();
+      throw Exception('هذا الحساب ليس من فريق العمل');
+    }
     return user;
   }
 

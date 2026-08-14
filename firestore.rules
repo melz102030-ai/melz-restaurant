@@ -1,0 +1,126 @@
+rules_version = '2';
+
+// قواعد أمان Firestore لتطبيق Meals.
+//
+// ملاحظة مهمة حول نطاق هذه القواعد: لا توجد Cloud Functions في هذا المشروع،
+// لذا لا يمكن لهذه القواعد وحدها التحقق من صحة سعر/إجمالي الطلب عند الإنشاء
+// (يتطلب ذلك مقارنة كل صنف بسعره الحقيقي في menu_items، وهو غير عملي بلغة
+// القواعد التصريحية بدون تكرار). ما تضمنه هذه القواعد:
+//   • كل كتابة تتطلب مستخدماً مسجّلاً بالدور الصحيح (لا اعتماد على إخفاء
+//     الأزرار في الواجهة فقط).
+//   • حقول السعر (subtotal/deliveryFee/total/items) غير قابلة للتعديل بعد
+//     إنشاء الطلب من أي طرف.
+//   • لا يمكن لأي عميل تصعيد صلاحياته (role) عبر الكتابة المباشرة، باستثناء
+//     حسابات المعاينة السريعة المجهولة (anonymous) المستخدمة حالياً في مرحلة
+//     الاختبار — راجع ملاحظة "الدخول السريع" أدناه قبل الإطلاق الفعلي.
+// عند إضافة بوابة دفع، التحقق الحقيقي من السعر والدفع يجب أن ينتقل إلى
+// Cloud Function موقّعة من جهة الخادم — هذه القواعد تمهّد لذلك لكنها ليست بديلاً عنه.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────── دوال مساعدة ────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // حسابات "الدخول السريع للمعاينة" تستخدم Firebase Anonymous Auth — تُميَّز
+    // هنا لمنحها استثناءً واحداً فقط: حرية اختيار/تبديل دورها الخاص بنفسها،
+    // لتبقى ميزة المعاينة السريعة (بلا تسجيل دخول) تعمل أثناء مرحلة الاختبار.
+    // يُنصح بتعطيل Anonymous Auth من Firebase Console عند الإطلاق الفعلي
+    // للجمهور حتى يُغلق هذا الاستثناء تلقائياً.
+    function isAnonymous() {
+      return isSignedIn() && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    }
+
+    function myRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAdmin() { return isSignedIn() && myRole() == 'admin'; }
+    function isKitchen() { return isSignedIn() && myRole() == 'kitchen'; }
+    function isDriver() { return isSignedIn() && myRole() == 'driver'; }
+    function isStaff() { return isAdmin() || isKitchen() || isDriver(); }
+
+    // ─────────────────────────────── users ───────────────────────────────
+    match /users/{userId} {
+      allow read: if isSignedIn();
+
+      // إنشاء الحساب: المستخدم نفسه (تسجيل عميل عادي، أو حساب معاينة مجهول
+      // بأي دور)، أو الأدمن عند إنشاء موظف مطبخ/مندوب من لوحة التحكم.
+      allow create: if isSignedIn() && (
+        isAdmin() ||
+        (request.auth.uid == userId &&
+          (isAnonymous() || request.resource.data.role == 'customer'))
+      );
+
+      // تعديل الحساب: الأدمن يستطيع تعديل أي مستخدم (بما فيها الأدوار).
+      // المستخدم نفسه يستطيع تعديل بياناته (الاسم، التوفّر، الموقع المحفوظ...)
+      // لكن لا يستطيع تغيير دوره بنفسه — إلا حسابات المعاينة المجهولة.
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (request.auth.uid == userId &&
+          (isAnonymous() || request.resource.data.role == resource.data.role))
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    // ─────────────────────────────── orders ──────────────────────────────
+    match /orders/{orderId} {
+      allow read: if isSignedIn() && (
+        isAdmin() || isKitchen() ||
+        (isDriver() && resource.data.driverId == request.auth.uid) ||
+        resource.data.customerId == request.auth.uid
+      );
+
+      // الإنشاء: العميل فقط، لنفسه، بحالة "pending" ودون مندوب مُسبَق.
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.driverId == null;
+
+      // التعديل: ثلاث حالات فقط، ولا يجوز لأيٍّ منها تعديل الأصناف أو الأسعار
+      // أو صاحب الطلب بعد الإنشاء.
+      allow update: if isSignedIn() && _priceFieldsUnchanged() && (
+        // 1) المطبخ/الأدمن: إدارة الحالة والتحضير وتعيين/إلغاء المندوب —
+        //    باستثناء إلغاء تعيين مندوب يحمل الطلب بالفعل (outForDelivery).
+        (isStaff() && (isAdmin() || isKitchen()) &&
+          !(resource.data.status == 'outForDelivery' &&
+            request.resource.data.driverId == null)) ||
+        // 2) المندوب: فقط على طلبه المُسنَد له (قبول/رفض، تأكيد استلام،
+        //    بث الموقع الحي، تسليم).
+        (isDriver() && resource.data.driverId == request.auth.uid) ||
+        // 3) العميل: إلغاء طلبه الخاص فقط، وطالما لا يزال قيد الانتظار.
+        (resource.data.customerId == request.auth.uid &&
+          resource.data.status == 'pending' &&
+          request.resource.data.status == 'cancelled' &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'updatedAt']))
+      );
+
+      allow delete: if isAdmin();
+
+      function _priceFieldsUnchanged() {
+        return request.resource.data.customerId == resource.data.customerId &&
+          request.resource.data.items == resource.data.items &&
+          request.resource.data.subtotal == resource.data.subtotal &&
+          request.resource.data.deliveryFee == resource.data.deliveryFee &&
+          request.resource.data.total == resource.data.total;
+      }
+    }
+
+    // ───────────────────── محتوى عام: قراءة للجميع، كتابة للأدمن ─────────────
+    // القائمة والفئات وقوالب الخيارات ومناطق التوصيل والإعدادات والبانرات
+    // والإعلانات وصور شاشة التحميل — يحتاج الزوّار غير المسجَّلين لقراءتها
+    // لتصفّح القائمة والسعر قبل تسجيل الدخول.
+    match /categories/{id}       { allow read: if true; allow write: if isAdmin(); }
+    match /menu_items/{id}       { allow read: if true; allow write: if isAdmin(); }
+    match /option_templates/{id} { allow read: if true; allow write: if isAdmin(); }
+    match /deliveryZones/{id}    { allow read: if true; allow write: if isAdmin(); }
+    match /promo_banners/{id}    { allow read: if true; allow write: if isAdmin(); }
+    match /popup_ads/{id}        { allow read: if true; allow write: if isAdmin(); }
+    match /splash_images/{id}    { allow read: if true; allow write: if isAdmin(); }
+    match /settings/{docId}      { allow read: if true; allow write: if isAdmin(); }
+  }
+}

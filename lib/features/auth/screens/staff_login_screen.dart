@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/models/user_model.dart';
@@ -39,26 +39,7 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
       final phone = _phoneController.text.trim();
       final password = _passwordController.text.trim();
 
-      // Look up staff user by phone
-      final query = await FirebaseFirestore.instance
-          .collection('users')
-          .where('phone', isEqualTo: phone)
-          .where('role', whereIn: ['admin', 'kitchen', 'driver'])
-          .limit(1)
-          .get();
-
-      if (query.docs.isEmpty) {
-        throw Exception('المستخدم غير موجود أو ليس من فريق العمل');
-      }
-
-      final userData = query.docs.first.data();
-      final storedPassword = userData['staffPassword'] as String?;
-
-      if (storedPassword != password) {
-        throw Exception('كلمة المرور غير صحيحة');
-      }
-
-      final user = UserModel.fromMap(userData, query.docs.first.id);
+      final user = await AuthService.loginStaff(phone, password);
       await ref.read(authProvider.notifier).login(user);
 
       if (!mounted) return;
@@ -76,6 +57,15 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
         case UserRole.customer:
           context.go('/home');
           break;
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AuthService.phonePasswordError(e.code)),
+            backgroundColor: AppColors.error,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

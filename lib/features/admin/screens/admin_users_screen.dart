@@ -265,6 +265,7 @@ class _AddStaffDialogState extends State<_AddStaffDialog> {
   UserRole _selectedRole = UserRole.kitchen;
   bool _isSaving = false;
   bool _obscure = true;
+  String? _error;
 
   @override
   void dispose() {
@@ -278,19 +279,16 @@ class _AddStaffDialogState extends State<_AddStaffDialog> {
     if (_nameCtrl.text.isEmpty || _phoneCtrl.text.isEmpty || _passwordCtrl.text.isEmpty) {
       return;
     }
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
     try {
-      final user = UserModel(
-        id: '',
-        phone: _phoneCtrl.text.trim(),
-        name: _nameCtrl.text.trim(),
-        role: _selectedRole,
-        createdAt: DateTime.now(),
-      );
-      // Add staff user to Firestore with password
       await AuthService.createStaffUser(_phoneCtrl.text.trim(),
           _nameCtrl.text.trim(), _selectedRole, _passwordCtrl.text.trim());
       if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -342,6 +340,10 @@ class _AddStaffDialogState extends State<_AddStaffDialog> {
               if (v != null) setState(() => _selectedRole = v);
             },
           ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(_error!, style: TextStyle(color: AppColors.error, fontSize: 13)),
+          ],
         ],
       ),
       actions: [
