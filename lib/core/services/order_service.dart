@@ -157,8 +157,14 @@ class OrderService {
     });
   }
 
-  // Kitchen/admin cancels a driver assignment (سواء بانتظار الموافقة أو بعدها)
+  // Kitchen/admin cancels a driver assignment (سواء بانتظار الموافقة أو بعدها) —
+  // ممنوع بعد أن يكون المندوب قد استلم الطلب فعلياً وخرج للتوصيل، حتى لو
+  // استُدعيت هذه الدالة من مكان لا يخفي الزر في تلك الحالة
   static Future<void> unassignDriver(String orderId) async {
+    final doc = await _db.collection(_colOrders).doc(orderId).get();
+    if (doc.data()?['status'] == OrderStatus.outForDelivery.name) {
+      throw Exception('لا يمكن إلغاء تعيين المندوب بعد استلامه الطلب وخروجه للتوصيل');
+    }
     await _db.collection(_colOrders).doc(orderId).update({
       'driverId': null,
       'driverName': null,

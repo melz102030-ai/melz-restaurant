@@ -245,7 +245,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
                     fontWeight: FontWeight.bold,
                   ),
                 ).animate().fadeIn(),
-                if (order.estimatedMinutes != null) ...[
+                if (order.estimatedMinutes != null && order.remainingTime != null) ...[
                   const SizedBox(height: 12),
                   Builder(builder: (_) {
                     final remaining = order.remainingTime!;

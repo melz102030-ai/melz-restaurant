@@ -40,7 +40,9 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
     }
   }
 
-  // يبث موقع المندوب الحي لطلبه الحالي أثناء وجود طلب نشط، ويتوقف عند غيابه
+  // يبث موقع المندوب الحي لطلبه الحالي أثناء وجود طلب نشط، ويتوقف عند غيابه.
+  // يتحقق من mounted ومن أن الطلب المستهدف لم يتغيّر بعد كل await — انتظار
+  // إذن الموقع قد يستغرق ثوانٍ، وقد تُغلق الشاشة أو يتغيّر الطلب الحالي أثناءه
   Future<void> _syncLocationBroadcast(OrderModel? currentOrder) async {
     if (currentOrder == null) {
       await _positionSub?.cancel();
@@ -51,19 +53,22 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
     if (_broadcastingOrderId == currentOrder.id) return;
 
     await _positionSub?.cancel();
-    _broadcastingOrderId = currentOrder.id;
+    final orderId = currentOrder.id;
+    _broadcastingOrderId = orderId;
 
     var permission = await Geolocator.checkPermission();
+    if (!mounted || _broadcastingOrderId != orderId) return;
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+      if (!mounted || _broadcastingOrderId != orderId) return;
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
       return;
     }
-    if (!await Geolocator.isLocationServiceEnabled()) return;
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!mounted || _broadcastingOrderId != orderId || !serviceEnabled) return;
 
-    final orderId = currentOrder.id;
     _positionSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,

@@ -399,6 +399,13 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
     setState(() => _isUpdating = true);
     try {
       await OrderService.unassignDriver(widget.order.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: AppColors.error,
+        ));
+      }
     } finally {
       if (mounted) setState(() => _isUpdating = false);
     }
@@ -597,7 +604,9 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                     ),
                     const SizedBox(height: 4),
                     // Countdown pill (shown only when estimatedMinutes is set and order still active)
-                    if (order.estimatedMinutes != null && !_isTerminal) ...[
+                    if (order.estimatedMinutes != null &&
+                        order.remainingTime != null &&
+                        !_isTerminal) ...[
                       Builder(builder: (_) {
                         final remaining = order.remainingTime!;
                         final isLate = remaining.isNegative;
@@ -836,8 +845,11 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                               onTap: () => _updateStatus(OrderStatus.delivered),
                             ),
                           const SizedBox(width: 8),
-                          // Cancel
-                          if (order.status != OrderStatus.ready)
+                          // الإلغاء متاح فقط قبل خروج الطلب فعلياً للتوصيل (أو تسليمه) — بعدها
+                          // المندوب يحمل الطلب بالفعل ولا يجوز إلغاؤه من المطبخ بضغطة واحدة
+                          if (order.status != OrderStatus.ready &&
+                              order.status != OrderStatus.outForDelivery &&
+                              !_isTerminal)
                             _ActionBtn(
                               label: 'إلغاء',
                               color: AppColors.error,
