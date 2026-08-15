@@ -1,0 +1,12 @@
+name = "melz-delete-image"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+[vars]
+FIREBASE_PROJECT_ID = "melz-restaurant"
+CLOUDINARY_CLOUD_NAME = "dwbzohzt9"
+
+# CLOUDINARY_API_KEY و CLOUDINARY_API_SECRET تُضبطان كأسرار عبر:
+#   npx wrangler secret put CLOUDINARY_API_KEY
+#   npx wrangler secret put CLOUDINARY_API_SECRET
+# (أو تلقائياً من GitHub Actions — راجع .github/workflows/deploy-cloudflare-worker.yml)

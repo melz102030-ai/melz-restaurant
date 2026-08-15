@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -7,6 +7,13 @@ class CloudinaryService {
   static const String cloudName = 'dwbzohzt9';
   static const String uploadPreset = 'melz_upload';
   static const String folder = 'melz_restaurant';
+
+  // رابط Cloudflare Worker الذي ينفّذ الحذف الموقّع (cloudflare/worker.js) —
+  // هذا رابط مؤقت غير حقيقي بعد؛ يُستبدَل بالرابط الفعلي الذي يطبعه أول
+  // نشر ناجح عبر: npx wrangler deploy (داخل مجلد cloudflare/)، أو من سجلّ
+  // GitHub Actions إن نُشر عبر .github/workflows/deploy-cloudflare-worker.yml
+  static const String _deleteWorkerUrl =
+      'https://REPLACE_AFTER_FIRST_DEPLOY.workers.dev';
 
   static Future<String?> uploadImage(Uint8List imageBytes, String fileName) async {
     final url = Uri.parse(
@@ -62,18 +69,27 @@ class CloudinaryService {
   }
 
   // يحذف صورة من Cloudinary فعلياً عبر Cloud Function موقّعة من جهة الخادم
-  // (functions/index.js) — لا يمكن تنفيذ حذف موقّع وآمن من كود العميل مباشرة
+  // (cloudflare/worker.js) — لا يمكن تنفيذ حذف موقّع وآمن من كود العميل مباشرة
   // بلا كشف المفتاح السري لأي شخص يفتح أدوات المطوّر. تُستدعى عند استبدال أو
   // إزالة أي صورة حتى لا تبقى صور قديمة يتيمة في الحساب. فشلها لا يمنع إكمال
   // العملية الأساسية (حفظ/حذف السجل) — يُتجاهل بصمت مع إرجاع false.
   static Future<bool> deleteImage(String? imageUrl) async {
     final publicId = extractPublicId(imageUrl);
     if (publicId == null) return false;
+    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (idToken == null) return false;
     try {
-      final callable = FirebaseFunctions.instance.httpsCallable('deleteCloudinaryImage');
-      final result = await callable.call<Map<String, dynamic>>({'publicId': publicId});
-      final status = result.data['result'];
-      return status == 'ok' || status == 'not found';
+      final response = await http.post(
+        Uri.parse(_deleteWorkerUrl),
+        headers: {
+          'Authorization': 'Bearer $idToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'publicId': publicId}),
+      );
+      if (response.statusCode != 200) return false;
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data['result'] == 'ok' || data['result'] == 'not found';
     } catch (_) {
       return false;
     }
