@@ -26,7 +26,10 @@ class AdminPopupAdsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final adsAsync = ref.watch(adminPopupAdsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('الإعلانات المنبثقة')),
+      appBar: AppBar(
+        title: const Text('الإعلانات المنبثقة'),
+        automaticallyImplyLeading: false,
+      ),
       body: adsAsync.when(
         data: (ads) {
           if (ads.isEmpty) {

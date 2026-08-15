@@ -26,6 +26,8 @@ import 'features/admin/screens/admin_delivery_zones_screen.dart';
 import 'features/admin/screens/admin_working_hours_screen.dart';
 import 'features/admin/screens/admin_appearance_screen.dart';
 import 'features/admin/screens/admin_popup_ads_screen.dart';
+import 'features/admin/screens/admin_banners_screen.dart';
+import 'features/admin/screens/admin_splash_screen.dart';
 import 'features/kitchen/screens/kitchen_screen.dart';
 import 'features/kitchen/screens/kitchen_availability_screen.dart';
 import 'features/driver/screens/driver_screen.dart';
@@ -189,6 +191,14 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/popup-ads',
             builder: (_, __) => const AdminPopupAdsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/banners',
+            builder: (_, __) => const AdminBannersScreen(),
+          ),
+          GoRoute(
+            path: '/admin/splash',
+            builder: (_, __) => const AdminSplashScreen(),
           ),
         ],
       ),
