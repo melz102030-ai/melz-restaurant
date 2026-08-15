@@ -6,6 +6,12 @@ final kitchenOrdersProvider = StreamProvider<List<OrderModel>>((ref) {
   return OrderService.streamKitchenOrders();
 });
 
+// true إن كانت البيانات المعروضة حالياً من الكاش المحلي فقط (لا اتصال فعلي
+// بالخادم) — لتنبيه المطبخ بدل استمرار الشاشة صامتة وكأن كل شيء محدَّث
+final kitchenOfflineProvider = StreamProvider<bool>((ref) {
+  return OrderService.streamKitchenConnectivity();
+});
+
 final newKitchenOrdersProvider = Provider<List<OrderModel>>((ref) {
   final orders = ref.watch(kitchenOrdersProvider).maybeWhen(
     data: (d) => d,

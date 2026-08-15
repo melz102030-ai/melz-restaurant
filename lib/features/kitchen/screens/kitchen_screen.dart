@@ -13,6 +13,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/drivers_provider.dart';
+import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/order_service.dart';
 import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/gradient_container.dart';
@@ -165,6 +166,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
     final delivering = ref.watch(deliveringKitchenOrdersProvider);
     final delivered = ref.watch(deliveredKitchenOrdersProvider);
     final ordersAsync = ref.watch(kitchenOrdersProvider);
+    final isOffline = ref.watch(kitchenOfflineProvider).valueOrNull ?? false;
 
     // Detect truly-new pending orders and trigger alarm
     ref.listen<AsyncValue<List<OrderModel>>>(kitchenOrdersProvider, (_, next) {
@@ -185,7 +187,13 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
         ..addAll(pendingIds);
     });
 
-    return Scaffold(
+    // إعادة تهيئة السياق الصوتي عند أي لمسة في الشاشة (وليس فقط عند الفتح) —
+    // يقلّل احتمال أن يُعلَّق السياق مجدداً (بعض المتصفحات تُعلّقه بعد خمول
+    // طويل) فيفشل التنبيه الصوتي التالي بصمت
+    return Listener(
+      onPointerDown: (_) => _primeAudio(),
+      behavior: HitTestBehavior.translucent,
+      child: Scaffold(
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -224,6 +232,24 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
       ),
       body: Column(
         children: [
+          // لا اتصال فعلي بالخادم — البيانات المعروضة قد لا تكون محدَّثة
+          if (isOffline)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              color: AppColors.warning,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.wifi_off, color: Colors.white, size: 16),
+                  SizedBox(width: 8),
+                  Text(
+                    'لا يوجد اتصال بالخادم — البيانات المعروضة قد لا تكون محدَّثة',
+                    style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
           // Flashing alarm banner
           if (_alarmPlaying)
             GestureDetector(
@@ -284,21 +310,22 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 }
 
 
-class _KitchenOrderCard extends StatefulWidget {
+class _KitchenOrderCard extends ConsumerStatefulWidget {
   final OrderModel order;
   final int index;
   const _KitchenOrderCard({required this.order, required this.index});
 
   @override
-  State<_KitchenOrderCard> createState() => _KitchenOrderCardState();
+  ConsumerState<_KitchenOrderCard> createState() => _KitchenOrderCardState();
 }
 
-class _KitchenOrderCardState extends State<_KitchenOrderCard> {
+class _KitchenOrderCardState extends ConsumerState<_KitchenOrderCard> {
   final _notesCtrl = TextEditingController();
   final _timeCtrl = TextEditingController();
   bool _isUpdating = false;
@@ -353,7 +380,13 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
   Future<void> _updateStatus(OrderStatus newStatus) async {
     setState(() => _isUpdating = true);
     try {
-      final mins = int.tryParse(_timeCtrl.text.trim());
+      // إن لم يُدخِل الطباخ وقتاً مخصَّصاً يدوياً، يُستخدم وقت التحضير الافتراضي
+      // من إعدادات المطعم تلقائياً — حتى يظهر العداد التنازلي (أوضح أداة أولوية
+      // في البطاقة) لكل طلب دون الحاجة لفتح "تفاصيل" وكتابة رقم يدوياً كل مرة
+      final mins = int.tryParse(_timeCtrl.text.trim()) ??
+          (widget.order.estimatedMinutes == null
+              ? ref.read(settingsProvider).estimatedPrepTime
+              : null);
       await OrderService.updateOrderStatus(
         widget.order.id,
         newStatus,
@@ -387,6 +420,27 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
       if (proceed != true) return;
     }
     if (mounted) await _updateStatus(OrderStatus.confirmed);
+  }
+
+  // إلغاء الطلب لا رجعة فيه فعلياً — يحتاج تأكيداً صريحاً مثل أي عملية حذف
+  // أخرى في التطبيق، بدل تنفيذه بضغطة واحدة مباشرة كأزرار التقدّم العادية
+  Future<void> _confirmCancel() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إلغاء الطلب'),
+        content: Text('هل تريد إلغاء طلب "${widget.order.customerName}"؟ لا يمكن التراجع عن هذا.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('إلغاء الطلب'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true && mounted) await _updateStatus(OrderStatus.cancelled);
   }
 
   Future<void> _openAssignDriver() async {
@@ -433,7 +487,9 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
   Widget build(BuildContext context) {
     final order = widget.order;
     final elapsed = DateTime.now().difference(order.createdAt);
-    final isUrgent = elapsed.inMinutes > 15 && order.status == OrderStatus.pending;
+    // إبراز التأخر يشمل كل المراحل النشطة الآن (لم يعد يقتصر على الطلبات
+    // الجديدة فقط) — طلب عالق في التحضير مثلاً يستحق نفس التنبيه البصري
+    final isUrgent = elapsed.inMinutes > 15 && !_isTerminal;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -510,25 +566,50 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: (order.orderType == OrderType.delivery
-                                  ? AppColors.purple
-                                  : AppColors.manjawi)
-                              .withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          order.orderType.label,
-                          style: TextStyle(
-                            color: order.orderType == OrderType.delivery
-                                ? AppColors.purple
-                                : AppColors.manjawi,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: (order.orderType == OrderType.delivery
+                                      ? AppColors.purple
+                                      : AppColors.manjawi)
+                                  .withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              order.orderType.label,
+                              style: TextStyle(
+                                color: order.orderType == OrderType.delivery
+                                    ? AppColors.purple
+                                    : AppColors.manjawi,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
+                          // شارة حالة صريحة — لا يُعتمد فقط على لون الإطار الخفيف
+                          // للتمييز بين "تم التأكيد" و"قيد التحضير" مثلاً
+                          if (order.status == OrderStatus.confirmed ||
+                              order.status == OrderStatus.preparing)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _statusColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                order.status.label,
+                                style: TextStyle(
+                                  color: _statusColor,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       if (order.driverName != null) ...[
                         const SizedBox(height: 4),
@@ -835,7 +916,9 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                               icon: Icons.done_all,
                               onTap: () => _updateStatus(OrderStatus.delivered),
                             ),
-                          const SizedBox(width: 8),
+                          // فاصل أوسع من الفاصل العادي بين الأزرار الإيجابية — يفصل بصرياً
+                          // زر الإلغاء الخطر عن أزرار التقدّم العادية لتقليل الضغط الخاطئ
+                          const SizedBox(width: 20),
                           // الإلغاء متاح فقط قبل خروج الطلب فعلياً للتوصيل (أو تسليمه) — بعدها
                           // المندوب يحمل الطلب بالفعل ولا يجوز إلغاؤه من المطبخ بضغطة واحدة
                           if (order.status != OrderStatus.ready &&
@@ -845,7 +928,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                               label: 'إلغاء',
                               color: AppColors.error,
                               icon: Icons.cancel,
-                              onTap: () => _updateStatus(OrderStatus.cancelled),
+                              onTap: _confirmCancel,
                             ),
                         ],
                       ),
@@ -879,7 +962,7 @@ class _ActionBtn extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.only(right: 10),
       child: ElevatedButton.icon(
         onPressed: onTap,
         icon: Icon(icon, size: 15),
@@ -887,9 +970,9 @@ class _ActionBtn extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: color,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          minimumSize: Size.zero,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          minimumSize: const Size(0, 44),
+          tapTargetSize: MaterialTapTargetSize.padded,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),

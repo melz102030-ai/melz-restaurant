@@ -7,11 +7,26 @@ import '../../../core/services/menu_service.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../customer/providers/menu_provider.dart';
 
-class KitchenAvailabilityScreen extends ConsumerWidget {
+class KitchenAvailabilityScreen extends ConsumerStatefulWidget {
   const KitchenAvailabilityScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<KitchenAvailabilityScreen> createState() =>
+      _KitchenAvailabilityScreenState();
+}
+
+class _KitchenAvailabilityScreenState extends ConsumerState<KitchenAvailabilityScreen> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final itemsAsync = ref.watch(adminMenuItemsProvider);
     final categoriesAsync = ref.watch(adminCategoriesProvider);
 
@@ -24,46 +39,86 @@ class KitchenAvailabilityScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
       ),
-      body: itemsAsync.when(
-        loading: () => const LoadingWidget(message: 'جاري تحميل الأصناف...'),
-        error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error),
-        data: (items) {
-          final categories = categoriesAsync.valueOrNull ?? [];
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: (v) => setState(() => _query = v.trim()),
+              style: TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'ابحث عن صنف...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(() {
+                          _searchCtrl.clear();
+                          _query = '';
+                        }),
+                      ),
+                filled: true,
+                fillColor: AppColors.cardBackground,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                isDense: true,
+              ),
+            ),
+          ),
+          Expanded(
+            child: itemsAsync.when(
+              loading: () => const LoadingWidget(message: 'جاري تحميل الأصناف...'),
+              error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error),
+              data: (allItems) {
+                final categories = categoriesAsync.valueOrNull ?? [];
+                final items = _query.isEmpty
+                    ? allItems
+                    : allItems
+                        .where((i) =>
+                            i.name.toLowerCase().contains(_query.toLowerCase()))
+                        .toList();
 
-          // Group items by category
-          final Map<String, List<MenuItemModel>> grouped = {};
-          for (final cat in categories) {
-            grouped[cat.id] = items.where((i) => i.categoryId == cat.id).toList();
-          }
-          // Uncategorized items
-          final uncatItems = items
-              .where((i) => categories.every((c) => c.id != i.categoryId))
-              .toList();
+                // Group items by category
+                final Map<String, List<MenuItemModel>> grouped = {};
+                for (final cat in categories) {
+                  grouped[cat.id] = items.where((i) => i.categoryId == cat.id).toList();
+                }
+                // Uncategorized items
+                final uncatItems = items
+                    .where((i) => categories.every((c) => c.id != i.categoryId))
+                    .toList();
 
-          final sections = <_Section>[];
-          for (final cat in categories) {
-            final catItems = grouped[cat.id] ?? [];
-            if (catItems.isNotEmpty) {
-              sections.add(_Section(title: cat.name, items: catItems));
-            }
-          }
-          if (uncatItems.isNotEmpty) {
-            sections.add(_Section(title: 'أخرى', items: uncatItems));
-          }
+                final sections = <_Section>[];
+                for (final cat in categories) {
+                  final catItems = grouped[cat.id] ?? [];
+                  if (catItems.isNotEmpty) {
+                    sections.add(_Section(title: cat.name, items: catItems));
+                  }
+                }
+                if (uncatItems.isNotEmpty) {
+                  sections.add(_Section(title: 'أخرى', items: uncatItems));
+                }
 
-          if (sections.isEmpty) {
-            return const EmptyState(
-              message: 'لا توجد أصناف',
-              icon: Icons.restaurant_menu,
-            );
-          }
+                if (sections.isEmpty) {
+                  return EmptyState(
+                    message: _query.isEmpty ? 'لا توجد أصناف' : 'لا توجد نتائج بحث',
+                    icon: _query.isEmpty ? Icons.restaurant_menu : Icons.search_off,
+                  );
+                }
 
-          return ListView.builder(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 32),
-            itemCount: sections.length,
-            itemBuilder: (_, i) => _CategorySection(section: sections[i]),
-          );
-        },
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 32),
+                  itemCount: sections.length,
+                  itemBuilder: (_, i) => _CategorySection(section: sections[i]),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
