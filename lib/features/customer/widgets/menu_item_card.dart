@@ -532,14 +532,15 @@ class _MiniAddBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 28,
-          height: 28,
+          width: 34,
+          height: 34,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(9),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppColors.purple, width: 1.6),
           ),
-          child: Icon(Icons.add, color: AppColors.purple, size: 16),
+          child: Icon(Icons.add, color: AppColors.purple, size: 17),
         ),
       );
 }
@@ -553,10 +554,12 @@ class _MiniQtyBadge extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: AppColors.purple,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
             '×$qty',
@@ -635,9 +638,11 @@ class _PillIconButton extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(7),
-        child: Icon(icon, color: AppColors.textPrimary, size: 15),
+      child: Container(
+        width: 38,
+        height: 38,
+        alignment: Alignment.center,
+        child: Icon(icon, color: AppColors.textPrimary, size: 16),
       ),
     );
   }
@@ -653,13 +658,14 @@ class _CircleBtn extends StatelessWidget {
   Widget build(BuildContext context) => GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 30,
-          height: 30,
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: color, size: 16),
+          child: Icon(icon, color: color, size: 17),
         ),
       );
 }

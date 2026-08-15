@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/providers/auth_provider.dart';
@@ -54,8 +55,32 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       _deliveryLng = user.savedLng;
       _deliveryAddressNote = user.savedAddress;
       _locationReviewed = false;
+      _skipConfirmIfRecentlyConfirmed(user.savedLat!, user.savedLng!);
     }
   }
+
+  // إن أكّد العميل هذا العنوان بالذات خلال آخر 24 ساعة، لا داعٍ لإزعاجه بنفس
+  // سؤال التأكيد مرة أخرى في كل طلب جديد — يبقى التأكيد الأول كافياً مؤقتاً
+  Future<void> _skipConfirmIfRecentlyConfirmed(double lat, double lng) async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedKey = prefs.getString('confirmed_location_key');
+    final savedAt = prefs.getInt('confirmed_location_at');
+    if (savedKey == null || savedAt == null) return;
+    final elapsed = DateTime.now().millisecondsSinceEpoch - savedAt;
+    if (elapsed > const Duration(hours: 24).inMilliseconds) return;
+    if (savedKey == _locationCacheKey(lat, lng) && mounted) {
+      setState(() => _locationReviewed = true);
+    }
+  }
+
+  Future<void> _rememberLocationConfirmed(double lat, double lng) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('confirmed_location_key', _locationCacheKey(lat, lng));
+    await prefs.setInt('confirmed_location_at', DateTime.now().millisecondsSinceEpoch);
+  }
+
+  String _locationCacheKey(double lat, double lng) =>
+      '${lat.toStringAsFixed(4)},${lng.toStringAsFixed(4)}';
 
   @override
   void dispose() {
@@ -111,6 +136,9 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     );
     if (choice == true) {
       setState(() => _locationReviewed = true);
+      if (_deliveryLat != null && _deliveryLng != null) {
+        _rememberLocationConfirmed(_deliveryLat!, _deliveryLng!);
+      }
       return true;
     }
     if (choice == false) await _pickDeliveryLocation();
@@ -749,9 +777,11 @@ class _QtyButton extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(6),
-        child: Icon(icon, color: AppColors.textPrimary, size: 14),
+      child: Container(
+        width: 38,
+        height: 38,
+        alignment: Alignment.center,
+        child: Icon(icon, color: AppColors.textPrimary, size: 16),
       ),
     );
   }

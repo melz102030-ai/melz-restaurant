@@ -551,12 +551,37 @@ class _DeliveryLocationPickerScreenState
                     prefixIcon: Icon(Icons.note_alt_outlined),
                   ),
                 ),
+                if (isOutsideArea) ...[
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.error_outline, color: AppColors.error, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'هذا الموقع خارج نطاق التوصيل — اختر موقعاً أقرب للمطعم للمتابعة',
+                            style: TextStyle(color: AppColors.error, fontSize: 12.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 AppButton(
                   label: 'تأكيد الموقع',
                   icon: Icons.check_circle,
                   width: double.infinity,
-                  onPressed: _confirm,
+                  color: isOutsideArea ? AppColors.textHint : null,
+                  onPressed: isOutsideArea ? null : _confirm,
                 ),
               ],
             ),

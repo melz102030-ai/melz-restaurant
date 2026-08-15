@@ -448,6 +448,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     // أول تحميل فقط (لا بيانات مخزّنة بعد) — نعرض هيكلاً نابضاً بدل فراغ مفاجئ
     final isInitialLoading = (categoriesAsync.isLoading && !categoriesAsync.hasValue) ||
         (allItemsAsync.isLoading && !allItemsAsync.hasValue);
+    // فشل تحميل حقيقي (لا بيانات مخزّنة مسبقاً لعرضها بدلاً منه) — يُعرض بشكل
+    // مختلف تماماً عن "لا توجد أصناف" حتى لا يظهر عطل الشبكة كأن المطعم فارغ
+    final hasLoadError = (categoriesAsync.hasError && !categoriesAsync.hasValue) ||
+        (allItemsAsync.hasError && !allItemsAsync.hasValue);
 
     // Filter items by search query (flat list, no grouping during search)
     final filteredItems = searchQuery.isEmpty
@@ -645,6 +649,15 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           // ── Menu content ─────────────────────────────────────────────────────
           if (isInitialLoading) ...[
             const SliverToBoxAdapter(child: _MenuSkeletonLoader()),
+          ] else if (hasLoadError) ...[
+            SliverToBoxAdapter(
+              child: _MenuErrorState(
+                onRetry: () {
+                  ref.invalidate(categoriesStreamProvider);
+                  ref.invalidate(menuItemsStreamProvider(null));
+                },
+              ),
+            ),
           ] else if (searchQuery.isNotEmpty) ...[
             // Search mode: flat filtered list
             if (filteredItems.isEmpty)
@@ -1776,6 +1789,38 @@ class _EmptyState extends StatelessWidget {
           Text(
             AppStrings.noItemsFound,
             style: TextStyle(color: AppColors.textHint, fontSize: 15),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// حالة فشل تحميل حقيقي (شبكة/صلاحيات) — منفصلة عمداً عن _EmptyState حتى لا
+// يظهر عطل تقني وكأن المطعم بلا قائمة فعلياً
+class _MenuErrorState extends StatelessWidget {
+  final VoidCallback onRetry;
+  const _MenuErrorState({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.textHint),
+          const SizedBox(height: 12),
+          Text(
+            'تعذّر تحميل القائمة — تحقّق من اتصالك بالإنترنت',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textHint, fontSize: 15),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('إعادة المحاولة'),
           ),
         ],
       ),

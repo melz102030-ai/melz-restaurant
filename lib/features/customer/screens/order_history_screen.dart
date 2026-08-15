@@ -69,7 +69,7 @@ class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
       final catalog = await ref.read(menuItemsStreamProvider(null).future);
       final cartNotifier = ref.read(cartProvider.notifier);
       int added = 0;
-      int skipped = 0;
+      final skippedNames = <String>[];
 
       for (final oi in widget.order.items) {
         MenuItemModel? current;
@@ -80,7 +80,7 @@ class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
           }
         }
         if (current == null) {
-          skipped++;
+          skippedNames.add(oi.name);
           continue;
         }
 
@@ -121,10 +121,13 @@ class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(skipped == 0
+        content: Text(skippedNames.isEmpty
             ? 'تمت إضافة أصناف الطلب إلى السلة'
-            : 'تمت إضافة $added صنفاً — $skipped صنفاً لم يعد متوفراً'),
+            : 'تمت إضافة $added صنفاً — لم يعد متوفراً: ${skippedNames.join('، ')}'),
         backgroundColor: AppColors.success,
+        duration: skippedNames.isEmpty
+            ? const Duration(seconds: 4)
+            : const Duration(seconds: 6),
       ));
       context.push('/cart');
     } finally {
