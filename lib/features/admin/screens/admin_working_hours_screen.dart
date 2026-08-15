@@ -34,6 +34,7 @@ class _AdminWorkingHoursScreenState extends ConsumerState<AdminWorkingHoursScree
   // يُضبط فقط عند تفاعل الأدمن فعلياً مع مفتاح هذه الشاشة — يمنع الحفظ من
   // الكتابة فوق تبديل "فتح/إغلاق" حدث من لوحة التحكم أثناء فتح هذه الشاشة
   bool _isOpenTouched = false;
+  bool _allowOrders = true;
   bool _isLoaded = false;
   bool _isSaving = false;
 
@@ -48,6 +49,7 @@ class _AdminWorkingHoursScreenState extends ConsumerState<AdminWorkingHoursScree
     if (!mounted) return;
     setState(() {
       _isOpen = settings.isOpen;
+      _allowOrders = settings.allowOrders;
       if (settings.hasDetailedHours) {
         for (final d in kWeekDays) {
           _hours[d.$1] = List<WorkShift>.from(settings.workingHours[d.$1] ?? const []);
@@ -123,6 +125,7 @@ class _AdminWorkingHoursScreenState extends ConsumerState<AdminWorkingHoursScree
       await SettingsService.updateSettings(
         current.copyWith(
           isOpen: _isOpenTouched ? _isOpen : null,
+          allowOrders: _allowOrders,
           workingHours: Map<String, List<WorkShift>>.from(_hours),
         ),
       );
@@ -155,27 +158,67 @@ class _AdminWorkingHoursScreenState extends ConsumerState<AdminWorkingHoursScree
         padding: const EdgeInsets.all(16),
         children: [
           GlassMorphCard(
-            child: Row(
-              textDirection: TextDirection.rtl,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.store, color: AppColors.textSecondary, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('المطعم مفتوح', style: TextStyle(color: AppColors.textPrimary)),
-                      Text('مفتاح يدوي يطغى على الجدول — أطفئه لإغلاق الطلبات فوراً بغض النظر عن الجدول',
-                          style: TextStyle(color: AppColors.textHint, fontSize: 12)),
-                    ],
-                  ),
+                Text(
+                  'التحكم بقبول الطلبات',
+                  style: TextStyle(
+                      color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
                 ),
-                Switch(
-                  value: _isOpen,
-                  onChanged: (v) => setState(() {
-                    _isOpen = v;
-                    _isOpenTouched = true;
-                  }),
+                const SizedBox(height: 4),
+                Text(
+                  'مفتاحان معاً يتحكمان بظهور "مفتوح الآن" للعميل — يجب أن يكون كلاهما'
+                  ' مفعّلاً ليقبل التطبيق طلبات جديدة',
+                  style: TextStyle(color: AppColors.textHint, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    Icon(Icons.store, color: AppColors.textSecondary, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('المطعم مفتوح', style: TextStyle(color: AppColors.textPrimary)),
+                          Text(
+                              'مفتاح يدوي يطغى على الجدول — أطفئه لإغلاق الطلبات فوراً بغض النظر عن الجدول',
+                              style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _isOpen,
+                      onChanged: (v) => setState(() {
+                        _isOpen = v;
+                        _isOpenTouched = true;
+                      }),
+                    ),
+                  ],
+                ),
+                Divider(color: AppColors.surfaceLight, height: 20),
+                Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    Icon(Icons.shopping_cart, color: AppColors.textSecondary, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('قبول الطلبات', style: TextStyle(color: AppColors.textPrimary)),
+                          Text('إيقاف مؤقت لاستقبال طلبات جديدة (مثال: ضغط عالٍ على المطبخ)',
+                              style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: _allowOrders,
+                      onChanged: (v) => setState(() => _allowOrders = v),
+                    ),
+                  ],
                 ),
               ],
             ),

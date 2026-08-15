@@ -76,6 +76,30 @@ class _SplashImagesGridState extends ConsumerState<_SplashImagesGrid> {
     }
   }
 
+  // حذف صورة كولاج — نهائي وفوري، ويحدث عبر أيقونة صغيرة متراصة بجانب صور
+  // أخرى مشابهة يسهل الضغط على المجاورة لها بالخطأ، فيحتاج تأكيداً صريحاً
+  Future<void> _confirmDelete(SplashImageModel img) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف الصورة'),
+        content: const Text('هل تريد حذف هذه الصورة من كولاج شاشة البداية؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      SplashImageService.deleteImage(img.id);
+      CloudinaryService.deleteImage(img.imageUrl);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final images = ref.watch(_adminSplashImagesProvider).valueOrNull ?? [];
@@ -86,10 +110,7 @@ class _SplashImagesGridState extends ConsumerState<_SplashImagesGrid> {
       children: [
         ...images.map((img) => _SplashImageTile(
               image: img,
-              onDelete: () {
-                SplashImageService.deleteImage(img.id);
-                CloudinaryService.deleteImage(img.imageUrl);
-              },
+              onDelete: () => _confirmDelete(img),
             )),
         GestureDetector(
           onTap: _uploading ? null : () => _addImages(images),

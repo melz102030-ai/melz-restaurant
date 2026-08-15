@@ -9,7 +9,6 @@ import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/settings_service.dart';
 import '../../../shared/widgets/admin_action_widgets.dart';
 import '../../../shared/widgets/app_button.dart';
-import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
 class AdminSettingsScreen extends ConsumerStatefulWidget {
@@ -28,7 +27,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _reviewUrlCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _welcomeMsgCtrl = TextEditingController();
-  bool _allowOrders = true;
   CashPaymentPolicy _cashPolicy = CashPaymentPolicy.both;
   bool _isSaving = false;
   bool _isLoaded = false;
@@ -51,7 +49,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _reviewUrlCtrl.text = settings.googleReviewUrl ?? '';
         _addressCtrl.text = settings.address ?? '';
         _welcomeMsgCtrl.text = settings.welcomeMessage ?? '';
-        _allowOrders = settings.allowOrders;
         _cashPolicy = settings.cashPaymentPolicy;
         _isLoaded = true;
       });
@@ -106,7 +103,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         welcomeMessage: _welcomeMsgCtrl.text.trim().isEmpty
             ? null
             : _welcomeMsgCtrl.text.trim(),
-        allowOrders: _allowOrders,
         cashPaymentPolicy: _cashPolicy,
       );
 
@@ -183,13 +179,27 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             const SizedBox(height: 24),
 
             _SectionTitle(title: 'الطلبات', icon: Icons.shopping_cart_outlined),
-            GlassMorphCard(
-              child: _SwitchRow(
-                label: 'قبول الطلبات',
-                subtitle: 'السماح بتقديم طلبات جديدة (ساعات العمل التفصيلية في تبويب مستقل)',
-                value: _allowOrders,
-                onChanged: (v) => setState(() => _allowOrders = v),
-                icon: Icons.shopping_cart,
+            // مفتاحا "المطعم مفتوح" و"قبول الطلبات" انتقلا لشاشة "ساعات العمل"
+            // ليكونا معاً في مكان واحد بوضوح — كانا سابقاً موزَّعين بين هذه
+            // الشاشة وشاشة أخرى، فقد يُغلق أحدهما ظاناً أنه أغلق المطعم
+            // بالكامل بينما الآخر يبقى مفعّلاً
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.purple.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: AppColors.purple, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'التحكم بفتح/إغلاق المطعم وقبول الطلبات موجود في شاشة "ساعات العمل"',
+                      style: TextStyle(color: AppColors.purple, fontSize: 12.5),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
@@ -372,43 +382,6 @@ class _Field extends StatelessWidget {
         prefixIcon: icon != null ? Icon(icon) : null,
         suffix: suffix != null ? Text(suffix!) : null,
       ),
-    );
-  }
-}
-
-class _SwitchRow extends StatelessWidget {
-  final String label;
-  final String? subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final IconData icon;
-
-  const _SwitchRow({
-    required this.label,
-    this.subtitle,
-    required this.value,
-    required this.onChanged,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: AppColors.textSecondary, size: 20),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(color: AppColors.textPrimary)),
-              if (subtitle != null)
-                Text(subtitle!, style: TextStyle(color: AppColors.textHint, fontSize: 12)),
-            ],
-          ),
-        ),
-        Switch(value: value, onChanged: onChanged),
-      ],
     );
   }
 }

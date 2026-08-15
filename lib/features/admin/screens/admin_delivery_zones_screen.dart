@@ -337,7 +337,13 @@ class _FlatFeeRowState extends State<_FlatFeeRow> {
           onPressed: _dirty
               ? () {
                   final fee = double.tryParse(_feeCtrl.text.trim());
-                  if (fee == null) return;
+                  if (fee == null || fee < 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text('أدخل رسم توصيل صحيح (رقم موجب)'),
+                      backgroundColor: AppColors.error,
+                    ));
+                    return;
+                  }
                   widget.onSave(fee);
                   setState(() => _dirty = false);
                 }
@@ -364,6 +370,7 @@ class _ZoneDialogState extends State<_ZoneDialog> {
       TextEditingController(text: widget.zone?.maxDistanceKm.toString() ?? '');
   late final _feeCtrl = TextEditingController(text: widget.zone?.fee.toString() ?? '');
   bool _isSaving = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -377,9 +384,23 @@ class _ZoneDialogState extends State<_ZoneDialog> {
     final name = _nameCtrl.text.trim();
     final distance = double.tryParse(_distanceCtrl.text.trim());
     final fee = double.tryParse(_feeCtrl.text.trim());
-    if (name.isEmpty || distance == null || fee == null) return;
+    if (name.isEmpty) {
+      setState(() => _error = 'أدخل اسم النطاق');
+      return;
+    }
+    if (distance == null || distance <= 0) {
+      setState(() => _error = 'أدخل مسافة صحيحة (رقم أكبر من صفر)');
+      return;
+    }
+    if (fee == null || fee < 0) {
+      setState(() => _error = 'أدخل رسم توصيل صحيح (رقم موجب)');
+      return;
+    }
 
-    setState(() => _isSaving = true);
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
     try {
       if (widget.zone == null) {
         await DeliveryZoneService.addZone(
@@ -391,6 +412,8 @@ class _ZoneDialogState extends State<_ZoneDialog> {
         );
       }
       if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) setState(() => _error = 'تعذّر الحفظ — تحقّق من اتصالك وحاول مرة أخرى');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -422,6 +445,19 @@ class _ZoneDialogState extends State<_ZoneDialog> {
             style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'رسم التوصيل', hintText: 'مثال: 10'),
           ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.error.withOpacity(0.3)),
+              ),
+              child: Text(_error!, style: TextStyle(color: AppColors.error, fontSize: 12.5)),
+            ),
+          ],
         ],
       ),
       actions: [

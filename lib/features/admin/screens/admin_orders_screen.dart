@@ -283,9 +283,32 @@ class _StatusActionButtons extends StatelessWidget {
           label: 'إلغاء',
           icon: Icons.cancel,
           color: AppColors.error,
-          onTap: () => OrderService.updateOrderStatus(order.id, OrderStatus.cancelled),
+          onTap: () => _confirmCancel(context),
         ),
       ],
+    );
+  }
+
+  // إلغاء طلب عميل لا رجعة فيه (قد يكون طلباً مدفوعاً فعلياً) — يحتاج تأكيداً
+  // صريحاً كأي حذف آخر في لوحة الإدارة، بدل تنفيذه بضغطة واحدة مباشرة
+  void _confirmCancel(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إلغاء الطلب'),
+        content: Text('هل تريد إلغاء طلب "${order.customerName}"؟ لا يمكن التراجع عن هذا.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('تراجع')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              OrderService.updateOrderStatus(order.id, OrderStatus.cancelled);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('إلغاء الطلب'),
+          ),
+        ],
+      ),
     );
   }
 }

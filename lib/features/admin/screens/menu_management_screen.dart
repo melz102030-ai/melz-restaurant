@@ -291,12 +291,29 @@ class _MenuItemTile extends ConsumerWidget {
                     icon: Icons.copy,
                     color: AppColors.purple,
                     tooltip: 'نسخ',
+                    // الصورة لا تُنسَخ عمداً (بناء مباشر لا copyWith — تمرير
+                    // imageUrl: null فيه لا يُصفّرها فعلياً بل يُبقي صورة
+                    // الأصل حسب نمط copyWith(x: null) المعتمد في هذا الملف) —
+                    // نسخة تشارك رابط صورة الأصل تنكسر صامتة إن حُذف الأصل
+                    // لاحقاً (حذف حقيقي من Cloudinary)، فالأدمن يرفع صورة
+                    // جديدة للنسخة أو يتركها بلا صورة
                     onTap: () => showDialog(
                       context: context,
                       builder: (_) => _MenuItemDialog(
-                        item: item.copyWith(
+                        item: MenuItemModel(
                           id: '',
                           name: '${item.name} (نسخة)',
+                          description: item.description,
+                          categoryId: item.categoryId,
+                          categoryName: item.categoryName,
+                          price: item.price,
+                          isAvailable: item.isAvailable,
+                          sortOrder: item.sortOrder,
+                          tags: item.tags,
+                          discountPercent: item.discountPercent,
+                          optionGroups: item.optionGroups,
+                          isBestSeller: item.isBestSeller,
+                          isNew: item.isNew,
                         ),
                         isDuplicate: true,
                       ),
