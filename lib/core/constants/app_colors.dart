@@ -23,6 +23,11 @@ class AppColors {
   static Color surfaceLight = const Color(0xFFEADFC8);
   static Color cardBackground = const Color(0xFFFFFFFF);
 
+  // خلفية وحدود مربعات الكتابة — قابلة للتخصيص المباشر من لوحة المظهر، لا
+  // تُشتق من لون الخلفية تلقائياً كما كان معمولاً به سابقاً
+  static Color inputField = const Color(0xFFEADFC8);
+  static Color inputFieldBorder = const Color(0xFFEADFC8);
+
   // Text Colors (قابلة للتخصيص)
   static Color textPrimary = const Color(0xFF1A0030);
   static Color textSecondary = const Color(0xFF5B4A75);
@@ -76,6 +81,9 @@ class AppColors {
     cardBackground = Color(settings.cardColor);
     surface = cardBackground;
     surfaceLight = Color.lerp(background, Colors.black, 0.06)!;
+
+    inputField = Color(settings.inputFieldColor);
+    inputFieldBorder = Color.lerp(inputField, Colors.black, 0.14)!;
 
     textPrimary = Color(settings.textColor);
     textSecondary = Color.lerp(textPrimary, background, 0.4)!;

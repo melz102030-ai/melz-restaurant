@@ -248,6 +248,12 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
             onTap: () => _pickColor(context, Color(settings.textColor),
                 (c) => _update(current, (s) => s.copyWith(textColor: c.toARGB32()))),
           ),
+          _ColorRow(
+            label: 'لون مربعات الكتابة',
+            color: Color(settings.inputFieldColor),
+            onTap: () => _pickColor(context, Color(settings.inputFieldColor),
+                (c) => _update(current, (s) => s.copyWith(inputFieldColor: c.toARGB32()))),
+          ),
 
           const SizedBox(height: 24),
           _SectionTitle('الخط'),

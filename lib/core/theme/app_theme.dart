@@ -78,14 +78,14 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceLight,
+        fillColor: AppColors.inputField,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(fieldRadius),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(fieldRadius),
-          borderSide: BorderSide(color: AppColors.surfaceLight, width: 1),
+          borderSide: BorderSide(color: AppColors.inputFieldBorder, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(fieldRadius),

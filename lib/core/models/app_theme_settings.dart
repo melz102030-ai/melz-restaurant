@@ -8,6 +8,10 @@ class AppThemeSettings {
   final int backgroundColor;
   final int cardColor;
   final int textColor;
+  // لون مربعات الكتابة (TextField) في كل التطبيق — كانت سابقاً بلا لون خاص
+  // بها، تُشتق تلقائياً بتظليل خفيف جداً (6%) من لون الخلفية فتبدو رمادية
+  // باهتة بلا هوية بصرية واضحة؛ الآن قابلة للتخصيص المباشر مثل بقية الألوان
+  final int inputFieldColor;
   final String fontFamily;
   final CardStyle cardStyle;
   final MenuDisplayStyle menuDisplayStyle;
@@ -18,6 +22,7 @@ class AppThemeSettings {
     this.backgroundColor = 0xFFF5EEDC, // بيج (الافتراضي)
     this.cardColor = 0xFFFFFFFF,
     this.textColor = 0xFF1A0030,
+    this.inputFieldColor = 0xFFEADFC8, // نفس الظل المشتق سابقاً — لا تغيير بصري حتى يخصّصه الأدمن
     this.fontFamily = 'Cairo',
     this.cardStyle = CardStyle.rounded,
     this.menuDisplayStyle = MenuDisplayStyle.list,
@@ -42,6 +47,7 @@ class AppThemeSettings {
       backgroundColor: map['backgroundColor'] ?? 0xFFF5EEDC,
       cardColor: map['cardColor'] ?? 0xFFFFFFFF,
       textColor: map['textColor'] ?? 0xFF1A0030,
+      inputFieldColor: map['inputFieldColor'] ?? 0xFFEADFC8,
       fontFamily: map['fontFamily'] ?? 'Cairo',
       cardStyle: CardStyle.values.firstWhere(
         (s) => s.name == (map['cardStyle'] ?? 'rounded'),
@@ -61,6 +67,7 @@ class AppThemeSettings {
       'backgroundColor': backgroundColor,
       'cardColor': cardColor,
       'textColor': textColor,
+      'inputFieldColor': inputFieldColor,
       'fontFamily': fontFamily,
       'cardStyle': cardStyle.name,
       'menuDisplayStyle': menuDisplayStyle.name,
@@ -73,6 +80,7 @@ class AppThemeSettings {
     int? backgroundColor,
     int? cardColor,
     int? textColor,
+    int? inputFieldColor,
     String? fontFamily,
     CardStyle? cardStyle,
     MenuDisplayStyle? menuDisplayStyle,
@@ -83,6 +91,7 @@ class AppThemeSettings {
       backgroundColor: backgroundColor ?? this.backgroundColor,
       cardColor: cardColor ?? this.cardColor,
       textColor: textColor ?? this.textColor,
+      inputFieldColor: inputFieldColor ?? this.inputFieldColor,
       fontFamily: fontFamily ?? this.fontFamily,
       cardStyle: cardStyle ?? this.cardStyle,
       menuDisplayStyle: menuDisplayStyle ?? this.menuDisplayStyle,
