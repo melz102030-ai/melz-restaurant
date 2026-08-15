@@ -525,7 +525,7 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
             )
           else
             AppButton(
-              label: _isReady ? 'تأكيد استلام الطلب' : 'تم التسليم ✅',
+              label: _isReady ? 'تأكيد استلام الطلب' : 'تم التسليم',
               icon: _isReady ? Icons.task_alt : Icons.done_all,
               isLoading: _isUpdating,
               width: double.infinity,

@@ -109,7 +109,7 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
   void _notifyOrderReady() {
     try {
       js.context.callMethod('showOrderReadyNotification', [
-        'طلبك جاهز! 🎉',
+        'طلبك جاهز!',
         'يمكنك الآن استلام طلبك #${widget.order.id.substring(0, 6).toUpperCase()}',
       ]);
     } catch (_) {}
@@ -616,7 +616,7 @@ class _PlayWhileWaitingCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('العب وأنت تنتظر 🎮',
+                  Text('العب وأنت تنتظر',
                       style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -831,7 +831,7 @@ class _DeliveredThankYouCard extends StatelessWidget {
               .scale(duration: 500.ms, curve: Curves.elasticOut),
           const SizedBox(height: 10),
           Text(
-            'شكراً لطلبك من Meals! 💜',
+            'شكراً لطلبك من Meals!',
             style: TextStyle(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.bold,

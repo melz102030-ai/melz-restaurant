@@ -238,7 +238,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
                     Icon(Icons.notifications_active, color: Colors.white, size: 22),
                     SizedBox(width: 10),
                     Text(
-                      '🔔 طلب جديد وصل! — اضغط لإيقاف الصوت',
+                      'طلب جديد وصل! — اضغط لإيقاف الصوت',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -950,7 +950,7 @@ class _DriverPanel extends StatelessWidget {
           Expanded(
             child: Text(
               accepted
-                  ? 'المندوب ${order.driverName} وافق ✅'
+                  ? 'المندوب ${order.driverName} وافق'
                   : 'بانتظار موافقة المندوب: ${order.driverName}',
               style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
             ),

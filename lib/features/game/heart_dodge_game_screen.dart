@@ -163,7 +163,7 @@ class _HeartDodgeGameScreenState extends ConsumerState<HeartDodgeGameScreen>
       final nextStatus = next.valueOrNull?.status;
       if (nextStatus == OrderStatus.ready && prevStatus != OrderStatus.ready) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('🎉 طلبك جاهز للاستلام!'),
+          content: Text('طلبك جاهز للاستلام!'),
           backgroundColor: AppColors.success,
         ));
       }
@@ -175,7 +175,14 @@ class _HeartDodgeGameScreenState extends ConsumerState<HeartDodgeGameScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,
-        title: const Text('احمِ القلب 💜'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.favorite, size: 20),
+            SizedBox(width: 8),
+            Text('احمِ القلب'),
+          ],
+        ),
       ),
       body: SafeArea(
         child: Column(
@@ -511,9 +518,15 @@ class _StartOverlay extends StatelessWidget {
                     style: TextStyle(color: Colors.white70, fontSize: 15)),
                 if (score > 0 && score >= best) ...[
                   const SizedBox(height: 4),
-                  const Text('🎉 رقم قياسي جديد!',
-                      style:
-                          TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.emoji_events, color: Colors.amber, size: 18),
+                      SizedBox(width: 6),
+                      Text('رقم قياسي جديد!',
+                          style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ],
               ] else ...[
                 Icon(Icons.favorite, color: Color(0xFFFF6B9D), size: 56),

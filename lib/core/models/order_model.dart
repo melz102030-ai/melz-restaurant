@@ -69,7 +69,7 @@ extension OrderStatusExt on OrderStatus {
       case OrderStatus.ready:
         return 'جاهز';
       case OrderStatus.outForDelivery:
-        return 'في الطريق إليك 🚗';
+        return 'في الطريق إليك';
       case OrderStatus.delivered:
         return 'تم التسليم';
       case OrderStatus.cancelled:

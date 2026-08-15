@@ -288,7 +288,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         js.context.callMethod('requestNotifyPermission', []);
       } catch (_) {}
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('شكراً لطلبك! 🎉 يمكنك تتبع طلبك أول بأول'),
+        content: const Text('شكراً لطلبك! يمكنك تتبع طلبك أول بأول'),
         backgroundColor: AppColors.purple,
       ));
       context.go('/track/$orderId');

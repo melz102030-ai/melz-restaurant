@@ -31,19 +31,12 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
 
-  String _selectedCountryCode = '+966';
+  // مفتاح الدولة ثابت على السعودية حالياً بلا خيار آخر — التطبيق يخدم
+  // السعودية فقط في هذه المرحلة
+  static const String _countryCode = '+966';
   bool _isSignUp = false;
   bool _isLoading = false;
   bool _obscurePassword = true;
-
-  static const List<Map<String, String>> _countryCodes = [
-    {'code': '+966', 'flag': '🇸🇦', 'name': 'السعودية'},
-    {'code': '+971', 'flag': '🇦🇪', 'name': 'الإمارات'},
-    {'code': '+965', 'flag': '🇰🇼', 'name': 'الكويت'},
-    {'code': '+973', 'flag': '🇧🇭', 'name': 'البحرين'},
-    {'code': '+974', 'flag': '🇶🇦', 'name': 'قطر'},
-    {'code': '+968', 'flag': '🇴🇲', 'name': 'عمان'},
-  ];
 
   @override
   void dispose() {
@@ -64,9 +57,9 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
 
       final user = _isSignUp
           ? await AuthService.signUpWithPhonePassword(
-              _selectedCountryCode, phone, password, _nameController.text)
+              _countryCode, phone, password, _nameController.text)
           : await AuthService.loginWithPhonePassword(
-              _selectedCountryCode, phone, password);
+              _countryCode, phone, password);
 
       await ref.read(authProvider.notifier).login(user);
       if (!mounted) return;
@@ -139,28 +132,21 @@ class _PhonePasswordFormState extends ConsumerState<PhonePasswordForm> {
           Row(
             children: [
               Container(
+                height: 56,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: AppColors.surfaceLight,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.purpleDark, width: 1),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedCountryCode,
-                    dropdownColor: AppColors.surface,
-                    items: _countryCodes.map((c) {
-                      return DropdownMenuItem<String>(
-                        value: c['code'],
-                        child: Text('${c['flag']} ${c['code']}',
-                            style:
-                                TextStyle(color: AppColors.textPrimary)),
-                      );
-                    }).toList(),
-                    onChanged: (v) {
-                      if (v != null) setState(() => _selectedCountryCode = v);
-                    },
-                  ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.phone_iphone, color: AppColors.textSecondary, size: 18),
+                    const SizedBox(width: 6),
+                    Text(_countryCode, style: TextStyle(color: AppColors.textPrimary)),
+                  ],
                 ),
               ),
               const SizedBox(width: 12),

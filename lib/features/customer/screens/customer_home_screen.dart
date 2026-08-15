@@ -232,7 +232,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               style: TextStyle(color: AppColors.textSecondary),
             ),
             const SizedBox(height: 12),
-            const _IosStep(number: '1', text: 'اضغط زر المشاركة ⬆️ في شريط المتصفح'),
+            const _IosStep(number: '1', text: 'اضغط زر المشاركة في شريط المتصفح'),
             const SizedBox(height: 8),
             const _IosStep(number: '2', text: 'اختر "إضافة إلى الشاشة الرئيسية"'),
             const SizedBox(height: 8),
