@@ -44,6 +44,15 @@ GoRouter _buildRouter(UserModel? user) {
       final isAdminRoute = loc.startsWith('/admin');
       final isKitchenRoute = loc.startsWith('/kitchen');
       final isDriverRoute = loc.startsWith('/driver');
+      // مسارات "عميل" عامة يبقى الوصول إليها متاحاً لأي دور (بما فيه الأدمن/
+      // المطبخ/المندوب) — مفيدة أثناء المعاينة والاختبار من نفس الحساب، وحتى
+      // لموظف حقيقي يفتح رابط تتبع طلب أو سجل طلباته الشخصي
+      final isSharedCustomerRoute = loc.startsWith('/home') ||
+          loc.startsWith('/cart') ||
+          loc.startsWith('/track') ||
+          loc.startsWith('/profile') ||
+          loc.startsWith('/orders') ||
+          loc.startsWith('/game');
 
       // زوار بلا تسجيل دخول: يدخلون القائمة والسلة مباشرة للمعاينة والطلب
       if (user == null) {
@@ -56,17 +65,15 @@ GoRouter _buildRouter(UserModel? user) {
         return _getHomeRoute(user.role);
       }
 
-      // Role-based redirect
-      if (user.role == UserRole.admin && !isAdminRoute) {
-        if (!loc.startsWith('/home') && !loc.startsWith('/cart') &&
-            !loc.startsWith('/track') && !loc.startsWith('/profile')) {
-          return '/admin';
-        }
+      // Role-based redirect — كل دور يُحصر ضمن قسمه الخاص، إلا المسارات
+      // المشتركة أعلاه
+      if (user.role == UserRole.admin && !isAdminRoute && !isSharedCustomerRoute) {
+        return '/admin';
       }
-      if (user.role == UserRole.kitchen && !isKitchenRoute) {
+      if (user.role == UserRole.kitchen && !isKitchenRoute && !isSharedCustomerRoute) {
         return '/kitchen';
       }
-      if (user.role == UserRole.driver && !isDriverRoute) {
+      if (user.role == UserRole.driver && !isDriverRoute && !isSharedCustomerRoute) {
         return '/driver';
       }
 
@@ -189,7 +196,7 @@ GoRouter _buildRouter(UserModel? user) {
             Text('صفحة غير موجودة: ${state.error}'),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: () => context.go('/login'),
+              onPressed: () => context.go('/home'),
               child: const Text('العودة'),
             ),
           ],

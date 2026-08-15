@@ -62,25 +62,6 @@ class _OrderHistoryCard extends ConsumerStatefulWidget {
 class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
   bool _reordering = false;
 
-  Color _statusColor(OrderStatus s) {
-    switch (s) {
-      case OrderStatus.pending:
-        return AppColors.statusPending;
-      case OrderStatus.confirmed:
-        return AppColors.statusConfirmed;
-      case OrderStatus.preparing:
-        return AppColors.statusPreparing;
-      case OrderStatus.ready:
-        return AppColors.statusReady;
-      case OrderStatus.outForDelivery:
-        return AppColors.statusOutForDelivery;
-      case OrderStatus.delivered:
-        return AppColors.statusDelivered;
-      case OrderStatus.cancelled:
-        return AppColors.statusCancelled;
-    }
-  }
-
   Future<void> _reorder() async {
     if (_reordering) return;
     setState(() => _reordering = true);
@@ -154,7 +135,7 @@ class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
-    final color = _statusColor(order.status);
+    final color = order.status.color;
     final isActive = order.status != OrderStatus.delivered && order.status != OrderStatus.cancelled;
     final itemsSummary = order.items.map((i) => '${i.name} ×${i.quantity}').join('، ');
 

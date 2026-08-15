@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
+import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -121,40 +122,11 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
 
   OrderModel get order => widget.order;
 
-  String _fmtCountdown(Duration d) {
-    if (d.isNegative) {
-      final over = d.abs();
-      return 'تأخر ${over.inMinutes} د ${over.inSeconds % 60} ث';
-    }
-    final m = d.inMinutes.toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
-  Color _getStatusColor(OrderStatus s) {
-    switch (s) {
-      case OrderStatus.pending:
-        return AppColors.statusPending;
-      case OrderStatus.confirmed:
-        return AppColors.statusConfirmed;
-      case OrderStatus.preparing:
-        return AppColors.statusPreparing;
-      case OrderStatus.ready:
-        return AppColors.statusReady;
-      case OrderStatus.outForDelivery:
-        return AppColors.statusOutForDelivery;
-      case OrderStatus.delivered:
-        return AppColors.statusDelivered;
-      case OrderStatus.cancelled:
-        return AppColors.statusCancelled;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isCancelled = widget.order.status == OrderStatus.cancelled;
     final isDelivered = order.status == OrderStatus.delivered;
-    final statusColor = _getStatusColor(order.status);
+    final statusColor = order.status.color;
 
     final steps = [
       OrderStatus.pending,
@@ -274,7 +246,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
                             border: Border.all(color: chipColor.withOpacity(0.4)),
                           ),
                           child: Text(
-                            _fmtCountdown(remaining),
+                            formatCountdown(remaining),
                             style: TextStyle(
                               color: chipColor,
                               fontSize: 28,

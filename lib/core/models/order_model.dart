@@ -1,4 +1,6 @@
+import 'dart:ui' show Color;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../constants/app_colors.dart';
 
 enum OrderStatus {
   pending,
@@ -52,6 +54,26 @@ extension OrderStatusExt on OrderStatus {
         return 5;
       case OrderStatus.cancelled:
         return -1;
+    }
+  }
+
+  // لون موحّد لحالة الطلب — مصدر واحد بدل تكراره في كل شاشة تعرضه
+  Color get color {
+    switch (this) {
+      case OrderStatus.pending:
+        return AppColors.statusPending;
+      case OrderStatus.confirmed:
+        return AppColors.statusConfirmed;
+      case OrderStatus.preparing:
+        return AppColors.statusPreparing;
+      case OrderStatus.ready:
+        return AppColors.statusReady;
+      case OrderStatus.outForDelivery:
+        return AppColors.statusOutForDelivery;
+      case OrderStatus.delivered:
+        return AppColors.statusDelivered;
+      case OrderStatus.cancelled:
+        return AppColors.statusCancelled;
     }
   }
 }

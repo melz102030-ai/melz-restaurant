@@ -15,6 +15,7 @@ import '../../../core/providers/drivers_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/order_service.dart';
+import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -320,16 +321,6 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
     );
   }
 
-  String _fmtCountdown(Duration d) {
-    if (d.isNegative) {
-      final over = d.abs();
-      return 'تأخر ${over.inMinutes} د';
-    }
-    final m = d.inMinutes.toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
   Color _statusColor(OrderStatus s) {
     switch (s) {
       case OrderStatus.pending:
@@ -406,7 +397,7 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
                     ),
                     const Spacer(),
                     Text(
-                      _fmtCountdown(remaining),
+                      formatCountdown(remaining),
                       style: TextStyle(
                         color: chipColor,
                         fontWeight: FontWeight.bold,

@@ -272,16 +272,7 @@ class _OrderHistoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColors = {
-      OrderStatus.pending: AppColors.statusPending,
-      OrderStatus.confirmed: AppColors.statusConfirmed,
-      OrderStatus.preparing: AppColors.statusPreparing,
-      OrderStatus.ready: AppColors.statusReady,
-      OrderStatus.outForDelivery: AppColors.statusOutForDelivery,
-      OrderStatus.delivered: AppColors.statusDelivered,
-      OrderStatus.cancelled: AppColors.statusCancelled,
-    };
-    final color = statusColors[order.status] ?? AppColors.textHint;
+    final color = order.status.color;
 
     return GestureDetector(
       onTap: () => context.push('/track/${order.id}'),

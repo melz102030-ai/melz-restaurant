@@ -14,6 +14,7 @@ import '../../../core/models/order_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/drivers_provider.dart';
 import '../../../core/services/order_service.dart';
+import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/kitchen_provider.dart';
@@ -411,16 +412,6 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
     }
   }
 
-  String _fmtCountdown(Duration d) {
-    if (d.isNegative) {
-      final over = d.abs();
-      return 'تأخر ${over.inMinutes} د ${over.inSeconds % 60} ث';
-    }
-    final m = d.inMinutes.toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
   Color get _statusColor {
     switch (widget.order.status) {
       case OrderStatus.pending:
@@ -633,7 +624,7 @@ class _KitchenOrderCardState extends State<_KitchenOrderCard> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                _fmtCountdown(remaining),
+                                formatCountdown(remaining),
                                 style: TextStyle(
                                   color: color,
                                   fontSize: 12,
