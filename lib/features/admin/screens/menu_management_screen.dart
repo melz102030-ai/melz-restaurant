@@ -168,33 +168,141 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
 
 // ── Items tab ─────────────────────────────────────────────────────────────────
 
-class _MenuItemsTab extends ConsumerWidget {
+class _MenuItemsTab extends ConsumerStatefulWidget {
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_MenuItemsTab> createState() => _MenuItemsTabState();
+}
+
+class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+  String? _categoryFilter;
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final itemsAsync = ref.watch(adminMenuItemsProvider);
-    return itemsAsync.when(
-      data: (items) {
-        if (items.isEmpty) {
-          return const EmptyState(
-            message: 'لا توجد عناصر في القائمة\nاضغط + لإضافة عنصر جديد',
-            icon: Icons.restaurant_menu,
-          );
-        }
-        return ReorderableListView.builder(
-          padding: const EdgeInsets.all(16),
-          onReorder: (oldIndex, newIndex) {
-            if (newIndex > oldIndex) newIndex--;
-            final reordered = List<MenuItemModel>.from(items);
-            final item = reordered.removeAt(oldIndex);
-            reordered.insert(newIndex, item);
-            MenuService.reorderMenuItems(reordered);
-          },
-          itemCount: items.length,
-          itemBuilder: (_, i) => _MenuItemTile(key: ValueKey(items[i].id), item: items[i], index: i),
-        );
-      },
-      loading: () => const LoadingWidget(message: 'تحميل القائمة...'),
-      error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error_outline),
+    final categories = ref.watch(adminCategoriesProvider).valueOrNull ?? [];
+    final hasFilter = _query.isNotEmpty || _categoryFilter != null;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: TextField(
+            controller: _searchCtrl,
+            onChanged: (v) => setState(() => _query = v.trim()),
+            style: TextStyle(color: AppColors.textPrimary),
+            decoration: InputDecoration(
+              hintText: 'ابحث عن صنف...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => setState(() {
+                        _searchCtrl.clear();
+                        _query = '';
+                      }),
+                    ),
+              filled: true,
+              fillColor: AppColors.cardBackground,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              isDense: true,
+            ),
+          ),
+        ),
+        if (categories.isNotEmpty)
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: ChoiceChip(
+                    label: const Text('الكل'),
+                    selected: _categoryFilter == null,
+                    onSelected: (_) => setState(() => _categoryFilter = null),
+                  ),
+                ),
+                for (final cat in categories)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: ChoiceChip(
+                      label: Text(cat.name),
+                      selected: _categoryFilter == cat.id,
+                      onSelected: (_) =>
+                          setState(() => _categoryFilter = _categoryFilter == cat.id ? null : cat.id),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: itemsAsync.when(
+            data: (allItems) {
+              if (allItems.isEmpty) {
+                return const EmptyState(
+                  message: 'لا توجد عناصر في القائمة\nاضغط + لإضافة عنصر جديد',
+                  icon: Icons.restaurant_menu,
+                );
+              }
+              final items = allItems.where((i) {
+                if (_categoryFilter != null && i.categoryId != _categoryFilter) return false;
+                if (_query.isNotEmpty &&
+                    !i.name.toLowerCase().contains(_query.toLowerCase())) {
+                  return false;
+                }
+                return true;
+              }).toList();
+
+              if (items.isEmpty) {
+                return const EmptyState(
+                  message: 'لا توجد نتائج مطابقة',
+                  icon: Icons.search_off,
+                );
+              }
+
+              // إعادة الترتيب بالسحب منطقية فقط على القائمة الكاملة غير
+              // المصفّاة — بخلاف ذلك يُعاد ترتيب عناصر مصفّاة فقط بأرقام
+              // sortOrder التي تحكم كل القائمة، فتُربك ترتيب العناصر المخفية
+              if (hasFilter) {
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: items.length,
+                  itemBuilder: (_, i) => _MenuItemTile(key: ValueKey(items[i].id), item: items[i], index: i),
+                );
+              }
+
+              return ReorderableListView.builder(
+                padding: const EdgeInsets.all(16),
+                onReorder: (oldIndex, newIndex) {
+                  if (newIndex > oldIndex) newIndex--;
+                  final reordered = List<MenuItemModel>.from(items);
+                  final item = reordered.removeAt(oldIndex);
+                  reordered.insert(newIndex, item);
+                  MenuService.reorderMenuItems(reordered);
+                },
+                itemCount: items.length,
+                itemBuilder: (_, i) => _MenuItemTile(key: ValueKey(items[i].id), item: items[i], index: i),
+              );
+            },
+            loading: () => const LoadingWidget(message: 'تحميل القائمة...'),
+            error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error_outline),
+          ),
+        ),
+      ],
     );
   }
 }

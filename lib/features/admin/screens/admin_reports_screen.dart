@@ -7,12 +7,50 @@ import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/admin_provider.dart';
 
-class AdminReportsScreen extends ConsumerWidget {
+enum _ReportRange { today, week, month, allTime }
+
+class AdminReportsScreen extends ConsumerStatefulWidget {
   const AdminReportsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final statsAsync = ref.watch(adminOrderStatsProvider);
+  ConsumerState<AdminReportsScreen> createState() => _AdminReportsScreenState();
+}
+
+class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
+  _ReportRange _range = _ReportRange.week;
+
+  ({DateTime? from, DateTime? to}) get _dateRange {
+    final now = DateTime.now();
+    switch (_range) {
+      case _ReportRange.today:
+        return (from: DateTime(now.year, now.month, now.day), to: now);
+      case _ReportRange.week:
+        return (from: now.subtract(const Duration(days: 7)), to: now);
+      case _ReportRange.month:
+        return (from: now.subtract(const Duration(days: 30)), to: now);
+      case _ReportRange.allTime:
+        return (from: null, to: null);
+    }
+  }
+
+  String get _rangeLabel => _labelFor(_range);
+
+  String _labelFor(_ReportRange r) {
+    switch (r) {
+      case _ReportRange.today:
+        return 'اليوم';
+      case _ReportRange.week:
+        return 'آخر 7 أيام';
+      case _ReportRange.month:
+        return 'آخر 30 يوماً';
+      case _ReportRange.allTime:
+        return 'كل الوقت';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statsAsync = ref.watch(adminOrderStatsProvider(_dateRange));
     final dailyAsync = ref.watch(dailyStatsProvider);
 
     return Scaffold(
@@ -39,6 +77,26 @@ class AdminReportsScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // اختيار المدى الزمني للبطاقات الملخّصة أدناه — الرسوم البيانية
+              // تبقى دوماً بآخر 7 أيام (منفصلة عن هذا الاختيار)
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final r in _ReportRange.values)
+                    ChoiceChip(
+                      label: Text(_labelFor(r)),
+                      selected: _range == r,
+                      onSelected: (_) => setState(() => _range = r),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'الملخص أدناه لفترة: $_rangeLabel',
+                style: TextStyle(color: AppColors.textHint, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
               // Summary cards
               statsAsync.when(
                 data: (stats) => Column(

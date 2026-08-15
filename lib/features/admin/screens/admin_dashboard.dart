@@ -18,7 +18,13 @@ class AdminDashboard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statsAsync = ref.watch(adminOrderStatsProvider);
+    // بطاقات لوحة التحكم تعرض أرقام اليوم تحديداً — ملخص سريع لبداية يوم
+    // العمل — لا أرقاماً تراكمية منذ أول يوم تشغيل كما كانت سابقاً (كانت
+    // تُقرأ خطأً كملخص يومي رغم كونها إجمالياً منذ البداية)
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final statsAsync =
+        ref.watch(adminOrderStatsProvider((from: todayStart, to: now)));
     final dailyAsync = ref.watch(dailyStatsProvider);
     final settings = ref.watch(settingsProvider);
     final activeOrdersAsync = ref.watch(allOrdersProvider(null));
@@ -69,6 +75,19 @@ class AdminDashboard extends ConsumerWidget {
                 style: TextStyle(color: AppColors.textSecondary),
               ).animate().fadeIn(delay: 100.ms),
               const SizedBox(height: 24),
+
+              Row(
+                children: [
+                  Icon(Icons.today, size: 16, color: AppColors.textHint),
+                  const SizedBox(width: 6),
+                  Text(
+                    'ملخص اليوم',
+                    style: TextStyle(
+                        color: AppColors.textHint, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
 
               // Stats cards
               statsAsync.when(

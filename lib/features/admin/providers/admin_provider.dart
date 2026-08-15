@@ -13,8 +13,12 @@ final allUsersProvider = StreamProvider<List<UserModel>>((ref) {
   return AuthService.streamAllUsers();
 });
 
-final adminOrderStatsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
-  return OrderService.getOrdersSummary();
+// مدى زمني اختياري (from/to) — بلا تمرير أي منهما يعني كل الوقت منذ بداية
+// التشغيل. الشاشات المستخدمة فيها تُحدِّد النطاق بوضوح بنفسها (اليوم للوحة
+// التحكم كملخص سريع يومي، ونطاق قابل للاختيار في شاشة التقارير)
+final adminOrderStatsProvider = FutureProvider.family<
+    Map<String, dynamic>, ({DateTime? from, DateTime? to})>((ref, range) async {
+  return OrderService.getOrdersSummary(from: range.from, to: range.to);
 });
 
 final dailyStatsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
