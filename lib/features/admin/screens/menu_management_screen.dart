@@ -328,6 +328,10 @@ class _MenuItemTile extends ConsumerWidget {
       ),
       child: Row(
         children: [
+          // إشارة بصرية أن هذا العنصر قابل لإعادة الترتيب بالسحب — بدون
+          // هذا التلميح، السحب سلوك افتراضي غير موسوم يصعب اكتشافه
+          Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          const SizedBox(width: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: item.imageUrl != null
@@ -526,6 +530,8 @@ class _CategoryTile extends StatelessWidget {
       ),
       child: Row(
         children: [
+          Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          const SizedBox(width: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: cat.imageUrl != null

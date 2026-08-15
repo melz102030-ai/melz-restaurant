@@ -87,6 +87,8 @@ class _BannerTile extends StatelessWidget {
       ),
       child: Row(
         children: [
+          Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          const SizedBox(width: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.network(
@@ -159,12 +161,35 @@ class _BannerTile extends StatelessWidget {
     );
   }
 
+  // البانر بلا اسم نصي — صورة مصغّرة في نافذة التأكيد تساعد على التأكد من
+  // حذف العنصر الصحيح وسط قائمة بانرات قد تتشابه بصرياً
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('حذف البانر'),
-        content: const Text('هل تريد حذف هذا البانر؟'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                banner.imageUrl,
+                width: double.infinity,
+                height: 100,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 100,
+                  color: AppColors.surfaceLight,
+                  child: Icon(Icons.image_not_supported, color: AppColors.textHint),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('هل تريد حذف هذا البانر؟'),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
           TextButton(

@@ -86,6 +86,8 @@ class _AdTile extends StatelessWidget {
       ),
       child: Row(
         children: [
+          Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          const SizedBox(width: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: ad.imageUrls.isEmpty
@@ -171,12 +173,36 @@ class _AdTile extends StatelessWidget {
             style: TextStyle(color: AppColors.purple, fontSize: 11, fontWeight: FontWeight.w600)),
       );
 
+  // الإعلان بلا اسم نصي — صورة مصغّرة في نافذة التأكيد تساعد على التأكد من
+  // حذف العنصر الصحيح وسط قائمة إعلانات قد تتشابه بصرياً
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('حذف الإعلان'),
-        content: const Text('هل تريد حذف هذا الإعلان؟'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (ad.imageUrls.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  ad.imageUrls.first,
+                  width: double.infinity,
+                  height: 100,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    height: 100,
+                    color: AppColors.surfaceLight,
+                    child: Icon(Icons.image_not_supported, color: AppColors.textHint),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
+            const Text('هل تريد حذف هذا الإعلان؟'),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
           TextButton(

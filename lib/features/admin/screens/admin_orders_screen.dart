@@ -93,14 +93,24 @@ class _OrdersList extends ConsumerWidget {
   }
 }
 
-class _AdminOrderCard extends StatelessWidget {
+class _AdminOrderCard extends StatefulWidget {
   final OrderModel order;
   final int index;
   const _AdminOrderCard({required this.order, required this.index});
 
   @override
+  State<_AdminOrderCard> createState() => _AdminOrderCardState();
+}
+
+class _AdminOrderCardState extends State<_AdminOrderCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
+    final order = widget.order;
     final color = order.status.color;
+    final isActive =
+        order.status != OrderStatus.delivered && order.status != OrderStatus.cancelled;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -109,134 +119,157 @@ class _AdminOrderCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withOpacity(0.3)),
       ),
-      child: ExpansionTile(
-        tilePadding: const EdgeInsets.all(16),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(Icons.receipt_long, color: color, size: 22),
-        ),
-        title: Text(
-          '${order.customerName} · #${order.id.substring(0, 8).toUpperCase()}',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: () =>
-                  launchUrl(Uri(scheme: 'tel', path: order.customerPhone)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.call, color: AppColors.success, size: 13),
-                  const SizedBox(width: 4),
-                  Text(
-                    order.customerPhone,
-                    style: TextStyle(
-                        color: AppColors.textHint, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '${DateFormat('dd/MM/yyyy - hh:mm a').format(order.createdAt)} · ${order.orderType.label}',
-              style: TextStyle(color: AppColors.textHint, fontSize: 11),
-            ),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                order.status.label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '${order.total.toStringAsFixed(2)} ${AppStrings.sar}',
-              style: TextStyle(
-                color: AppColors.purple,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Items
-          ...order.items.map(
-            (item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+          InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Text(
-                    '×${item.quantity}',
-                    style: TextStyle(
-                      color: AppColors.purple,
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    child: Icon(Icons.receipt_long, color: color, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      item.name,
-                      style: TextStyle(color: AppColors.textSecondary),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${order.customerName} · #${order.id.substring(0, 8).toUpperCase()}',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () =>
+                              launchUrl(Uri(scheme: 'tel', path: order.customerPhone)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.call, color: AppColors.success, size: 13),
+                              const SizedBox(width: 4),
+                              Text(
+                                order.customerPhone,
+                                style: TextStyle(color: AppColors.textHint, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          '${DateFormat('dd/MM/yyyy - hh:mm a').format(order.createdAt)} · ${order.orderType.label}',
+                          style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    '${item.total.toStringAsFixed(2)} ${AppStrings.sar}',
-                    style: TextStyle(color: AppColors.textHint, fontSize: 13),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          order.status.label,
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${order.total.toStringAsFixed(2)} ${AppStrings.sar}',
+                        style: TextStyle(
+                          color: AppColors.purple,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
+                  Icon(_expanded ? Icons.expand_less : Icons.expand_more,
+                      color: AppColors.textHint),
                 ],
               ),
             ),
           ),
-
-          if (order.notes != null && order.notes!.isNotEmpty) ...[
-            Divider(color: AppColors.surfaceLight),
-            Row(
-              children: [
-                Icon(Icons.note, color: AppColors.textHint, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    order.notes!,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          // أزرار تقدّم الحالة ظاهرة دائماً بلا حاجة لتوسيع البطاقة — أكثر
+          // عملية متكررة يومياً في هذه الشاشة، كانت مخفية خلف توسيع إجباري
+          if (isActive)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: _StatusActionButtons(order: order),
+            ),
+          if (_expanded) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Divider(color: AppColors.surfaceLight),
+                  ...order.items.map(
+                    (item) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          Text(
+                            '×${item.quantity}',
+                            style: TextStyle(
+                              color: AppColors.purple,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              style: TextStyle(color: AppColors.textSecondary),
+                            ),
+                          ),
+                          Text(
+                            '${item.total.toStringAsFixed(2)} ${AppStrings.sar}',
+                            style: TextStyle(color: AppColors.textHint, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  if (order.notes != null && order.notes!.isNotEmpty) ...[
+                    Divider(color: AppColors.surfaceLight),
+                    Row(
+                      children: [
+                        Icon(Icons.note, color: AppColors.textHint, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            order.notes!,
+                            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
             ),
           ],
-
-          Divider(color: AppColors.surfaceLight),
-
-          // Status actions
-          if (order.status != OrderStatus.delivered &&
-              order.status != OrderStatus.cancelled)
-            _StatusActionButtons(order: order),
         ],
       ),
-    ).animate(delay: Duration(milliseconds: index * 50)).fadeIn();
+    ).animate(delay: Duration(milliseconds: widget.index * 50)).fadeIn();
   }
 }
 

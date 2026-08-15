@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
 
 const double _railCollapsedWidth = 64;
 const double _railExpandedWidth = 220;
+const _railExpandedPrefKey = 'admin_rail_expanded';
 
 typedef _NavItem = ({IconData icon, String label, String route});
 typedef _NavSection = ({String? title, List<_NavItem> items});
@@ -19,8 +21,26 @@ class AdminShell extends ConsumerStatefulWidget {
 }
 
 class _AdminShellState extends ConsumerState<AdminShell> {
-  // مطوية (أيقونات فقط) افتراضياً — يمكن توسيعها من زر الطي/التوسيع
+  // مطوية (أيقونات فقط) افتراضياً — يمكن توسيعها من زر الطي/التوسيع، ويُتذكَّر
+  // اختيار الأدمن عبر الجلسات بدل العودة للطي الافتراضي في كل مرة
   bool _expanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreExpanded();
+  }
+
+  Future<void> _restoreExpanded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getBool(_railExpandedPrefKey);
+    if (saved != null && mounted) setState(() => _expanded = saved);
+  }
+
+  void _setExpanded(bool value) {
+    setState(() => _expanded = value);
+    SharedPreferences.getInstance().then((p) => p.setBool(_railExpandedPrefKey, value));
+  }
 
   // مجمّعة تحت عناوين أقسام منطقية بدل قائمة مسطّحة واحدة — يظهر عنوان
   // القسم فقط عند التوسيع؛ في الوضع المطوي يفصل بينها خط رفيع فقط
@@ -112,7 +132,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                       icon: Icon(_expanded ? Icons.menu_open : Icons.menu,
                           color: AppColors.purple, size: 22),
                       tooltip: _expanded ? 'طي القائمة' : 'توسيع القائمة',
-                      onPressed: () => setState(() => _expanded = !_expanded),
+                      onPressed: () => _setExpanded(!_expanded),
                     ),
                     if (_expanded) ...[
                       const SizedBox(height: 4),

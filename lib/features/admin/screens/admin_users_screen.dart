@@ -256,6 +256,12 @@ class _UserTile extends StatelessWidget {
   void _confirmRoleChange(
       BuildContext context, UserRole newRole, Map<UserRole, String> roleLabels) {
     if (newRole == user.role) return;
+    // الترقية لصلاحية "إدارة" كاملة أخطر عملية صلاحيات في التطبيق بأكمله —
+    // تحتاج حاجزاً إضافياً (كتابة الاسم) بدل نفس تأكيد تغيير أي دور آخر
+    if (newRole == UserRole.admin) {
+      _confirmAdminPromotion(context);
+      return;
+    }
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -273,6 +279,54 @@ class _UserTile extends StatelessWidget {
             child: const Text('تأكيد'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _confirmAdminPromotion(BuildContext context) {
+    final confirmCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final matches = confirmCtrl.text.trim() == user.name;
+          return AlertDialog(
+            title: const Text('منح صلاحية إدارة كاملة'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'هذا يمنح "${user.name}" وصولاً كاملاً لكل بيانات المطعم وإعداداته —'
+                  ' للتأكيد، اكتب اسمه بالضبط:',
+                ),
+                const SizedBox(height: 12),
+                Text(user.name,
+                    style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: confirmCtrl,
+                  onChanged: (_) => setDialogState(() {}),
+                  decoration: const InputDecoration(hintText: 'اكتب الاسم هنا'),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+              ElevatedButton(
+                onPressed: matches
+                    ? () {
+                        Navigator.pop(ctx);
+                        runOrShowError(
+                            context, () => AuthService.changeUserRole(user.id, UserRole.admin));
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                child: const Text('منح صلاحية إدارة'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
