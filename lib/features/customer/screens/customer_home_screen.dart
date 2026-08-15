@@ -1527,8 +1527,8 @@ class _InstallBanner extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF4A0080), Color(0xFF800040)],
+        gradient: LinearGradient(
+          colors: [AppColors.purpleDark, AppColors.manjawi],
           begin: Alignment.centerRight,
           end: Alignment.centerLeft,
         ),

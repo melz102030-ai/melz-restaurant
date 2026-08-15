@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/providers/settings_provider.dart';
 import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
@@ -56,15 +57,15 @@ class OrderTrackingScreen extends ConsumerWidget {
   }
 }
 
-class _OrderTrackingContent extends StatefulWidget {
+class _OrderTrackingContent extends ConsumerStatefulWidget {
   final OrderModel order;
   const _OrderTrackingContent({required this.order});
 
   @override
-  State<_OrderTrackingContent> createState() => _OrderTrackingContentState();
+  ConsumerState<_OrderTrackingContent> createState() => _OrderTrackingContentState();
 }
 
-class _OrderTrackingContentState extends State<_OrderTrackingContent> {
+class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
   Timer? _ticker;
 
   bool get _isTerminal =>
@@ -127,6 +128,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
     final isCancelled = widget.order.status == OrderStatus.cancelled;
     final isDelivered = order.status == OrderStatus.delivered;
     final statusColor = order.status.color;
+    final settings = ref.watch(settingsProvider);
 
     final steps = [
       OrderStatus.pending,
@@ -144,30 +146,38 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Quick actions: call restaurant / restaurant location
-          Row(
-            children: [
-              Expanded(
-                child: _QuickActionButton(
-                  icon: Icons.call,
-                  label: 'اتصل بالمطعم',
-                  onTap: () => launchUrl(Uri(scheme: 'tel', path: '0565235404')),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _QuickActionButton(
-                  icon: Icons.location_on_outlined,
-                  label: 'الموقع على الخريطة',
-                  onTap: () => launchUrl(
-                    Uri.parse('https://maps.app.goo.gl/DUsDbGQAaVDYHmKz9'),
-                    mode: LaunchMode.externalApplication,
+          // Quick actions: call restaurant / restaurant location — من إعدادات
+          // الأدمن، بدل رقم/رابط ثابت بالكود لا يتبع أي تعديل لاحق
+          if (settings.restaurantPhone.isNotEmpty || settings.hasRestaurantLocation) ...[
+            Row(
+              children: [
+                if (settings.restaurantPhone.isNotEmpty)
+                  Expanded(
+                    child: _QuickActionButton(
+                      icon: Icons.call,
+                      label: 'اتصل بالمطعم',
+                      onTap: () =>
+                          launchUrl(Uri(scheme: 'tel', path: settings.restaurantPhone)),
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+                if (settings.restaurantPhone.isNotEmpty && settings.hasRestaurantLocation)
+                  const SizedBox(width: 10),
+                if (settings.hasRestaurantLocation)
+                  Expanded(
+                    child: _QuickActionButton(
+                      icon: Icons.location_on_outlined,
+                      label: 'الموقع على الخريطة',
+                      onTap: () => launchUrl(
+                        Uri.parse(
+                            'https://www.google.com/maps/search/?api=1&query=${settings.restaurantLat},${settings.restaurantLng}'),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
 
           if (!isDelivered && !isCancelled) ...[
             _PlayWhileWaitingCard(orderId: order.id),
@@ -175,7 +185,7 @@ class _OrderTrackingContentState extends State<_OrderTrackingContent> {
           ],
 
           if (isDelivered) ...[
-            const _DeliveredThankYouCard(),
+            _DeliveredThankYouCard(reviewUrl: settings.googleReviewUrl),
             const SizedBox(height: 16),
           ],
 
@@ -807,7 +817,8 @@ class _DriverLiveMapCard extends StatelessWidget {
 }
 
 class _DeliveredThankYouCard extends StatelessWidget {
-  const _DeliveredThankYouCard();
+  final String? reviewUrl;
+  const _DeliveredThankYouCard({this.reviewUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -828,22 +839,24 @@ class _DeliveredThankYouCard extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 6),
-          Text(
-            'يسعدنا لو شاركتنا رأيك — تقييمك يعني لنا الكثير ويساعد الآخرين',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          AppButton(
-            label: 'قيّمنا على خرائط جوجل',
-            icon: Icons.star_rate_rounded,
-            width: double.infinity,
-            onPressed: () => launchUrl(
-              Uri.parse('https://g.page/r/CdcxqI33hmd2EBM/review'),
-              mode: LaunchMode.externalApplication,
+          if (reviewUrl != null && reviewUrl!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              'يسعدنا لو شاركتنا رأيك — تقييمك يعني لنا الكثير ويساعد الآخرين',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              textAlign: TextAlign.center,
             ),
-          ),
+            const SizedBox(height: 16),
+            AppButton(
+              label: 'قيّمنا على خرائط جوجل',
+              icon: Icons.star_rate_rounded,
+              width: double.infinity,
+              onPressed: () => launchUrl(
+                Uri.parse(reviewUrl!),
+                mode: LaunchMode.externalApplication,
+              ),
+            ),
+          ],
         ],
       ),
     );

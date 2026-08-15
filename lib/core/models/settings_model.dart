@@ -11,6 +11,8 @@ class RestaurantSettings {
   final double minOrderAmount;
   final int estimatedPrepTime;
   final String whatsappNumber;
+  final String restaurantPhone;
+  final String? googleReviewUrl;
   final String? address;
   final String? welcomeMessage;
   final bool allowOrders;
@@ -32,6 +34,8 @@ class RestaurantSettings {
     this.minOrderAmount = 30,
     this.estimatedPrepTime = 30,
     this.whatsappNumber = '',
+    this.restaurantPhone = '',
+    this.googleReviewUrl,
     this.address,
     this.welcomeMessage,
     this.allowOrders = true,
@@ -135,6 +139,8 @@ class RestaurantSettings {
       minOrderAmount: (map['minOrderAmount'] ?? 30).toDouble(),
       estimatedPrepTime: map['estimatedPrepTime'] ?? 30,
       whatsappNumber: map['whatsappNumber'] ?? '',
+      restaurantPhone: map['restaurantPhone'] ?? '',
+      googleReviewUrl: map['googleReviewUrl'],
       address: map['address'],
       welcomeMessage: map['welcomeMessage'],
       allowOrders: map['allowOrders'] ?? true,
@@ -158,6 +164,8 @@ class RestaurantSettings {
       'minOrderAmount': minOrderAmount,
       'estimatedPrepTime': estimatedPrepTime,
       'whatsappNumber': whatsappNumber,
+      'restaurantPhone': restaurantPhone,
+      'googleReviewUrl': googleReviewUrl,
       'address': address,
       'welcomeMessage': welcomeMessage,
       'allowOrders': allowOrders,
@@ -180,6 +188,8 @@ class RestaurantSettings {
     double? minOrderAmount,
     int? estimatedPrepTime,
     String? whatsappNumber,
+    String? restaurantPhone,
+    String? googleReviewUrl,
     String? address,
     String? welcomeMessage,
     bool? allowOrders,
@@ -200,6 +210,8 @@ class RestaurantSettings {
       minOrderAmount: minOrderAmount ?? this.minOrderAmount,
       estimatedPrepTime: estimatedPrepTime ?? this.estimatedPrepTime,
       whatsappNumber: whatsappNumber ?? this.whatsappNumber,
+      restaurantPhone: restaurantPhone ?? this.restaurantPhone,
+      googleReviewUrl: googleReviewUrl ?? this.googleReviewUrl,
       address: address ?? this.address,
       welcomeMessage: welcomeMessage ?? this.welcomeMessage,
       allowOrders: allowOrders ?? this.allowOrders,

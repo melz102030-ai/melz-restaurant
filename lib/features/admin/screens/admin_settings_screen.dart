@@ -22,6 +22,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _minOrderCtrl = TextEditingController();
   final _prepTimeCtrl = TextEditingController();
   final _whatsappCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _reviewUrlCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _welcomeMsgCtrl = TextEditingController();
   bool _allowOrders = true;
@@ -42,6 +44,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _minOrderCtrl.text = settings.minOrderAmount.toString();
         _prepTimeCtrl.text = settings.estimatedPrepTime.toString();
         _whatsappCtrl.text = settings.whatsappNumber;
+        _phoneCtrl.text = settings.restaurantPhone;
+        _reviewUrlCtrl.text = settings.googleReviewUrl ?? '';
         _addressCtrl.text = settings.address ?? '';
         _welcomeMsgCtrl.text = settings.welcomeMessage ?? '';
         _allowOrders = settings.allowOrders;
@@ -56,6 +60,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     _minOrderCtrl.dispose();
     _prepTimeCtrl.dispose();
     _whatsappCtrl.dispose();
+    _phoneCtrl.dispose();
+    _reviewUrlCtrl.dispose();
     _addressCtrl.dispose();
     _welcomeMsgCtrl.dispose();
     super.dispose();
@@ -89,6 +95,9 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         minOrderAmount: minOrder,
         estimatedPrepTime: prepTime,
         whatsappNumber: _whatsappCtrl.text.trim(),
+        restaurantPhone: _phoneCtrl.text.trim(),
+        googleReviewUrl:
+            _reviewUrlCtrl.text.trim().isEmpty ? null : _reviewUrlCtrl.text.trim(),
         address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
         welcomeMessage: _welcomeMsgCtrl.text.trim().isEmpty
             ? null
@@ -149,6 +158,21 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
               icon: Icons.chat,
               hint: '+966XXXXXXXXX',
               keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 12),
+            _Field(
+              controller: _phoneCtrl,
+              label: 'رقم هاتف المطعم (للاتصال المباشر من شاشة تتبع الطلب)',
+              icon: Icons.call,
+              hint: '05XXXXXXXX',
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: 12),
+            _Field(
+              controller: _reviewUrlCtrl,
+              label: 'رابط تقييم المطعم على خرائط جوجل (اختياري)',
+              icon: Icons.star_outline,
+              hint: 'https://g.page/r/.../review',
             ),
 
             const SizedBox(height: 24),
