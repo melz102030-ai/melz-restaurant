@@ -106,7 +106,8 @@ service cloud.firestore {
           request.resource.data.items == resource.data.items &&
           request.resource.data.subtotal == resource.data.subtotal &&
           request.resource.data.deliveryFee == resource.data.deliveryFee &&
-          request.resource.data.total == resource.data.total;
+          request.resource.data.total == resource.data.total &&
+          request.resource.data.paymentMethod == resource.data.paymentMethod;
       }
     }
 

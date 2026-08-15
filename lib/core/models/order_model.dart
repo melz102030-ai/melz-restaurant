@@ -18,6 +18,45 @@ extension OrderTypeExt on OrderType {
   String get label => this == OrderType.delivery ? 'توصيل' : 'استلام من المطعم';
 }
 
+// طريقة الدفع — الدفع الإلكتروني (بطاقة/آبل باي/مدى) غير مفعّل حالياً في
+// الواجهة (لا توجد بوابة دفع مربوطة بعد)، والحقل جاهز لتفعيله لاحقاً دون
+// تعديل بنية الطلب. الافتراضي الحالي "نقداً" يعكس الواقع الفعلي فقط
+enum PaymentMethod { cash, card, applePay, mada }
+
+extension PaymentMethodExt on PaymentMethod {
+  String get label {
+    switch (this) {
+      case PaymentMethod.cash:
+        return 'نقداً عند الاستلام';
+      case PaymentMethod.card:
+        return 'بطاقة بنكية';
+      case PaymentMethod.applePay:
+        return 'Apple Pay';
+      case PaymentMethod.mada:
+        return 'مدى';
+    }
+  }
+}
+
+// حالة الدفع — تُحدَّث يدوياً من الإدارة حتى تُربط بوابة دفع فعلية تحدّثها
+// تلقائياً عبر webhook من جهة الخادم (Cloud Function)، لا من تطبيق العميل
+enum PaymentStatus { pending, paid, failed, refunded }
+
+extension PaymentStatusExt on PaymentStatus {
+  String get label {
+    switch (this) {
+      case PaymentStatus.pending:
+        return 'بانتظار الدفع';
+      case PaymentStatus.paid:
+        return 'مدفوع';
+      case PaymentStatus.failed:
+        return 'فشل الدفع';
+      case PaymentStatus.refunded:
+        return 'مُسترجَع';
+    }
+  }
+}
+
 extension OrderStatusExt on OrderStatus {
   String get label {
     switch (this) {
@@ -186,6 +225,8 @@ class OrderModel {
   final double? driverLat;
   final double? driverLng;
   final DateTime? driverLocationUpdatedAt;
+  final PaymentMethod paymentMethod;
+  final PaymentStatus paymentStatus;
 
   const OrderModel({
     required this.id,
@@ -219,6 +260,8 @@ class OrderModel {
     this.driverLat,
     this.driverLng,
     this.driverLocationUpdatedAt,
+    this.paymentMethod = PaymentMethod.cash,
+    this.paymentStatus = PaymentStatus.pending,
   });
 
   bool get hasDeliveryLocation => deliveryLat != null && deliveryLng != null;
@@ -290,6 +333,14 @@ class OrderModel {
       driverLocationUpdatedAt: map['driverLocationUpdatedAt'] is Timestamp
           ? (map['driverLocationUpdatedAt'] as Timestamp).toDate()
           : null,
+      paymentMethod: PaymentMethod.values.firstWhere(
+        (m) => m.name == (map['paymentMethod'] ?? 'cash'),
+        orElse: () => PaymentMethod.cash,
+      ),
+      paymentStatus: PaymentStatus.values.firstWhere(
+        (s) => s.name == (map['paymentStatus'] ?? 'pending'),
+        orElse: () => PaymentStatus.pending,
+      ),
     );
   }
 
@@ -330,6 +381,8 @@ class OrderModel {
       'driverLocationUpdatedAt': driverLocationUpdatedAt != null
           ? Timestamp.fromDate(driverLocationUpdatedAt!)
           : null,
+      'paymentMethod': paymentMethod.name,
+      'paymentStatus': paymentStatus.name,
     };
   }
 
@@ -345,6 +398,7 @@ class OrderModel {
     DateTime? assignedAt,
     DateTime? driverAcceptedAt,
     DateTime? pickedUpAt,
+    PaymentStatus? paymentStatus,
     double? driverLat,
     double? driverLng,
     DateTime? driverLocationUpdatedAt,
@@ -381,6 +435,8 @@ class OrderModel {
       driverLat: driverLat ?? this.driverLat,
       driverLng: driverLng ?? this.driverLng,
       driverLocationUpdatedAt: driverLocationUpdatedAt ?? this.driverLocationUpdatedAt,
+      paymentMethod: paymentMethod,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
     );
   }
 }
