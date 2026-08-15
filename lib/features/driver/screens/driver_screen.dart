@@ -27,15 +27,25 @@ class DriverScreen extends ConsumerStatefulWidget {
   ConsumerState<DriverScreen> createState() => _DriverScreenState();
 }
 
+enum LocationBroadcastStatus { idle, active, permissionDenied, serviceDisabled }
+
 class _DriverScreenState extends ConsumerState<DriverScreen> {
   bool _togglingAvailability = false;
   StreamSubscription<Position>? _positionSub;
   String? _broadcastingOrderId;
+  LocationBroadcastStatus _broadcastStatus = LocationBroadcastStatus.idle;
 
   Future<void> _toggleAvailability(String driverId, bool value) async {
     setState(() => _togglingAvailability = true);
     try {
       await AuthService.setDriverAvailability(driverId, value);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تعذّر تغيير الحالة — تحقّق من اتصالك بالإنترنت'),
+          backgroundColor: AppColors.error,
+        ));
+      }
     } finally {
       if (mounted) setState(() => _togglingAvailability = false);
     }
@@ -49,6 +59,9 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
       await _positionSub?.cancel();
       _positionSub = null;
       _broadcastingOrderId = null;
+      if (mounted && _broadcastStatus != LocationBroadcastStatus.idle) {
+        setState(() => _broadcastStatus = LocationBroadcastStatus.idle);
+      }
       return;
     }
     if (_broadcastingOrderId == currentOrder.id) return;
@@ -65,19 +78,30 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
+      setState(() => _broadcastStatus = LocationBroadcastStatus.permissionDenied);
       return;
     }
     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!mounted || _broadcastingOrderId != orderId || !serviceEnabled) return;
+    if (!mounted || _broadcastingOrderId != orderId) return;
+    if (!serviceEnabled) {
+      setState(() => _broadcastStatus = LocationBroadcastStatus.serviceDisabled);
+      return;
+    }
 
+    setState(() => _broadcastStatus = LocationBroadcastStatus.active);
     _positionSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 20,
       ),
-    ).listen((position) {
-      OrderService.updateDriverLocation(orderId, position.latitude, position.longitude);
-    });
+    ).listen(
+      (position) {
+        OrderService.updateDriverLocation(orderId, position.latitude, position.longitude);
+      },
+      onError: (_) {
+        if (mounted) setState(() => _broadcastStatus = LocationBroadcastStatus.serviceDisabled);
+      },
+    );
   }
 
   @override
@@ -217,7 +241,7 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
                       message: 'لا يوجد طلب حالي — سيصلك إشعار عند إسناد طلب جديد',
                       icon: Icons.local_shipping_outlined,
                     )
-                  : _CurrentOrderCard(order: currentOrder),
+                  : _CurrentOrderCard(order: currentOrder, broadcastStatus: _broadcastStatus),
             ),
 
             if (queued.isNotEmpty) ...[
@@ -243,7 +267,8 @@ class _DriverScreenState extends ConsumerState<DriverScreen> {
 
 class _CurrentOrderCard extends ConsumerStatefulWidget {
   final OrderModel order;
-  const _CurrentOrderCard({required this.order});
+  final LocationBroadcastStatus broadcastStatus;
+  const _CurrentOrderCard({required this.order, required this.broadcastStatus});
 
   @override
   ConsumerState<_CurrentOrderCard> createState() => _CurrentOrderCardState();
@@ -291,34 +316,94 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
     setState(() => _isUpdating = true);
     try {
       await OrderService.confirmPickup(widget.order.id);
+    } catch (e) {
+      _showNetworkError();
     } finally {
       if (mounted) setState(() => _isUpdating = false);
     }
   }
 
-  Future<void> _markDelivered() async {
+  // "تم التسليم" لا رجعة فيه فعلياً — يحتاج تأكيداً صريحاً بدل نقرة واحدة قد
+  // تحدث بالخطأ أثناء القيادة أو الحركة
+  Future<void> _confirmMarkDelivered() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تأكيد التسليم'),
+        content: Text('هل تم تسليم طلب "${widget.order.customerName}" فعلياً للعميل؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ليس بعد')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.success),
+            child: const Text('نعم، تم التسليم'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+
     setState(() => _isUpdating = true);
     try {
       await OrderService.updateOrderStatus(widget.order.id, OrderStatus.delivered);
+    } catch (e) {
+      _showNetworkError();
     } finally {
       if (mounted) setState(() => _isUpdating = false);
     }
   }
 
-  void _openCustomerMap() {
-    final order = widget.order;
-    if (!order.hasDeliveryLocation) return;
-    launchUrl(
-      Uri.parse('https://www.google.com/maps/search/?api=1&query=${order.deliveryLat},${order.deliveryLng}'),
-      mode: LaunchMode.externalApplication,
-    );
+  void _showNetworkError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('تعذّر تنفيذ العملية — تحقّق من اتصالك وحاول مرة أخرى'),
+      backgroundColor: AppColors.error,
+    ));
   }
 
-  void _openRestaurantMap(double lat, double lng) {
-    launchUrl(
-      Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng'),
-      mode: LaunchMode.externalApplication,
-    );
+  // يفتح الملاحة بالإحداثيات الدقيقة إن توفّرت، وإلا يبحث بنص العنوان نفسه —
+  // بدل غياب أي زر ملاحة بالكامل عند عدم توفر إحداثيات دقيقة للعميل
+  Future<void> _openCustomerMap() async {
+    final order = widget.order;
+    final Uri uri;
+    if (order.hasDeliveryLocation) {
+      uri = Uri.parse(
+          'https://www.google.com/maps/search/?api=1&query=${order.deliveryLat},${order.deliveryLng}');
+    } else if (order.deliveryAddress != null && order.deliveryAddress!.isNotEmpty) {
+      uri = Uri.parse(
+          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(order.deliveryAddress!)}');
+    } else {
+      return;
+    }
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('تعذّر فتح تطبيق الخرائط'),
+        backgroundColor: AppColors.error,
+      ));
+    }
+  }
+
+  Future<void> _openRestaurantMap(double lat, double lng) async {
+    final uri = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('تعذّر فتح تطبيق الخرائط'),
+        backgroundColor: AppColors.error,
+      ));
+    }
+  }
+
+  Future<void> _callCustomer(String phone) async {
+    final uri = Uri(scheme: 'tel', path: phone);
+    final ok = await launchUrl(uri);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('تعذّر فتح تطبيق الاتصال'),
+        backgroundColor: AppColors.error,
+      ));
+    }
   }
 
   Color _statusColor(OrderStatus s) {
@@ -375,6 +460,10 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
               ),
             ],
           ),
+          if (order.orderType == OrderType.delivery) ...[
+            const SizedBox(height: 8),
+            _LocationBroadcastBadge(status: widget.broadcastStatus),
+          ],
           if (order.estimatedMinutes != null && order.remainingTime != null) ...[
             const SizedBox(height: 10),
             Builder(builder: (_) {
@@ -432,29 +521,86 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
                 ),
               ),
               IconButton(
-                onPressed: () =>
-                    launchUrl(Uri(scheme: 'tel', path: order.customerPhone)),
+                onPressed: () => _callCustomer(order.customerPhone),
                 icon: Icon(Icons.call, color: AppColors.success),
                 tooltip: 'اتصل بالعميل',
               ),
             ],
           ),
-          if (order.deliveryAddress != null && order.deliveryAddress!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Row(
+          if (order.orderType == OrderType.delivery &&
+              order.deliveryAddress != null &&
+              order.deliveryAddress!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            // عنوان التوصيل بارز بوضوح — أهم معلومة أثناء القيادة، لا مجرد
+            // ملاحظة ثانوية صغيرة أسفل الاسم والهاتف
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.purple.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.location_on, color: AppColors.purple, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      order.deliveryAddress!,
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          // شارة طريقة الدفع — أهم من غيرها لتفادي طلب نقد ممّن دفع إلكترونياً
+          // (أو نسيان تحصيل نقد ممّن لم يدفع)، عند تفعيل الدفع الإلكتروني لاحقاً
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: (order.paymentMethod == PaymentMethod.cash
+                      ? AppColors.warning
+                      : AppColors.success)
+                  .withOpacity(0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.note_alt_outlined, color: AppColors.textHint, size: 16),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    order.deliveryAddress!,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                Icon(
+                  order.paymentMethod == PaymentMethod.cash
+                      ? Icons.payments_outlined
+                      : Icons.credit_card,
+                  size: 13,
+                  color: order.paymentMethod == PaymentMethod.cash
+                      ? AppColors.warning
+                      : AppColors.success,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  order.paymentMethod == PaymentMethod.cash
+                      ? 'يُحصَّل نقداً من العميل'
+                      : 'مدفوع مسبقاً — لا تحصيل',
+                  style: TextStyle(
+                    color: order.paymentMethod == PaymentMethod.cash
+                        ? AppColors.warning
+                        : AppColors.success,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
-          ],
-          if (settings.hasRestaurantLocation || order.hasDeliveryLocation) ...[
+          ),
+          if (settings.hasRestaurantLocation ||
+              order.hasDeliveryLocation ||
+              (order.deliveryAddress?.isNotEmpty ?? false)) ...[
             const SizedBox(height: 10),
             Row(
               children: [
@@ -467,9 +613,10 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
                       label: const Text('موقع المطعم', style: TextStyle(fontSize: 12)),
                     ),
                   ),
-                if (settings.hasRestaurantLocation && order.hasDeliveryLocation)
+                if (settings.hasRestaurantLocation &&
+                    (order.hasDeliveryLocation || (order.deliveryAddress?.isNotEmpty ?? false)))
                   const SizedBox(width: 8),
-                if (order.hasDeliveryLocation)
+                if (order.hasDeliveryLocation || (order.deliveryAddress?.isNotEmpty ?? false))
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: _openCustomerMap,
@@ -530,11 +677,61 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
               isLoading: _isUpdating,
               width: double.infinity,
               color: _isReady ? AppColors.warning : AppColors.success,
-              onPressed: _isReady ? _confirmPickup : _markDelivered,
+              onPressed: _isReady ? _confirmPickup : _confirmMarkDelivered,
             ),
         ],
       ),
     ).animate().fadeIn().slideY(begin: 0.05);
+  }
+}
+
+// مؤشر مستمر لحالة مشاركة الموقع الحي مع العميل — بدل عمل البث بصمت تام بلا
+// أي إشارة، أو توقّفه بصمت عند تعطّل إذن/خدمة الموقع دون تنبيه أحد
+class _LocationBroadcastBadge extends StatelessWidget {
+  final LocationBroadcastStatus status;
+  const _LocationBroadcastBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    final (Color color, IconData icon, String label) = switch (status) {
+      LocationBroadcastStatus.active => (
+          AppColors.success,
+          Icons.location_on,
+          'مشاركة موقعك مع العميل نشطة'
+        ),
+      LocationBroadcastStatus.permissionDenied => (
+          AppColors.error,
+          Icons.location_off,
+          'مشاركة الموقع متوقفة — فعّل إذن الموقع من إعدادات المتصفح'
+        ),
+      LocationBroadcastStatus.serviceDisabled => (
+          AppColors.error,
+          Icons.location_disabled,
+          'مشاركة الموقع متوقفة — فعّل خدمة الموقع في جهازك'
+        ),
+      LocationBroadcastStatus.idle => (AppColors.textHint, Icons.location_searching, 'جارٍ تفعيل مشاركة الموقع...'),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: color),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -581,6 +778,20 @@ class _QueuedOrderTile extends StatelessWidget {
               ],
             ),
           ),
+          // طلب جاهز فعلياً بانتظار دوره فقط لأن طلباً آخر أُسنِد قبله — يستحق
+          // إشارة واضحة لأن المندوب قد يقدر التوجه لاستلامه فوراً رغم مكانه بالطابور
+          if (order.status == OrderStatus.ready || order.status == OrderStatus.outForDelivery)
+            Container(
+              margin: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text('جاهز',
+                  style: TextStyle(
+                      color: AppColors.warning, fontSize: 10, fontWeight: FontWeight.bold)),
+            ),
           Text(
             DateFormat('hh:mm a').format(order.createdAt),
             style: TextStyle(color: AppColors.textHint, fontSize: 11),
@@ -608,9 +819,37 @@ class _InvitationCardState extends State<_InvitationCard> {
     setState(() => _isResponding = true);
     try {
       await OrderService.respondToDriverAssignment(widget.order.id, accepted: accepted);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تعذّر إرسال الرد — تحقّق من اتصالك وحاول مرة أخرى'),
+          backgroundColor: AppColors.error,
+        ));
+      }
     } finally {
       if (mounted) setState(() => _isResponding = false);
     }
+  }
+
+  // الرفض لا رجعة فيه (يُلغي إسناد الطلب) — يحتاج تأكيداً صريحاً كأي إجراء
+  // نهائي آخر، بدل نقرة واحدة قد تحدث بالخطأ
+  Future<void> _confirmReject() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('رفض الطلب'),
+        content: Text('هل تريد رفض توصيل طلب "${widget.order.customerName}"؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('رفض'),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) await _respond(false);
   }
 
   @override
@@ -659,14 +898,17 @@ class _InvitationCardState extends State<_InvitationCard> {
           else
             Row(
               children: [
+                // وزن بصري متساوٍ مع زر القبول (كلاهما معبَّأ بالكامل) — كانا
+                // سابقاً بوزنين مختلفين (حدود رفيعة مقابل تعبئة كاملة)، ما
+                // يُفقد أحد الخيارين وضوحه تحت إضاءة قوية رغم تساوي أهميتهما
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _respond(false),
-                    icon: Icon(Icons.close, size: 16, color: AppColors.error),
+                  child: ElevatedButton.icon(
+                    onPressed: _confirmReject,
+                    icon: Icon(Icons.close, size: 16, color: Colors.white),
                     label: const Text('رفض'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.error,
-                      side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: Colors.white,
                     ),
                   ),
                 ),

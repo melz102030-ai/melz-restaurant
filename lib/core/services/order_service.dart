@@ -155,8 +155,24 @@ class OrderService {
                   o.status != OrderStatus.delivered &&
                   o.status != OrderStatus.cancelled)
               .toList();
-          orders.sort((a, b) =>
-              (a.assignedAt ?? a.createdAt).compareTo(b.assignedAt ?? b.createdAt));
+          // الطلب الجاهز فعلياً (أو الذي يحمله المندوب بالفعل) يُعتبر "الحالي"
+          // بغض النظر عن ترتيب الإسناد الزمني — قبله كان طلب أُسنِد أولاً لكن
+          // لا يزال قيد التحضير في المطبخ يحجب طلباً آخر جاهزاً فعلاً للاستلام
+          int readinessRank(OrderModel o) {
+            switch (o.status) {
+              case OrderStatus.ready:
+              case OrderStatus.outForDelivery:
+                return 0;
+              default:
+                return 1;
+            }
+          }
+
+          orders.sort((a, b) {
+            final rankDiff = readinessRank(a).compareTo(readinessRank(b));
+            if (rankDiff != 0) return rankDiff;
+            return (a.assignedAt ?? a.createdAt).compareTo(b.assignedAt ?? b.createdAt);
+          });
           return orders;
         });
   }
