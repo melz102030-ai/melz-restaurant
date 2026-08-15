@@ -145,7 +145,8 @@ class _DriverTile extends StatelessWidget {
             onPressed: () {
               Navigator.pop(ctx);
               runOrShowError(
-                  context, () => AuthService.changeUserRole(driver.id, UserRole.customer));
+                  context, () => AuthService.changeUserRole(driver.id, UserRole.customer),
+                  successMessage: 'تم إلغاء صلاحية المندوب');
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('تأكيد'),

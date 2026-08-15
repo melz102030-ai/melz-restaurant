@@ -266,7 +266,8 @@ class _ZoneTile extends StatelessWidget {
                   TextButton(
                     onPressed: () {
                       Navigator.pop(ctx);
-                      runOrShowError(context, () => DeliveryZoneService.deleteZone(zone.id));
+                      runOrShowError(context, () => DeliveryZoneService.deleteZone(zone.id),
+                          successMessage: 'تم حذف النطاق');
                     },
                     child: const Text(AppStrings.delete, style: TextStyle(color: AppColors.error)),
                   ),

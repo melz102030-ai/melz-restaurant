@@ -208,7 +208,8 @@ class _AdTile extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              runOrShowError(context, () => PopupAdService.deleteAd(ad.id));
+              runOrShowError(context, () => PopupAdService.deleteAd(ad.id),
+                  successMessage: 'تم حذف الإعلان');
               for (final url in ad.imageUrls) {
                 CloudinaryService.deleteImage(url);
               }

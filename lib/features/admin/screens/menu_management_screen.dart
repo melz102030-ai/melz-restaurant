@@ -463,7 +463,8 @@ class _MenuItemTile extends ConsumerWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              runOrShowError(context, () => MenuService.deleteMenuItem(item.id));
+              runOrShowError(context, () => MenuService.deleteMenuItem(item.id),
+                  successMessage: 'تم حذف الصنف');
               CloudinaryService.deleteImage(item.imageUrl);
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
@@ -587,7 +588,8 @@ class _CategoryTile extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              runOrShowError(context, () => MenuService.deleteCategory(cat.id));
+              runOrShowError(context, () => MenuService.deleteCategory(cat.id),
+                  successMessage: 'تم حذف الفئة');
               CloudinaryService.deleteImage(cat.imageUrl);
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
@@ -1694,7 +1696,8 @@ class _TemplateTile extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              runOrShowError(context, () => MenuService.deleteOptionTemplate(template.id));
+              runOrShowError(context, () => MenuService.deleteOptionTemplate(template.id),
+                  successMessage: 'تم حذف القالب');
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),

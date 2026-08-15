@@ -195,7 +195,8 @@ class _BannerTile extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              runOrShowError(context, () => PromoBannerService.deleteBanner(banner.id));
+              runOrShowError(context, () => PromoBannerService.deleteBanner(banner.id),
+                  successMessage: 'تم حذف البانر');
               CloudinaryService.deleteImage(banner.imageUrl);
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
