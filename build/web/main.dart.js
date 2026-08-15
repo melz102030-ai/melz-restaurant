@@ -47235,7 +47235,7 @@ case 3:n=c
 if(n==null){q=!1
 s=1
 break}p=5
-k=A.dD("https://REPLACE_AFTER_FIRST_DEPLOY.workers.dev",0,null)
+k=A.dD("https://melz-delete-image.melz102030.workers.dev",0,null)
 i=t.N
 h=A.b(["Authorization","Bearer "+n,"Content-Type","application/json"],i,i)
 s=8
