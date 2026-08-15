@@ -10,6 +10,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/staff_login_screen.dart';
 import 'features/customer/screens/customer_home_screen.dart';
 import 'features/customer/screens/cart_screen.dart';
+import 'features/customer/screens/item_detail_screen.dart';
 import 'features/customer/screens/order_tracking_screen.dart';
 import 'features/customer/screens/order_history_screen.dart';
 import 'features/customer/screens/profile_screen.dart';
@@ -55,7 +56,8 @@ final _routerProvider = Provider<GoRouter>((ref) {
       final user = ref.read(authProvider);
       final loc = state.matchedLocation;
       final isAuthRoute = loc == '/login' || loc == '/staff-login';
-      final isGuestAllowedRoute = loc == '/home' || loc == '/cart';
+      final isGuestAllowedRoute =
+          loc == '/home' || loc == '/cart' || loc.startsWith('/item');
       final isAdminRoute = loc.startsWith('/admin');
       final isKitchenRoute = loc.startsWith('/kitchen');
       final isDriverRoute = loc.startsWith('/driver');
@@ -64,6 +66,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
       // لموظف حقيقي يفتح رابط تتبع طلب أو سجل طلباته الشخصي
       final isSharedCustomerRoute = loc.startsWith('/home') ||
           loc.startsWith('/cart') ||
+          loc.startsWith('/item') ||
           loc.startsWith('/track') ||
           loc.startsWith('/profile') ||
           loc.startsWith('/orders') ||
@@ -113,6 +116,11 @@ final _routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/cart',
         builder: (_, __) => const CartScreen(),
+      ),
+      GoRoute(
+        path: '/item/:itemId',
+        builder: (_, state) =>
+            ItemDetailScreen(itemId: state.pathParameters['itemId']!),
       ),
       GoRoute(
         path: '/track/:orderId',

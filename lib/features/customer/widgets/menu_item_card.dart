@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/menu_item_model.dart';
@@ -44,7 +45,7 @@ class MenuItemListCard extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
         onTap: available && item.hasOptions
-            ? () => _showOptionsSheet(context, ref)
+            ? () => _showOptionsSheet(context)
             : null,
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -212,7 +213,7 @@ class MenuItemListCard extends ConsumerWidget {
                   clipBehavior: Clip.none,
                   children: [
                     _AddBtn(
-                      onTap: () => _showOptionsSheet(context, ref),
+                      onTap: () => _showOptionsSheet(context),
                       icon: Icons.tune,
                     ),
                     if (totalQty > 0)
@@ -254,12 +255,12 @@ class MenuItemListCard extends ConsumerWidget {
     );
   }
 
-  void _showOptionsSheet(BuildContext context, WidgetRef ref) {
+  void _showOptionsSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _OptionsSheet(item: item, ref: ref),
+      builder: (_) => _OptionsSheet(item: item),
     );
   }
 
@@ -277,7 +278,6 @@ class MenuItemGridCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final cartNotifier = ref.watch(cartProvider.notifier);
     final totalQty = ref.watch(cartProvider.select(
       (c) => c
           .where((i) => i.item.id == item.id)
@@ -305,9 +305,10 @@ class MenuItemGridCard extends ConsumerWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: available && item.hasOptions
-            ? () => _showOptionsSheet(context, ref)
-            : null,
+        // البطاقة المضغوطة لا تتّسع لأزرار كمية كاملة، فأي تفاعل (لمس البطاقة،
+        // زر الإضافة، أو شارة الكمية) يفتح صفحة الصنف الكاملة لإتمام/تعديل
+        // الاختيار — بدل نافذة سفلية أو إضافة صامتة بلا وسيلة تعديل لاحقة
+        onTap: available ? () => _openItemDetail(context) : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -392,12 +393,11 @@ class MenuItemGridCard extends ConsumerWidget {
                       ),
                       if (available)
                         totalQty == 0
-                            ? _MiniAddBtn(
-                                onTap: () => item.hasOptions
-                                    ? _showOptionsSheet(context, ref)
-                                    : cartNotifier.addItem(item),
-                              )
-                            : _MiniQtyBadge(qty: totalQty),
+                            ? _MiniAddBtn(onTap: () => _openItemDetail(context))
+                            : _MiniQtyBadge(
+                                qty: totalQty,
+                                onTap: () => _openItemDetail(context),
+                              ),
                     ],
                   ),
                 ],
@@ -413,13 +413,8 @@ class MenuItemGridCard extends ConsumerWidget {
         : card;
   }
 
-  void _showOptionsSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _OptionsSheet(item: item, ref: ref),
-    );
+  void _openItemDetail(BuildContext context) {
+    context.push('/item/${item.id}');
   }
 
   Widget _placeholder() => Container(
@@ -551,18 +546,22 @@ class _MiniAddBtn extends StatelessWidget {
 
 class _MiniQtyBadge extends StatelessWidget {
   final int qty;
-  const _MiniQtyBadge({required this.qty});
+  final VoidCallback onTap;
+  const _MiniQtyBadge({required this.qty, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: AppColors.purple,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          '×$qty',
-          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.purple,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            '×$qty',
+            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+          ),
         ),
       );
 }
@@ -667,16 +666,92 @@ class _CircleBtn extends StatelessWidget {
 
 // ── Options bottom sheet ──────────────────────────────────────────────────────
 
-class _OptionsSheet extends StatefulWidget {
+class _OptionsSheet extends StatelessWidget {
   final MenuItemModel item;
-  final WidgetRef ref;
-  const _OptionsSheet({required this.item, required this.ref});
+  const _OptionsSheet({required this.item});
 
   @override
-  State<_OptionsSheet> createState() => _OptionsSheetState();
+  Widget build(BuildContext context) {
+    return Container(
+      constraints:
+          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Container(
+            margin: const EdgeInsets.only(top: 10),
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceLight,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.name,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
+                        style: TextStyle(
+                          color: AppColors.purple,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close, color: AppColors.textHint),
+                ),
+              ],
+            ),
+          ),
+
+          Divider(color: AppColors.surfaceLight, height: 16),
+
+          Flexible(child: ItemOptionsView(item: item)),
+        ],
+      ),
+    );
+  }
 }
 
-class _OptionsSheetState extends State<_OptionsSheet> {
+// محتوى اختيار الخيارات + عداد الكمية + زر الإضافة — مشترك بين النافذة
+// السفلية المختصرة (_OptionsSheet) وصفحة تفاصيل الصنف الكاملة
+// (ItemDetailScreen)، لتفادي تكرار منطق الحالة والتسعير بينهما
+class ItemOptionsView extends ConsumerStatefulWidget {
+  final MenuItemModel item;
+  // true لصفحة كاملة (تملأ الارتفاع المتاح)، false لنافذة سفلية (تتقلّص حسب المحتوى)
+  final bool asPage;
+  const ItemOptionsView({super.key, required this.item, this.asPage = false});
+
+  @override
+  ConsumerState<ItemOptionsView> createState() => _ItemOptionsViewState();
+}
+
+class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   final Map<String, Set<String>> _selections = {};
   int _qty = 1;
 
@@ -731,7 +806,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
       ));
     }
 
-    final notifier = widget.ref.read(cartProvider.notifier);
+    final notifier = ref.read(cartProvider.notifier);
     for (int i = 0; i < _qty; i++) {
       notifier.addItem(widget.item, selectedGroups);
     }
@@ -750,262 +825,185 @@ class _OptionsSheetState extends State<_OptionsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints:
-          BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
+    final optionsList = ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      shrinkWrap: !widget.asPage,
+      children: widget.item.optionGroups.map((group) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    group.name,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: group.required
+                        ? AppColors.manjawi.withValues(alpha: 0.15)
+                        : AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: Text(
+                    group.required ? 'إجباري' : 'اختياري',
+                    style: TextStyle(
+                      color: group.required ? AppColors.manjawi : AppColors.textHint,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...group.options.map((opt) {
+              final selected = _selections[group.id]?.contains(opt.id) ?? false;
+              return GestureDetector(
+                onTap: () => setState(() {
+                  if (group.type == OptionGroupType.single) {
+                    _selections[group.id] = selected ? {} : {opt.id};
+                  } else {
+                    final s = Set<String>.from(_selections[group.id] ?? {});
+                    selected ? s.remove(opt.id) : s.add(opt.id);
+                    _selections[group.id] = s;
+                  }
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppColors.purple.withValues(alpha: 0.1)
+                        : AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: selected ? AppColors.purple : AppColors.surfaceLight,
+                      width: selected ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        group.type == OptionGroupType.single
+                            ? (selected
+                                ? Icons.radio_button_checked
+                                : Icons.radio_button_unchecked)
+                            : (selected
+                                ? Icons.check_box
+                                : Icons.check_box_outline_blank),
+                        color: selected ? AppColors.purple : AppColors.textHint,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          opt.name,
+                          style: TextStyle(
+                            color: selected
+                                ? AppColors.textPrimary
+                                : AppColors.textSecondary,
+                            fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      if (opt.priceAdjustment != 0)
+                        Text(
+                          '${opt.priceAdjustment > 0 ? '+' : ''}${opt.priceAdjustment.toStringAsFixed(0)} ${AppStrings.sar}',
+                          style: TextStyle(
+                            color: opt.priceAdjustment > 0
+                                ? AppColors.success
+                                : AppColors.textHint,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 8),
+          ],
+        );
+      }).toList(),
+    );
+
+    final footer = Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3))
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
-          Container(
-            margin: const EdgeInsets.only(top: 10),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceLight,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.item.name,
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '${widget.item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
-                        style: TextStyle(
-                          color: AppColors.purple,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _CircleBtn(
+                icon: Icons.remove,
+                color: AppColors.red,
+                onTap: () {
+                  if (_qty > 1) setState(() => _qty--);
+                },
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  '$_qty',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close, color: AppColors.textHint),
-                ),
-              ],
-            ),
+              ),
+              _CircleBtn(
+                icon: Icons.add,
+                color: AppColors.purple,
+                onTap: () => setState(() => _qty++),
+              ),
+            ],
           ),
-
-          Divider(color: AppColors.surfaceLight, height: 16),
-
-          // Options
-          Flexible(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              shrinkWrap: true,
-              children: widget.item.optionGroups.map((group) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            group.name,
-                            style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: group.required
-                                ? AppColors.manjawi.withValues(alpha: 0.15)
-                                : AppColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          child: Text(
-                            group.required ? 'إجباري' : 'اختياري',
-                            style: TextStyle(
-                              color: group.required
-                                  ? AppColors.manjawi
-                                  : AppColors.textHint,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ...group.options.map((opt) {
-                      final selected =
-                          _selections[group.id]?.contains(opt.id) ?? false;
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          if (group.type == OptionGroupType.single) {
-                            _selections[group.id] = selected ? {} : {opt.id};
-                          } else {
-                            final s =
-                                Set<String>.from(_selections[group.id] ?? {});
-                            selected ? s.remove(opt.id) : s.add(opt.id);
-                            _selections[group.id] = s;
-                          }
-                        }),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          margin: const EdgeInsets.only(bottom: 6),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 11),
-                          decoration: BoxDecoration(
-                            color: selected
-                                ? AppColors.purple.withValues(alpha: 0.1)
-                                : AppColors.cardBackground,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: selected
-                                  ? AppColors.purple
-                                  : AppColors.surfaceLight,
-                              width: selected ? 1.5 : 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                group.type == OptionGroupType.single
-                                    ? (selected
-                                        ? Icons.radio_button_checked
-                                        : Icons.radio_button_unchecked)
-                                    : (selected
-                                        ? Icons.check_box
-                                        : Icons.check_box_outline_blank),
-                                color: selected
-                                    ? AppColors.purple
-                                    : AppColors.textHint,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  opt.name,
-                                  style: TextStyle(
-                                    color: selected
-                                        ? AppColors.textPrimary
-                                        : AppColors.textSecondary,
-                                    fontWeight: selected
-                                        ? FontWeight.w600
-                                        : FontWeight.normal,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                              if (opt.priceAdjustment != 0)
-                                Text(
-                                  '${opt.priceAdjustment > 0 ? '+' : ''}${opt.priceAdjustment.toStringAsFixed(0)} ${AppStrings.sar}',
-                                  style: TextStyle(
-                                    color: opt.priceAdjustment > 0
-                                        ? AppColors.success
-                                        : AppColors.textHint,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                    const SizedBox(height: 8),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-
-          // Footer: qty + add button
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                    offset: Offset(0, -3))
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Qty selector
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _CircleBtn(
-                      icon: Icons.remove,
-                      color: AppColors.red,
-                      onTap: () {
-                        if (_qty > 1) setState(() => _qty--);
-                      },
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Text(
-                        '$_qty',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    _CircleBtn(
-                      icon: Icons.add,
-                      color: AppColors.purple,
-                      onTap: () => setState(() => _qty++),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Add button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _canAdd ? _addToCart : null,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor:
-                          _canAdd ? AppColors.purple : AppColors.textHint,
-                    ),
-                    child: Text(
-                      _canAdd
-                          ? 'أضف للسلة — ${_totalPrice.toStringAsFixed(0)} ${AppStrings.sar}'
-                          : 'اختر الخيارات الإجبارية',
-                      style: TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _canAdd ? _addToCart : null,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                backgroundColor: _canAdd ? AppColors.purple : AppColors.textHint,
+              ),
+              child: Text(
+                _canAdd
+                    ? 'أضف للسلة — ${_totalPrice.toStringAsFixed(0)} ${AppStrings.sar}'
+                    : 'اختر الخيارات الإجبارية',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
       ),
+    );
+
+    return Column(
+      mainAxisSize: widget.asPage ? MainAxisSize.max : MainAxisSize.min,
+      children: [
+        widget.asPage ? Expanded(child: optionsList) : Flexible(child: optionsList),
+        footer,
+      ],
     );
   }
 }

@@ -42,6 +42,16 @@ final adminBannersProvider = StreamProvider<List<PromoBannerModel>>((ref) {
   return PromoBannerService.streamBanners();
 });
 
+// صنف واحد بمعرّفه — لصفحة تفاصيل الصنف الكاملة، بلا استعلام Firestore إضافي
+// (يعتمد على نفس تدفّق menuItemsStreamProvider(null) المستخدم أصلاً في القائمة)
+final menuItemByIdProvider = Provider.family<MenuItemModel?, String>((ref, id) {
+  final items = ref.watch(menuItemsStreamProvider(null)).valueOrNull ?? const [];
+  for (final item in items) {
+    if (item.id == id) return item;
+  }
+  return null;
+});
+
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
