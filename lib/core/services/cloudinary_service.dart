@@ -8,12 +8,9 @@ class CloudinaryService {
   static const String uploadPreset = 'melz_upload';
   static const String folder = 'melz_restaurant';
 
-  // رابط Cloudflare Worker الذي ينفّذ الحذف الموقّع (cloudflare/worker.js) —
-  // هذا رابط مؤقت غير حقيقي بعد؛ يُستبدَل بالرابط الفعلي الذي يطبعه أول
-  // نشر ناجح عبر: npx wrangler deploy (داخل مجلد cloudflare/)، أو من سجلّ
-  // GitHub Actions إن نُشر عبر .github/workflows/deploy-cloudflare-worker.yml
+  // رابط Cloudflare Worker الذي ينفّذ الحذف الموقّع (cloudflare/worker.js)
   static const String _deleteWorkerUrl =
-      'https://REPLACE_AFTER_FIRST_DEPLOY.workers.dev';
+      'https://melz-delete-image.melz102030.workers.dev';
 
   static Future<String?> uploadImage(Uint8List imageBytes, String fileName) async {
     final url = Uri.parse(
