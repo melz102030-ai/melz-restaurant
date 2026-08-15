@@ -11,6 +11,7 @@ import '../../../core/providers/popup_ad_provider.dart';
 import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/popup_ad_service.dart';
 import '../../../features/customer/providers/menu_provider.dart';
+import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
 const _uuid = Uuid();
@@ -124,7 +125,8 @@ class _AdTile extends StatelessWidget {
           ),
           Switch(
             value: ad.isActive,
-            onChanged: (v) => PopupAdService.toggleAdActive(ad.id, v),
+            onChanged: (v) =>
+                runOrShowError(context, () => PopupAdService.toggleAdActive(ad.id, v)),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           _ActionIcon(
@@ -175,8 +177,8 @@ class _AdTile extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              PopupAdService.deleteAd(ad.id);
               Navigator.pop(context);
+              runOrShowError(context, () => PopupAdService.deleteAd(ad.id));
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),

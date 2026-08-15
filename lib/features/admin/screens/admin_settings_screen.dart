@@ -62,6 +62,23 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   }
 
   Future<void> _save() async {
+    final minOrder = double.tryParse(_minOrderCtrl.text.trim());
+    if (minOrder == null || minOrder < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('الحد الأدنى للطلب رقم غير صحيح'),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+    final prepTime = int.tryParse(_prepTimeCtrl.text.trim());
+    if (prepTime == null || prepTime < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('مدة التحضير التقديرية رقم غير صحيح'),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       // نجلب الإعدادات الحالية ونعدّل عليها بـ copyWith فقط — حتى لا نطغى بالقيم
@@ -69,8 +86,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
       final current = await SettingsService.getSettings();
       final settings = current.copyWith(
         restaurantName: _nameCtrl.text.trim(),
-        minOrderAmount: double.tryParse(_minOrderCtrl.text) ?? 30,
-        estimatedPrepTime: int.tryParse(_prepTimeCtrl.text) ?? 30,
+        minOrderAmount: minOrder,
+        estimatedPrepTime: prepTime,
         whatsappNumber: _whatsappCtrl.text.trim(),
         address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
         welcomeMessage: _welcomeMsgCtrl.text.trim().isEmpty

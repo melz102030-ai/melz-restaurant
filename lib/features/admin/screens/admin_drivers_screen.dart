@@ -6,6 +6,7 @@ import '../../../core/models/order_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/providers/drivers_provider.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/admin_provider.dart';
 
@@ -119,16 +120,39 @@ class _DriverTile extends StatelessWidget {
           Switch(
             value: driver.isAvailable,
             activeColor: AppColors.success,
-            onChanged: (v) => AuthService.setDriverAvailability(driver.id, v),
+            onChanged: (v) =>
+                runOrShowError(context, () => AuthService.setDriverAvailability(driver.id, v)),
           ),
           IconButton(
-            onPressed: () => AuthService.changeUserRole(driver.id, UserRole.customer),
+            onPressed: () => _confirmRevoke(context),
             icon: Icon(Icons.person_remove_outlined, color: AppColors.error, size: 20),
             tooltip: 'إلغاء صلاحية المندوب',
           ),
         ],
       ),
     ).animate(delay: Duration(milliseconds: index * 40)).fadeIn();
+  }
+
+  void _confirmRevoke(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إلغاء صلاحية المندوب'),
+        content: Text('هل تريد إلغاء صلاحية "${driver.name}" كمندوب توصيل؟ سيصبح حساباً عادياً.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              runOrShowError(
+                  context, () => AuthService.changeUserRole(driver.id, UserRole.customer));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('تأكيد'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

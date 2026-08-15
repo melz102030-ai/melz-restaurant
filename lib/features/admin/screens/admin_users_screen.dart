@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/admin_provider.dart';
@@ -234,7 +235,7 @@ class _UserTile extends StatelessWidget {
                 ],
               ),
             ),
-            onSelected: (role) => AuthService.changeUserRole(user.id, role),
+            onSelected: (role) => _confirmRoleChange(context, role, roleLabels),
             itemBuilder: (_) => UserRole.values.map((r) {
               return PopupMenuItem<UserRole>(
                 value: r,
@@ -248,6 +249,32 @@ class _UserTile extends StatelessWidget {
         ],
       ),
     ).animate(delay: Duration(milliseconds: index * 30)).fadeIn();
+  }
+
+  // ضغطة واحدة على تصعيد/تخفيض صلاحية مستخدم (خاصة الأدمن) لا رجعة سهلة فيها
+  // — تأكيد صريح قبل التنفيذ، بنفس نمط تأكيد الحذف في بقية لوحة الإدارة
+  void _confirmRoleChange(
+      BuildContext context, UserRole newRole, Map<UserRole, String> roleLabels) {
+    if (newRole == user.role) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تغيير الصلاحية'),
+        content: Text(
+          'هل تريد تغيير صلاحية "${user.name}" من "${roleLabels[user.role]}" إلى "${roleLabels[newRole]}"؟',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              runOrShowError(context, () => AuthService.changeUserRole(user.id, newRole));
+            },
+            child: const Text('تأكيد'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -8,6 +8,7 @@ import '../../../core/providers/delivery_zone_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/delivery_zone_service.dart';
 import '../../../core/services/settings_service.dart';
+import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../customer/screens/delivery_location_picker_screen.dart';
 
@@ -264,8 +265,8 @@ class _ZoneTile extends StatelessWidget {
                   TextButton(onPressed: () => Navigator.pop(ctx), child: const Text(AppStrings.cancel)),
                   TextButton(
                     onPressed: () {
-                      DeliveryZoneService.deleteZone(zone.id);
                       Navigator.pop(ctx);
+                      runOrShowError(context, () => DeliveryZoneService.deleteZone(zone.id));
                     },
                     child: const Text(AppStrings.delete, style: TextStyle(color: AppColors.error)),
                   ),

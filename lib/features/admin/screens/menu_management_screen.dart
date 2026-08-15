@@ -16,6 +16,7 @@ import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/excel_import_service.dart';
 import '../../../core/services/promo_banner_service.dart';
 import '../../../features/customer/providers/menu_provider.dart';
+import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
 const _uuid = Uuid();
@@ -303,7 +304,8 @@ class _MenuItemTile extends ConsumerWidget {
             children: [
               Switch(
                 value: item.isAvailable,
-                onChanged: (v) => MenuService.toggleItemAvailability(item.id, v),
+                onChanged: (v) =>
+                    runOrShowError(context, () => MenuService.toggleItemAvailability(item.id, v)),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               Row(
@@ -365,8 +367,8 @@ class _MenuItemTile extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              MenuService.deleteMenuItem(item.id);
               Navigator.pop(context);
+              runOrShowError(context, () => MenuService.deleteMenuItem(item.id));
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
@@ -486,8 +488,8 @@ class _CategoryTile extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              MenuService.deleteCategory(cat.id);
               Navigator.pop(context);
+              runOrShowError(context, () => MenuService.deleteCategory(cat.id));
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
@@ -569,6 +571,19 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       setState(() => _saveError = 'يرجى ملء جميع الحقول المطلوبة');
       return;
     }
+    final price = double.tryParse(_priceCtrl.text.trim());
+    if (price == null || price < 0) {
+      setState(() => _saveError = 'السعر المُدخل غير صحيح');
+      return;
+    }
+    double? discount;
+    if (_discountCtrl.text.trim().isNotEmpty) {
+      discount = double.tryParse(_discountCtrl.text.trim());
+      if (discount == null || discount < 0 || discount > 100) {
+        setState(() => _saveError = 'نسبة الخصم يجب أن تكون رقماً بين 0 و100');
+        return;
+      }
+    }
     setState(() => _isSaving = true);
     try {
       String? finalImageUrl = _imageUrl;
@@ -582,13 +597,11 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         description: _descCtrl.text.trim(),
         categoryId: _selectedCategoryId!,
         categoryName: _selectedCategoryName!,
-        price: double.tryParse(_priceCtrl.text) ?? 0,
+        price: price,
         imageUrl: finalImageUrl,
         isAvailable: _isAvailable,
         sortOrder: widget.item?.sortOrder ?? 0,
-        discountPercent: _discountCtrl.text.isEmpty
-            ? null
-            : double.tryParse(_discountCtrl.text),
+        discountPercent: discount,
         optionGroups: _optionGroups,
         isBestSeller: _isBestSeller,
         isNew: _isNew,
@@ -1618,8 +1631,8 @@ class _TemplateTile extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              MenuService.deleteOptionTemplate(template.id);
               Navigator.pop(context);
+              runOrShowError(context, () => MenuService.deleteOptionTemplate(template.id));
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
@@ -1847,7 +1860,8 @@ class _BannerTile extends StatelessWidget {
           ),
           Switch(
             value: banner.isActive,
-            onChanged: (v) => PromoBannerService.toggleBannerActive(banner.id, v),
+            onChanged: (v) => runOrShowError(
+                context, () => PromoBannerService.toggleBannerActive(banner.id, v)),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           _ActionIcon(
@@ -1898,8 +1912,8 @@ class _BannerTile extends StatelessWidget {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              PromoBannerService.deleteBanner(banner.id);
               Navigator.pop(context);
+              runOrShowError(context, () => PromoBannerService.deleteBanner(banner.id));
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
