@@ -171,14 +171,14 @@ class _AdTile extends StatelessWidget {
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('حذف الإعلان'),
         content: const Text('هل تريد حذف هذا الإعلان؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               runOrShowError(context, () => PopupAdService.deleteAd(ad.id));
               for (final url in ad.imageUrls) {
                 CloudinaryService.deleteImage(url);

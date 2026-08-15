@@ -33,11 +33,26 @@ import 'features/game/heart_dodge_game_screen.dart';
 final _rootKey = GlobalKey<NavigatorState>();
 final _adminKey = GlobalKey<NavigatorState>();
 
-GoRouter _buildRouter(UserModel? user) {
+// يُعيد تشغيل تقييم redirect عند تغيّر حالة تسجيل الدخول فعلياً، بدل إعادة
+// بناء GoRouter بالكامل من الصفر في كل build — إعادة البناء كانت تصفّر مكدّس
+// التنقّل بالكامل وتعيد المستخدم إلى الصفحة الرئيسية لدوره عند أي تغيّر طفيف
+// وغير متعلّق بالتنقّل (كإعادة بناء المزوّد أثناء عملية غير مرتبطة إطلاقاً)
+class _AuthRefreshNotifier extends ChangeNotifier {
+  _AuthRefreshNotifier(Ref ref) {
+    ref.listen<UserModel?>(authProvider, (_, __) => notifyListeners());
+  }
+}
+
+final _routerProvider = Provider<GoRouter>((ref) {
+  final refreshNotifier = _AuthRefreshNotifier(ref);
+  ref.onDispose(refreshNotifier.dispose);
+
   return GoRouter(
     navigatorKey: _rootKey,
-    initialLocation: _getInitialRoute(user),
+    initialLocation: _getInitialRoute(ref.read(authProvider)),
+    refreshListenable: refreshNotifier,
     redirect: (context, state) {
+      final user = ref.read(authProvider);
       final loc = state.matchedLocation;
       final isAuthRoute = loc == '/login' || loc == '/staff-login';
       final isGuestAllowedRoute = loc == '/home' || loc == '/cart';
@@ -204,7 +219,7 @@ GoRouter _buildRouter(UserModel? user) {
       ),
     ),
   );
-}
+});
 
 String _getInitialRoute(UserModel? user) {
   if (user == null) return '/home';
@@ -229,20 +244,22 @@ class MelzApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authProvider);
     final themeSettings = ref.watch(appThemeProvider);
+    final router = ref.watch(_routerProvider);
 
     // يحدّث القيم الساكنة في AppColors من إعدادات الأدمن قبل أي رسم للواجهة
     AppColors.applyTheme(themeSettings);
 
     return MaterialApp.router(
-      // مفتاح مرتبط بإعدادات المظهر: أي تغيير من لوحة الأدمن يعيد بناء الشجرة
-      // بالكامل فوراً حتى تنعكس الألوان/الخط على كل الواجهات دفعة واحدة
+      // مفتاح مرتبط بإعدادات المظهر فقط (وليس بالمصادقة أو التنقّل) — أي تغيير
+      // من لوحة الأدمن يعيد بناء الشجرة البصرية فوراً حتى تنعكس الألوان/الخط
+      // على كل الواجهات دفعة واحدة، لكن كائن GoRouter نفسه (routerConfig)
+      // يبقى نفس الكائن المستقر عبر _routerProvider فلا يُفقَد مكدّس التنقّل
       key: ValueKey(themeSettings.toMap().toString()),
       title: 'Meals',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.buildTheme(themeSettings),
-      routerConfig: _buildRouter(user),
+      routerConfig: router,
       builder: (context, child) {
         return Directionality(
           textDirection: TextDirection.rtl,

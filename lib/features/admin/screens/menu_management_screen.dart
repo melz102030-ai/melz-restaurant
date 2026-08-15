@@ -115,10 +115,10 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
       final importResult =
           await ExcelImportService.importFromBytes(result.files.single.bytes!);
       if (!context.mounted) return;
-      Navigator.pop(context);
+      Navigator.of(context, rootNavigator: true).pop();
       showDialog(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('اكتمل الاستيراد'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -136,7 +136,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('حسناً'),
             ),
           ],
@@ -144,15 +144,15 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
       );
     } catch (e) {
       if (!context.mounted) return;
-      Navigator.pop(context);
+      Navigator.of(context, rootNavigator: true).pop();
       showDialog(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('خطأ في الاستيراد'),
           content: Text(e.toString()),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('حسناً'),
             ),
           ],
@@ -330,14 +330,14 @@ class _MenuItemTile extends ConsumerWidget {
   void _confirmDelete(BuildContext context, MenuItemModel item) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('حذف العنصر'),
         content: Text('هل تريد حذف "${item.name}"؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               runOrShowError(context, () => MenuService.deleteMenuItem(item.id));
               CloudinaryService.deleteImage(item.imageUrl);
             },
@@ -452,14 +452,14 @@ class _CategoryTile extends StatelessWidget {
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('حذف الفئة'),
         content: Text('سيتم حذف الفئة "${cat.name}" وجميع عناصرها. هل أنت متأكد؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               runOrShowError(context, () => MenuService.deleteCategory(cat.id));
               CloudinaryService.deleteImage(cat.imageUrl);
             },
@@ -923,7 +923,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
     final nameCtrl = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('حفظ كقالب'),
         content: TextField(
           controller: nameCtrl,
@@ -934,8 +934,8 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حفظ')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('حفظ')),
         ],
       ),
     );
@@ -1559,14 +1559,14 @@ class _TemplateTile extends StatelessWidget {
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('حذف القالب'),
         content: Text('هل تريد حذف قالب "${template.name}"؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               runOrShowError(context, () => MenuService.deleteOptionTemplate(template.id));
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
@@ -1840,14 +1840,14 @@ class _BannerTile extends StatelessWidget {
   void _confirmDelete(BuildContext context) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('حذف البانر'),
         content: const Text('هل تريد حذف هذا البانر؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               runOrShowError(context, () => PromoBannerService.deleteBanner(banner.id));
               CloudinaryService.deleteImage(banner.imageUrl);
             },
