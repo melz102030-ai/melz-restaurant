@@ -8,14 +8,19 @@ import '../../../shared/widgets/animated_photo_collage.dart';
 import 'phone_password_form.dart';
 
 /// نافذة منبثقة مختصرة لتسجيل الدخول/إنشاء حساب — تُستخدم عند إتمام الطلب
-/// بدلاً من الانتقال لصفحة منفصلة. تُرجع true عند نجاح تسجيل الدخول.
-Future<bool> showLoginBottomSheet(BuildContext context) async {
+/// وعند أول فتح للصفحة الرئيسية. تُرجع true عند نجاح تسجيل الدخول، و false
+/// عند التخطي الصريح أو إغلاق النافذة بأي طريقة أخرى.
+Future<bool> showLoginBottomSheet(
+  BuildContext context, {
+  bool showSkip = false,
+}) async {
   final result = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (ctx) => _LoginSheetContent(
       onSuccess: (_) => Navigator.pop(ctx, true),
+      showSkip: showSkip,
     ),
   );
   return result ?? false;
@@ -23,7 +28,8 @@ Future<bool> showLoginBottomSheet(BuildContext context) async {
 
 class _LoginSheetContent extends ConsumerStatefulWidget {
   final ValueChanged<UserModel> onSuccess;
-  const _LoginSheetContent({required this.onSuccess});
+  final bool showSkip;
+  const _LoginSheetContent({required this.onSuccess, this.showSkip = false});
 
   @override
   ConsumerState<_LoginSheetContent> createState() => _LoginSheetContentState();
@@ -91,6 +97,16 @@ class _LoginSheetContentState extends ConsumerState<_LoginSheetContent> {
                     isLoading: _quickLoading,
                     onTap: _quickCustomerLogin,
                   ),
+                  if (widget.showSkip) ...[
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text(
+                        'المتابعة بدون تسجيل الدخول',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
