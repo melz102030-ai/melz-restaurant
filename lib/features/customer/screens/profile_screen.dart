@@ -185,14 +185,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             Builder(builder: (_) {
               if (orders.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                      'لا توجد طلبات سابقة',
-                      style: TextStyle(color: AppColors.textHint),
-                    ),
-                  ),
+                return const EmptyState(
+                  message: 'لا توجد طلبات سابقة بعد\nابدأ بتصفح القائمة!',
+                  icon: Icons.receipt_long_outlined,
                 );
               }
               return Column(

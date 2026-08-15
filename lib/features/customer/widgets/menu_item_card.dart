@@ -8,6 +8,20 @@ import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_group_model.dart';
 import '../../../core/providers/cart_provider.dart';
 
+// إضافة سريعة (صنف بلا خيارات، أول قطعة) مع تغذية راجعة موحّدة — بنفس رسالة
+// النجاح المستخدمة عند الإضافة عبر نافذة الخيارات، بدل الاعتماد فقط على
+// تغيّر شارة الكمية الصغيرة كتأكيد وحيد
+void _quickAdd(BuildContext context, CartNotifier notifier, MenuItemModel item) {
+  notifier.addItem(item);
+  ScaffoldMessenger.of(context)
+    ..clearSnackBars()
+    ..showSnackBar(SnackBar(
+      content: Text('تمت إضافة ${item.name} للسلة'),
+      backgroundColor: AppColors.success,
+      duration: const Duration(seconds: 2),
+    ));
+}
+
 // ── List card (used in CustomerHomeScreen) ────────────────────────────────────
 
 class MenuItemListCard extends ConsumerWidget {
@@ -196,7 +210,7 @@ class MenuItemListCard extends ConsumerWidget {
                 const SizedBox.shrink()
               else if (!item.hasOptions)
                 totalQty == 0
-                    ? _AddBtn(onTap: () => cartNotifier.addItem(item))
+                    ? _AddBtn(onTap: () => _quickAdd(context, cartNotifier, item))
                     : _QtyRow(
                         qty: totalQty,
                         onAdd: () => cartNotifier.addItem(item),
@@ -529,18 +543,21 @@ class _MiniAddBtn extends StatelessWidget {
   const _MiniAddBtn({required this.onTap});
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 34,
-          height: 34,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.purple, width: 1.6),
+  Widget build(BuildContext context) => Tooltip(
+        message: 'إضافة للسلة',
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.cardBackground,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.purple, width: 1.6),
+            ),
+            child: Icon(Icons.add, color: AppColors.purple, size: 17),
           ),
-          child: Icon(Icons.add, color: AppColors.purple, size: 17),
         ),
       );
 }
@@ -551,19 +568,22 @@ class _MiniQtyBadge extends StatelessWidget {
   const _MiniQtyBadge({required this.qty, required this.onTap});
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.purple,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            '×$qty',
-            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+  Widget build(BuildContext context) => Tooltip(
+        message: 'تعديل الكمية',
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.purple,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              '×$qty',
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
           ),
         ),
       );
@@ -609,7 +629,7 @@ class _QtyRow extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _PillIconButton(icon: Icons.remove, onTap: onRemove),
+            _PillIconButton(icon: Icons.remove, label: 'إنقاص الكمية', onTap: onRemove),
             SizedBox(
               width: 24,
               child: Text(
@@ -622,7 +642,7 @@ class _QtyRow extends StatelessWidget {
                 ),
               ),
             ),
-            _PillIconButton(icon: Icons.add, onTap: onAdd),
+            _PillIconButton(icon: Icons.add, label: 'زيادة الكمية', onTap: onAdd),
           ],
         ),
       );
@@ -630,19 +650,23 @@ class _QtyRow extends StatelessWidget {
 
 class _PillIconButton extends StatelessWidget {
   final IconData icon;
+  final String label;
   final VoidCallback onTap;
-  const _PillIconButton({required this.icon, required this.onTap});
+  const _PillIconButton({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        width: 38,
-        height: 38,
-        alignment: Alignment.center,
-        child: Icon(icon, color: AppColors.textPrimary, size: 16),
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          width: 38,
+          height: 38,
+          alignment: Alignment.center,
+          child: Icon(icon, color: AppColors.textPrimary, size: 16),
+        ),
       ),
     );
   }
@@ -651,21 +675,30 @@ class _PillIconButton extends StatelessWidget {
 class _CircleBtn extends StatelessWidget {
   final IconData icon;
   final Color color;
+  final String label;
   final VoidCallback onTap;
-  const _CircleBtn({required this.icon, required this.color, required this.onTap});
+  const _CircleBtn({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.onTap,
+  });
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            shape: BoxShape.circle,
+  Widget build(BuildContext context) => Tooltip(
+        message: label,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 17),
           ),
-          child: Icon(icon, color: color, size: 17),
         ),
       );
 }
@@ -961,6 +994,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
               _CircleBtn(
                 icon: Icons.remove,
                 color: AppColors.red,
+                label: 'إنقاص الكمية',
                 onTap: () {
                   if (_qty > 1) setState(() => _qty--);
                 },
@@ -979,6 +1013,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
               _CircleBtn(
                 icon: Icons.add,
                 color: AppColors.purple,
+                label: 'زيادة الكمية',
                 onTap: () => setState(() => _qty++),
               ),
             ],

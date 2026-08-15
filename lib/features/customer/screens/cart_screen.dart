@@ -718,7 +718,26 @@ class _CartItemTile extends ConsumerWidget {
                   children: [
                     _QtyButton(
                       icon: Icons.remove,
-                      onTap: () => cart.removeItem(cartItem.cartKey),
+                      label: 'إنقاص الكمية',
+                      onTap: () {
+                        final wasLastOne = cartItem.quantity == 1;
+                        final removed = cartItem;
+                        cart.removeItem(cartItem.cartKey);
+                        if (wasLastOne) {
+                          ScaffoldMessenger.of(context)
+                            ..clearSnackBars()
+                            ..showSnackBar(SnackBar(
+                              content: Text('تم حذف ${removed.item.name}'),
+                              action: SnackBarAction(
+                                label: 'تراجع',
+                                textColor: Colors.white,
+                                onPressed: () =>
+                                    cart.addItem(removed.item, removed.selectedOptions),
+                              ),
+                              duration: const Duration(seconds: 4),
+                            ));
+                        }
+                      },
                     ),
                     SizedBox(
                       width: 22,
@@ -734,6 +753,7 @@ class _CartItemTile extends ConsumerWidget {
                     ),
                     _QtyButton(
                       icon: Icons.add,
+                      label: 'زيادة الكمية',
                       onTap: () => cart.addItem(cartItem.item, cartItem.selectedOptions),
                     ),
                   ],
@@ -741,12 +761,36 @@ class _CartItemTile extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               // Delete
-              InkWell(
-                onTap: () => cart.deleteItem(cartItem.cartKey),
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Icon(Icons.delete_outline,
-                      color: AppColors.textHint, size: 16),
+              Tooltip(
+                message: 'حذف الصنف من السلة',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () {
+                    final removed = cartItem;
+                    cart.deleteItem(cartItem.cartKey);
+                    ScaffoldMessenger.of(context)
+                      ..clearSnackBars()
+                      ..showSnackBar(SnackBar(
+                        content: Text('تم حذف ${removed.item.name}'),
+                        action: SnackBarAction(
+                          label: 'تراجع',
+                          textColor: Colors.white,
+                          onPressed: () {
+                            for (var i = 0; i < removed.quantity; i++) {
+                              cart.addItem(removed.item, removed.selectedOptions);
+                            }
+                          },
+                        ),
+                        duration: const Duration(seconds: 4),
+                      ));
+                  },
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    alignment: Alignment.center,
+                    child: Icon(Icons.delete_outline,
+                        color: AppColors.textHint, size: 17),
+                  ),
                 ),
               ),
             ],
@@ -768,20 +812,24 @@ class _CartItemTile extends ConsumerWidget {
 
 class _QtyButton extends StatelessWidget {
   final IconData icon;
+  final String label;
   final VoidCallback onTap;
 
-  const _QtyButton({required this.icon, required this.onTap});
+  const _QtyButton({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        width: 38,
-        height: 38,
-        alignment: Alignment.center,
-        child: Icon(icon, color: AppColors.textPrimary, size: 16),
+    return Tooltip(
+      message: label,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          width: 38,
+          height: 38,
+          alignment: Alignment.center,
+          child: Icon(icon, color: AppColors.textPrimary, size: 16),
+        ),
       ),
     );
   }

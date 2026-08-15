@@ -520,13 +520,16 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   ),
                 ),
                 Text(
-                  settings.effectivelyOpen
-                      ? 'يغلق ${settings.closeTimeLabel}'
-                      : 'يفتح ${settings.openTimeLabel}',
+                  settings.minOrderAmount > 0
+                      ? '${settings.effectivelyOpen ? 'يغلق ${settings.closeTimeLabel}' : 'يفتح ${settings.openTimeLabel}'} · الحد الأدنى ${settings.minOrderAmount.toStringAsFixed(0)} ${AppStrings.sar}'
+                      : (settings.effectivelyOpen
+                          ? 'يغلق ${settings.closeTimeLabel}'
+                          : 'يفتح ${settings.openTimeLabel}'),
                   style: TextStyle(
                     color: AppColors.textHint,
                     fontSize: 10,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -552,8 +555,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         controller: _scrollController,
         physics: const BouncingScrollPhysics(),
         slivers: [
-          // بانر تثبيت التطبيق (PWA)
-          if (!_installBannerDismissed && (_showInstallBanner || _isIosInstallable))
+          // بانر تثبيت التطبيق (PWA) — لا يظهر مع بانر الطلب النشط معاً حتى لا
+          // يتزاحم بانران متشابهان بصرياً؛ أولوية العرض لبانر الطلب الأهم تشغيلياً
+          if (!_installBannerDismissed &&
+              activeOrder == null &&
+              (_showInstallBanner || _isIosInstallable))
             SliverToBoxAdapter(
               child: _InstallBanner(
                 isIos: _isIosInstallable && !_showInstallBanner,
@@ -685,7 +691,11 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         hasActiveOrder: activeOrder != null,
         onMenuTap: () => _selectCategory(null),
         onSearchTap: _focusSearch,
-        onOrdersTap: () => context.push('/orders'),
+        // إن كان هناك طلب نشط، الزر بارز خصيصاً لهذا الطلب — الانتقال لتتبعه
+        // مباشرة أدق من فتح سجل الطلبات الكامل والبحث عنه يدوياً
+        onOrdersTap: () => activeOrder != null
+            ? context.push('/track/${activeOrder.id}')
+            : context.push('/orders'),
         onProfileTap: () => context.push('/profile'),
         onCartTap: () => context.push('/cart'),
       ),
