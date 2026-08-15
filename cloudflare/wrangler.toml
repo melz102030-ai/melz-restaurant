@@ -10,3 +10,4 @@ CLOUDINARY_CLOUD_NAME = "dwbzohzt9"
 #   npx wrangler secret put CLOUDINARY_API_KEY
 #   npx wrangler secret put CLOUDINARY_API_SECRET
 # (أو تلقائياً من GitHub Actions — راجع .github/workflows/deploy-cloudflare-worker.yml)
+# نشر أول مرة بعد ضبط أسرار GitHub الأربعة.
