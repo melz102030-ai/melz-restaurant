@@ -48,5 +48,14 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# مفتاح توقيع النشر الحقيقي — لا يجب أبداً رفعه لأي مستودع
+/android/key.properties
+*.jks
+*.keystore
+
+# ملف تهيئة Firebase الخاص بأندرويد — يحتوي معرّفات مرتبطة بمشروع Firebase،
+# يُنزَّله المالك بنفسه من Firebase Console بعد تسجيل تطبيق أندرويد
+/android/app/google-services.json
+
 # Claude Code local settings
 .claude/

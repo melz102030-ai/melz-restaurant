@@ -25,11 +25,17 @@ jobs:
       - name: Generate android/ platform folder
         run: flutter create --platforms=android --org com.melz --project-name melz_restaurant .
 
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate launcher icons from restaurant logo
+        run: dart run flutter_launcher_icons
+
       - name: Commit and push android/
         run: |
           git config user.email "melz102030@gmail.com"
           git config user.name "melz-bot"
           git add android -f
           git diff --staged --quiet && echo "No changes" && exit 0
-          git commit -m "build: scaffold android/ platform folder [skip ci]"
+          git commit -m "build: scaffold android/ platform folder + generate launcher icons [skip ci]"
           git push

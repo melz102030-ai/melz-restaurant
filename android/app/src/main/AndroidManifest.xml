@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- الإنترنت لازم لكل اتصالات Firebase/Cloudinary، وإذن الموقع لازم لتحديد
+         موقع التوصيل وبث موقع المندوب الحي (ميزات مبنية بالفعل في التطبيق) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <application
-        android:label="melz_restaurant"
+        android:label="Meals"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
