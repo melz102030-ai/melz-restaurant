@@ -17,40 +17,10 @@ import '../../../core/services/excel_import_service.dart';
 import '../../../core/services/promo_banner_service.dart';
 import '../../../features/customer/providers/menu_provider.dart';
 import '../../../shared/utils/async_utils.dart';
+import '../../../shared/widgets/admin_action_widgets.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
 const _uuid = Uuid();
-
-// زر إجراء صغير موحّد (تعديل/نسخ/حذف...) — خلفية دائرية خفيفة بلون الإجراء
-// بدل أيقونات متلاصقة بلا مسافات أو خلفية، لتمييزها عن بعضها بوضوح
-class _ActionIcon extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  final String? tooltip;
-  const _ActionIcon({required this.icon, required this.color, required this.onTap, this.tooltip});
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip ?? '',
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(9),
-        child: Container(
-          width: 30,
-          height: 30,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(9),
-          ),
-          child: Icon(icon, color: color, size: 16),
-        ),
-      ),
-    );
-  }
-}
 
 class MenuManagementScreen extends ConsumerStatefulWidget {
   const MenuManagementScreen({super.key});
@@ -311,7 +281,7 @@ class _MenuItemTile extends ConsumerWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _ActionIcon(
+                  ActionIcon(
                     icon: Icons.edit,
                     color: AppColors.textSecondary,
                     tooltip: 'تعديل',
@@ -321,7 +291,7 @@ class _MenuItemTile extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  _ActionIcon(
+                  ActionIcon(
                     icon: Icons.copy,
                     color: AppColors.purple,
                     tooltip: 'نسخ',
@@ -337,7 +307,7 @@ class _MenuItemTile extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  _ActionIcon(
+                  ActionIcon(
                     icon: Icons.delete,
                     color: AppColors.error,
                     tooltip: 'حذف',
@@ -369,6 +339,7 @@ class _MenuItemTile extends ConsumerWidget {
             onPressed: () {
               Navigator.pop(context);
               runOrShowError(context, () => MenuService.deleteMenuItem(item.id));
+              CloudinaryService.deleteImage(item.imageUrl);
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
@@ -457,7 +428,7 @@ class _CategoryTile extends StatelessWidget {
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           const SizedBox(width: 4),
-          _ActionIcon(
+          ActionIcon(
             icon: Icons.edit,
             color: AppColors.textSecondary,
             tooltip: 'تعديل',
@@ -467,7 +438,7 @@ class _CategoryTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          _ActionIcon(
+          ActionIcon(
             icon: Icons.delete,
             color: AppColors.error,
             tooltip: 'حذف',
@@ -490,6 +461,7 @@ class _CategoryTile extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
               runOrShowError(context, () => MenuService.deleteCategory(cat.id));
+              CloudinaryService.deleteImage(cat.imageUrl);
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
@@ -608,6 +580,11 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       );
       if (widget.item != null && !widget.isDuplicate) {
         await MenuService.updateMenuItem(newItem);
+        // حذف الصورة القديمة من Cloudinary بعد نجاح استبدالها فعلياً (وليس عند
+        // التكرار — النسخة المكرَّرة تشارك نفس الصورة حتى تُغيَّر لاحقاً)
+        if (_imageBytes != null && widget.item!.imageUrl != null && widget.item!.imageUrl != finalImageUrl) {
+          CloudinaryService.deleteImage(widget.item!.imageUrl);
+        }
       } else {
         await MenuService.addMenuItem(newItem);
       }
@@ -1018,9 +995,9 @@ class _OptionGroupTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _ActionIcon(icon: Icons.edit, color: AppColors.textSecondary, tooltip: 'تعديل', onTap: onEdit),
+            ActionIcon(icon: Icons.edit, color: AppColors.textSecondary, tooltip: 'تعديل', onTap: onEdit),
             const SizedBox(width: 6),
-            _ActionIcon(icon: Icons.delete, color: AppColors.error, tooltip: 'حذف', onTap: onDelete),
+            ActionIcon(icon: Icons.delete, color: AppColors.error, tooltip: 'حذف', onTap: onDelete),
             const SizedBox(width: 6),
             Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
           ],
@@ -1159,7 +1136,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                     Row(
                       children: [
                         Expanded(
-                          child: _TypeChip(
+                          child: TypeChip(
                             label: 'اختيار واحد',
                             icon: Icons.radio_button_checked,
                             selected: _type == OptionGroupType.single,
@@ -1168,7 +1145,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _TypeChip(
+                          child: TypeChip(
                             label: 'اختيار متعدد',
                             icon: Icons.check_box,
                             selected: _type == OptionGroupType.multiple,
@@ -1269,53 +1246,6 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
   }
 }
 
-class _TypeChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _TypeChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.purple.withValues(alpha: 0.15) : AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected ? AppColors.purple : AppColors.surfaceLight,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: selected ? AppColors.purple : AppColors.textHint, size: 18),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? AppColors.purple : AppColors.textSecondary,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _OptionRow extends StatelessWidget {
   final ItemOption opt;
   final VoidCallback onEdit;
@@ -1344,9 +1274,9 @@ class _OptionRow extends StatelessWidget {
               '${opt.priceAdjustment > 0 ? '+' : ''}${opt.priceAdjustment.toStringAsFixed(0)} ر',
               style: TextStyle(color: AppColors.success, fontSize: 13),
             ),
-          _ActionIcon(icon: Icons.edit, color: AppColors.textSecondary, tooltip: 'تعديل', onTap: onEdit),
+          ActionIcon(icon: Icons.edit, color: AppColors.textSecondary, tooltip: 'تعديل', onTap: onEdit),
           const SizedBox(width: 4),
-          _ActionIcon(icon: Icons.close, color: AppColors.error, tooltip: 'حذف', onTap: onDelete),
+          ActionIcon(icon: Icons.close, color: AppColors.error, tooltip: 'حذف', onTap: onDelete),
         ],
       ),
     );
@@ -1492,6 +1422,11 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
       );
       if (widget.cat != null) {
         await MenuService.updateCategory(cat);
+        if (_imageBytes != null &&
+            widget.cat!.imageUrl != null &&
+            widget.cat!.imageUrl != finalImageUrl) {
+          CloudinaryService.deleteImage(widget.cat!.imageUrl);
+        }
       } else {
         await MenuService.addCategory(cat);
       }
@@ -1595,7 +1530,7 @@ class _TemplateTile extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _ActionIcon(
+            ActionIcon(
               icon: Icons.edit,
               color: AppColors.textSecondary,
               tooltip: 'تعديل',
@@ -1605,7 +1540,7 @@ class _TemplateTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            _ActionIcon(
+            ActionIcon(
               icon: Icons.delete,
               color: AppColors.error,
               tooltip: 'حذف',
@@ -1864,7 +1799,7 @@ class _BannerTile extends StatelessWidget {
                 context, () => PromoBannerService.toggleBannerActive(banner.id, v)),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          _ActionIcon(
+          ActionIcon(
             icon: Icons.edit,
             color: AppColors.textSecondary,
             tooltip: 'تعديل',
@@ -1874,7 +1809,7 @@ class _BannerTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          _ActionIcon(
+          ActionIcon(
             icon: Icons.delete,
             color: AppColors.error,
             tooltip: 'حذف',
@@ -1914,6 +1849,7 @@ class _BannerTile extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
               runOrShowError(context, () => PromoBannerService.deleteBanner(banner.id));
+              CloudinaryService.deleteImage(banner.imageUrl);
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
@@ -1990,6 +1926,9 @@ class _BannerDialogState extends ConsumerState<_BannerDialog> {
       );
       if (widget.banner != null) {
         await PromoBannerService.updateBanner(banner);
+        if (_imageBytes != null && widget.banner!.imageUrl != finalImageUrl) {
+          CloudinaryService.deleteImage(widget.banner!.imageUrl);
+        }
       } else {
         await PromoBannerService.addBanner(banner);
       }
@@ -2073,7 +2012,7 @@ class _BannerDialogState extends ConsumerState<_BannerDialog> {
                     Row(
                       children: [
                         Expanded(
-                          child: _TypeChip(
+                          child: TypeChip(
                             label: 'لا شيء',
                             icon: Icons.block,
                             selected: _linkType == BannerLinkType.none,
@@ -2085,7 +2024,7 @@ class _BannerDialogState extends ConsumerState<_BannerDialog> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _TypeChip(
+                          child: TypeChip(
                             label: 'فئة',
                             icon: Icons.category_outlined,
                             selected: _linkType == BannerLinkType.category,
@@ -2097,7 +2036,7 @@ class _BannerDialogState extends ConsumerState<_BannerDialog> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _TypeChip(
+                          child: TypeChip(
                             label: 'صنف',
                             icon: Icons.fastfood_outlined,
                             selected: _linkType == BannerLinkType.item,

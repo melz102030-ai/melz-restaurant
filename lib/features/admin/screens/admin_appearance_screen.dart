@@ -57,6 +57,8 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
     setState(() => _isSavingImages = true);
     try {
       final current = await SettingsService.getSettings();
+      final oldLogoUrl = current.logoUrl;
+      final oldCoverUrl = current.coverUrl;
       String? logoUrl = current.logoUrl;
       String? coverUrl = current.coverUrl;
       if (_logoBytes != null) {
@@ -68,6 +70,14 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
       await SettingsService.updateSettings(
         current.copyWith(logoUrl: logoUrl, coverUrl: coverUrl),
       );
+      // حذف الصور القديمة من Cloudinary بعد نجاح الاستبدال — بلا انتظار حتى لا
+      // يتأخر ظهور رسالة النجاح للأدمن بسبب استدعاء شبكي إضافي
+      if (_logoBytes != null && oldLogoUrl != null && oldLogoUrl != logoUrl) {
+        CloudinaryService.deleteImage(oldLogoUrl);
+      }
+      if (_coverBytes != null && oldCoverUrl != null && oldCoverUrl != coverUrl) {
+        CloudinaryService.deleteImage(oldCoverUrl);
+      }
       if (mounted) {
         setState(() {
           _logoBytes = null;
@@ -658,7 +668,10 @@ class _SplashImagesGridState extends ConsumerState<_SplashImagesGrid> {
       children: [
         ...images.map((img) => _SplashImageTile(
               image: img,
-              onDelete: () => SplashImageService.deleteImage(img.id),
+              onDelete: () {
+                SplashImageService.deleteImage(img.id);
+                CloudinaryService.deleteImage(img.imageUrl);
+              },
             )),
         GestureDetector(
           onTap: _uploading ? null : () => _addImages(images),

@@ -12,6 +12,7 @@ import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/popup_ad_service.dart';
 import '../../../features/customer/providers/menu_provider.dart';
 import '../../../shared/utils/async_utils.dart';
+import '../../../shared/widgets/admin_action_widgets.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
 const _uuid = Uuid();
@@ -129,7 +130,7 @@ class _AdTile extends StatelessWidget {
                 runOrShowError(context, () => PopupAdService.toggleAdActive(ad.id, v)),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          _ActionIcon(
+          ActionIcon(
             icon: Icons.edit,
             color: AppColors.textSecondary,
             tooltip: 'تعديل',
@@ -139,7 +140,7 @@ class _AdTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          _ActionIcon(
+          ActionIcon(
             icon: Icons.delete,
             color: AppColors.error,
             tooltip: 'حذف',
@@ -179,34 +180,13 @@ class _AdTile extends StatelessWidget {
             onPressed: () {
               Navigator.pop(context);
               runOrShowError(context, () => PopupAdService.deleteAd(ad.id));
+              for (final url in ad.imageUrls) {
+                CloudinaryService.deleteImage(url);
+              }
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ActionIcon extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final VoidCallback onTap;
-  final String? tooltip;
-  const _ActionIcon({required this.icon, required this.color, required this.onTap, this.tooltip});
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip ?? '',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-          child: Icon(icon, color: color, size: 18),
-        ),
       ),
     );
   }
@@ -224,6 +204,9 @@ class _PopupAdDialogEditor extends ConsumerStatefulWidget {
 
 class _PopupAdDialogEditorState extends ConsumerState<_PopupAdDialogEditor> {
   final List<String> _existingImageUrls = [];
+  // صور أُزيلت من القائمة أثناء التعديل — تُحذف من Cloudinary فقط بعد نجاح
+  // الحفظ فعلياً، حتى لا تُفقد إن أغلق الأدمن النافذة دون حفظ
+  final List<String> _removedImageUrls = [];
   final List<Uint8List> _newImageBytes = [];
   final _captionCtrl = TextEditingController();
   final _urlCtrl = TextEditingController();
@@ -309,6 +292,9 @@ class _PopupAdDialogEditorState extends ConsumerState<_PopupAdDialogEditor> {
       } else {
         await PopupAdService.addAd(ad);
       }
+      for (final url in _removedImageUrls) {
+        CloudinaryService.deleteImage(url);
+      }
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -362,7 +348,10 @@ class _PopupAdDialogEditorState extends ConsumerState<_PopupAdDialogEditor> {
                       children: [
                         ..._existingImageUrls.asMap().entries.map((e) => _ImageThumb(
                               child: Image.network(e.value, fit: BoxFit.cover),
-                              onRemove: () => setState(() => _existingImageUrls.removeAt(e.key)),
+                              onRemove: () => setState(() {
+                                _removedImageUrls.add(e.value);
+                                _existingImageUrls.removeAt(e.key);
+                              }),
                             )),
                         ..._newImageBytes.asMap().entries.map((e) => _ImageThumb(
                               child: Image.memory(e.value, fit: BoxFit.cover),
@@ -432,7 +421,7 @@ class _PopupAdDialogEditorState extends ConsumerState<_PopupAdDialogEditor> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _TypeChip(
+                        TypeChip(
                           label: 'لا شيء',
                           icon: Icons.block,
                           selected: _linkType == PopupAdLinkType.none,
@@ -441,7 +430,7 @@ class _PopupAdDialogEditorState extends ConsumerState<_PopupAdDialogEditor> {
                             _linkId = null;
                           }),
                         ),
-                        _TypeChip(
+                        TypeChip(
                           label: 'فئة',
                           icon: Icons.category_outlined,
                           selected: _linkType == PopupAdLinkType.category,
@@ -450,7 +439,7 @@ class _PopupAdDialogEditorState extends ConsumerState<_PopupAdDialogEditor> {
                             _linkId = null;
                           }),
                         ),
-                        _TypeChip(
+                        TypeChip(
                           label: 'صنف',
                           icon: Icons.fastfood_outlined,
                           selected: _linkType == PopupAdLinkType.item,
@@ -459,7 +448,7 @@ class _PopupAdDialogEditorState extends ConsumerState<_PopupAdDialogEditor> {
                             _linkId = null;
                           }),
                         ),
-                        _TypeChip(
+                        TypeChip(
                           label: 'رابط خارجي',
                           icon: Icons.link,
                           selected: _linkType == PopupAdLinkType.url,
@@ -582,49 +571,3 @@ class _ImageThumb extends StatelessWidget {
   }
 }
 
-class _TypeChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _TypeChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.purple.withValues(alpha: 0.15) : AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: selected ? AppColors.purple : AppColors.surfaceLight,
-            width: selected ? 1.5 : 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: selected ? AppColors.purple : AppColors.textHint, size: 18),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? AppColors.purple : AppColors.textSecondary,
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -1,12 +1,11 @@
 import 'dart:typed_data';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class CloudinaryService {
-  // TODO: Replace with your Cloudinary credentials
   static const String cloudName = 'dwbzohzt9';
   static const String uploadPreset = 'melz_upload';
-  static const String apiKey = '';
   static const String folder = 'melz_restaurant';
 
   static Future<String?> uploadImage(Uint8List imageBytes, String fileName) async {
@@ -43,21 +42,6 @@ class CloudinaryService {
     throw Exception('Cloudinary: $msg');
   }
 
-  static Future<bool> deleteImage(String publicId) async {
-    try {
-      final url = Uri.parse(
-        'https://api.cloudinary.com/v1_1/$cloudName/image/destroy',
-      );
-      final response = await http.post(url, body: {
-        'public_id': publicId,
-        'api_key': apiKey,
-      });
-      return response.statusCode == 200;
-    } catch (e) {
-      return false;
-    }
-  }
-
   // Extract public_id from Cloudinary URL
   static String? extractPublicId(String? imageUrl) {
     if (imageUrl == null) return null;
@@ -74,6 +58,24 @@ class CloudinaryService {
       return [...parts.sublist(0, parts.length - 1), nameWithoutExt].join('/');
     } catch (e) {
       return null;
+    }
+  }
+
+  // يحذف صورة من Cloudinary فعلياً عبر Cloud Function موقّعة من جهة الخادم
+  // (functions/index.js) — لا يمكن تنفيذ حذف موقّع وآمن من كود العميل مباشرة
+  // بلا كشف المفتاح السري لأي شخص يفتح أدوات المطوّر. تُستدعى عند استبدال أو
+  // إزالة أي صورة حتى لا تبقى صور قديمة يتيمة في الحساب. فشلها لا يمنع إكمال
+  // العملية الأساسية (حفظ/حذف السجل) — يُتجاهل بصمت مع إرجاع false.
+  static Future<bool> deleteImage(String? imageUrl) async {
+    final publicId = extractPublicId(imageUrl);
+    if (publicId == null) return false;
+    try {
+      final callable = FirebaseFunctions.instance.httpsCallable('deleteCloudinaryImage');
+      final result = await callable.call<Map<String, dynamic>>({'publicId': publicId});
+      final status = result.data['result'];
+      return status == 'ok' || status == 'not found';
+    } catch (_) {
+      return false;
     }
   }
 }
