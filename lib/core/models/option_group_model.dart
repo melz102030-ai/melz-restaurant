@@ -83,6 +83,41 @@ class OptionGroup {
       );
 }
 
+// تركيبة اختيار جاهزة يحدّدها الأدمن لصنف معيّن (مثال: "الأشهر")، تملأ كل
+// مجموعات الخيارات دفعة واحدة بدل اختيارها يدوياً واحدة تلو الأخرى
+class ItemPreset {
+  final String id;
+  final String label;
+  final Map<String, List<String>> selections; // groupId -> معرّفات الخيارات المختارة
+
+  const ItemPreset({
+    required this.id,
+    required this.label,
+    required this.selections,
+  });
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'label': label,
+        'selections': selections,
+      };
+
+  factory ItemPreset.fromMap(Map<String, dynamic> m) => ItemPreset(
+        id: m['id'] ?? const Uuid().v4(),
+        label: m['label'] ?? '',
+        selections: (m['selections'] as Map? ?? {}).map(
+          (k, v) => MapEntry(k as String, List<String>.from(v as List? ?? [])),
+        ),
+      );
+
+  ItemPreset copyWith({String? label, Map<String, List<String>>? selections}) =>
+      ItemPreset(
+        id: id,
+        label: label ?? this.label,
+        selections: selections ?? this.selections,
+      );
+}
+
 // Holds customer's selections for one group
 class SelectedOptionGroup {
   final String groupId;

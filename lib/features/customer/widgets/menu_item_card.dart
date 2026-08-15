@@ -7,6 +7,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_group_model.dart';
 import '../../../core/providers/cart_provider.dart';
+import '../providers/menu_provider.dart';
 
 // إضافة سريعة (صنف بلا خيارات، أول قطعة) مع تغذية راجعة موحّدة — بنفس رسالة
 // النجاح المستخدمة عند الإضافة عبر نافذة الخيارات، بدل الاعتماد فقط على
@@ -589,6 +590,78 @@ class _MiniQtyBadge extends StatelessWidget {
       );
 }
 
+// بطاقة صغيرة لصنف مقترَح ضمن قسم "غالباً ما يُطلب معه" — إضافة مباشرة إن
+// كان بلا خيارات، أو فتح صفحته الكاملة إن كان يحتاج اختيار خيارات أولاً
+class _SuggestedItemTile extends ConsumerWidget {
+  final MenuItemModel item;
+  const _SuggestedItemTile({required this.item});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GestureDetector(
+      onTap: () => _handleTap(context, ref),
+      child: Container(
+        width: 92,
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.surfaceLight),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                child: item.imageUrl != null
+                    ? Image.network(
+                        item.imageUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(color: AppColors.surfaceLight),
+                      )
+                    : Container(
+                        color: AppColors.surfaceLight,
+                        child: Icon(Icons.restaurant, color: AppColors.textHint, size: 20),
+                      ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  Icon(Icons.add_circle, color: AppColors.purple, size: 18),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleTap(BuildContext context, WidgetRef ref) {
+    if (item.hasOptions) {
+      context.push('/item/${item.id}');
+      return;
+    }
+    ref.read(cartProvider.notifier).addItem(item);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('تمت إضافة ${item.name} للسلة'),
+      backgroundColor: AppColors.success,
+      duration: const Duration(seconds: 2),
+    ));
+  }
+}
+
 // ── Small reusable controls ───────────────────────────────────────────────────
 
 class _AddBtn extends StatelessWidget {
@@ -670,37 +743,6 @@ class _PillIconButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _CircleBtn extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String label;
-  final VoidCallback onTap;
-  const _CircleBtn({
-    required this.icon,
-    required this.color,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-        message: label,
-        child: GestureDetector(
-          onTap: onTap,
-          child: Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 17),
-          ),
-        ),
-      );
 }
 
 // ── Options bottom sheet ──────────────────────────────────────────────────────
@@ -862,12 +904,77 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     ));
   }
 
+  // يستبدل كل الاختيارات الحالية بمحتوى تركيبة جاهزة يحدّدها الأدمن دفعة
+  // واحدة — يبقى قابلاً للتعديل يدوياً بعد ذلك بلا أي قيد
+  void _applyPreset(ItemPreset preset) {
+    setState(() {
+      for (final group in widget.item.optionGroups) {
+        _selections[group.id] = Set<String>.from(preset.selections[group.id] ?? const []);
+      }
+    });
+  }
+
+  Widget _buildPresetsRow() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: widget.item.presets.map((preset) {
+          return ActionChip(
+            label: Text(preset.label.isEmpty ? 'تركيبة جاهزة' : preset.label),
+            avatar: Icon(Icons.flash_on, size: 16, color: AppColors.purple),
+            onPressed: () => _applyPreset(preset),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSuggestedItems() {
+    final itemsAsync = ref.watch(adminMenuItemsProvider);
+    return itemsAsync.maybeWhen(
+      data: (items) {
+        final byId = {for (final it in items) it.id: it};
+        final suggested = widget.item.suggestedItemIds
+            .map((id) => byId[id])
+            .whereType<MenuItemModel>()
+            .toList();
+        if (suggested.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 6, bottom: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('غالباً ما يُطلب معه',
+                  style: TextStyle(
+                      color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 96,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: suggested.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (_, i) => _SuggestedItemTile(item: suggested[i]),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final optionsList = ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       shrinkWrap: !widget.asPage,
-      children: widget.item.optionGroups.map((group) {
+      children: [
+        if (widget.item.presets.isNotEmpty) _buildPresetsRow(),
+        ...widget.item.optionGroups.map((group) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -974,7 +1081,9 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
             const SizedBox(height: 8),
           ],
         );
-      }).toList(),
+        }),
+        if (widget.item.suggestedItemIds.isNotEmpty) _buildSuggestedItems(),
+      ],
     );
 
     final footer = Container(
@@ -988,35 +1097,14 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _CircleBtn(
-                icon: Icons.remove,
-                color: AppColors.red,
-                label: 'إنقاص الكمية',
-                onTap: () {
-                  if (_qty > 1) setState(() => _qty--);
-                },
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  '$_qty',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              _CircleBtn(
-                icon: Icons.add,
-                color: AppColors.purple,
-                label: 'زيادة الكمية',
-                onTap: () => setState(() => _qty++),
-              ),
-            ],
+          Center(
+            child: _QtyRow(
+              qty: _qty,
+              onRemove: () {
+                if (_qty > 1) setState(() => _qty--);
+              },
+              onAdd: () => setState(() => _qty++),
+            ),
           ),
           const SizedBox(height: 12),
           SizedBox(

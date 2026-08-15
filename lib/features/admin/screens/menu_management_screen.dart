@@ -626,6 +626,8 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   String? _imageUrl;
   Uint8List? _imageBytes;
   List<OptionGroup> _optionGroups = [];
+  List<ItemPreset> _presets = [];
+  List<String> _suggestedItemIds = [];
   String? _saveError;
 
   late TabController _tabCtrl;
@@ -633,7 +635,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
     if (widget.item != null) {
       final item = widget.item!;
       _nameCtrl.text = item.name;
@@ -647,6 +649,8 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       _isNew = item.isNew;
       _imageUrl = item.imageUrl;
       _optionGroups = List.from(item.optionGroups);
+      _presets = List.from(item.presets);
+      _suggestedItemIds = List.from(item.suggestedItemIds);
     }
   }
 
@@ -706,6 +710,8 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         optionGroups: _optionGroups,
         isBestSeller: _isBestSeller,
         isNew: _isNew,
+        presets: _presets,
+        suggestedItemIds: _suggestedItemIds,
       );
       if (widget.item != null && !widget.isDuplicate) {
         await MenuService.updateMenuItem(newItem);
@@ -761,6 +767,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                 tabs: const [
                   Tab(text: 'التفاصيل'),
                   Tab(text: 'الخيارات'),
+                  Tab(text: 'الاقتراحات'),
                 ],
               ),
               Expanded(
@@ -771,6 +778,8 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                     _buildDetailsTab(categories),
                     // ── Tab 2: option groups ──
                     _buildOptionsTab(),
+                    // ── Tab 3: suggestions (presets + frequently ordered with) ──
+                    _buildSuggestionsTab(),
                   ],
                 ),
               ),
@@ -1076,6 +1085,165 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       ));
       setState(() => _saveError = null); // clear any previous error on success
     }
+  }
+
+  Widget _buildSuggestionsTab() {
+    final itemsAsync = ref.watch(adminMenuItemsProvider);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('غالباً ما يُطلب معه',
+              style: TextStyle(
+                  color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 4),
+          Text('أصناف تُقترح للعميل عند عرض هذا الصنف',
+              style: TextStyle(color: AppColors.textHint, fontSize: 12.5)),
+          const SizedBox(height: 10),
+          itemsAsync.when(
+            data: (items) {
+              final others = items.where((i) => i.id != widget.item?.id).toList();
+              if (others.isEmpty) {
+                return Text('لا توجد أصناف أخرى بعد',
+                    style: TextStyle(color: AppColors.textHint));
+              }
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: others.map((i) {
+                  final selected = _suggestedItemIds.contains(i.id);
+                  return FilterChip(
+                    label: Text(i.name),
+                    selected: selected,
+                    onSelected: (v) => setState(() {
+                      if (v) {
+                        _suggestedItemIds = [..._suggestedItemIds, i.id];
+                      } else {
+                        _suggestedItemIds =
+                            _suggestedItemIds.where((id) => id != i.id).toList();
+                      }
+                    }),
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => const LoadingWidget(),
+            error: (e, _) => Text('خطأ: $e'),
+          ),
+          const SizedBox(height: 28),
+          Row(
+            children: [
+              Text('اختيارات سريعة جاهزة',
+                  style: TextStyle(
+                      color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: _optionGroups.isEmpty ? null : _addPreset,
+                icon: Icon(Icons.add, size: 18),
+                label: const Text('إضافة تركيبة'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text('يختار العميل تركيبة جاهزة فتُملأ كل الخيارات دفعة واحدة، ويبقى بإمكانه تعديلها بعدها',
+              style: TextStyle(color: AppColors.textHint, fontSize: 12.5)),
+          const SizedBox(height: 10),
+          if (_optionGroups.isEmpty)
+            Text('أضف مجموعات خيارات أولاً من تبويب "الخيارات" لتتمكن من إنشاء اختيارات سريعة',
+                style: TextStyle(color: AppColors.textHint))
+          else if (_presets.isEmpty)
+            Text('لا توجد تركيبات بعد', style: TextStyle(color: AppColors.textHint))
+          else
+            Column(
+              children: _presets
+                  .asMap()
+                  .entries
+                  .map((e) => _buildPresetCard(e.key, e.value))
+                  .toList(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _addPreset() {
+    setState(() {
+      _presets = [..._presets, ItemPreset(id: _uuid.v4(), label: '', selections: {})];
+    });
+  }
+
+  Widget _buildPresetCard(int index, ItemPreset preset) {
+    return Container(
+      key: ValueKey(preset.id),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: TextFormField(
+                  key: ValueKey('${preset.id}_label'),
+                  initialValue: preset.label,
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                  decoration: const InputDecoration(
+                      labelText: 'اسم التركيبة', hintText: 'مثال: الأشهر', isDense: true),
+                  onChanged: (v) =>
+                      setState(() => _presets[index] = preset.copyWith(label: v)),
+                ),
+              ),
+              ActionIcon(
+                icon: Icons.delete_outline,
+                color: AppColors.error,
+                tooltip: 'حذف',
+                onTap: () => setState(() => _presets = List.from(_presets)..removeAt(index)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final group in _optionGroups) ...[
+            Text(group.name,
+                style: TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12.5, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: group.options.map((opt) {
+                final currentSel = preset.selections[group.id] ?? const [];
+                final selected = currentSel.contains(opt.id);
+                return ChoiceChip(
+                  label: Text(opt.name, style: const TextStyle(fontSize: 12.5)),
+                  selected: selected,
+                  onSelected: (v) => setState(() {
+                    final sel = Map<String, List<String>>.from(preset.selections);
+                    var groupSel = List<String>.from(sel[group.id] ?? const []);
+                    if (group.type == OptionGroupType.single) {
+                      groupSel = v ? [opt.id] : [];
+                    } else if (v) {
+                      groupSel.add(opt.id);
+                    } else {
+                      groupSel.remove(opt.id);
+                    }
+                    sel[group.id] = groupSel;
+                    _presets[index] = preset.copyWith(selections: sel);
+                  }),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
   }
 }
 

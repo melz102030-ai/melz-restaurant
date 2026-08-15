@@ -15,6 +15,10 @@ class MenuItemModel {
   final List<OptionGroup> optionGroups;
   final bool isBestSeller;
   final bool isNew;
+  // تركيبات اختيار جاهزة (اختيارية) تملأ كل مجموعات الخيارات دفعة واحدة
+  final List<ItemPreset> presets;
+  // معرّفات أصناف أخرى يقترحها الأدمن كـ"غالباً ما يُطلب معه"
+  final List<String> suggestedItemIds;
 
   const MenuItemModel({
     required this.id,
@@ -31,6 +35,8 @@ class MenuItemModel {
     this.optionGroups = const [],
     this.isBestSeller = false,
     this.isNew = false,
+    this.presets = const [],
+    this.suggestedItemIds = const [],
   });
 
   double get finalPrice {
@@ -61,6 +67,10 @@ class MenuItemModel {
           .toList(),
       isBestSeller: map['isBestSeller'] ?? false,
       isNew: map['isNew'] ?? false,
+      presets: (map['presets'] as List? ?? [])
+          .map((p) => ItemPreset.fromMap(p as Map<String, dynamic>))
+          .toList(),
+      suggestedItemIds: List<String>.from(map['suggestedItemIds'] ?? []),
     );
   }
 
@@ -79,6 +89,8 @@ class MenuItemModel {
       'optionGroups': optionGroups.map((g) => g.toMap()).toList(),
       'isBestSeller': isBestSeller,
       'isNew': isNew,
+      'presets': presets.map((p) => p.toMap()).toList(),
+      'suggestedItemIds': suggestedItemIds,
     };
   }
 
@@ -97,6 +109,8 @@ class MenuItemModel {
     List<OptionGroup>? optionGroups,
     bool? isBestSeller,
     bool? isNew,
+    List<ItemPreset>? presets,
+    List<String>? suggestedItemIds,
   }) {
     return MenuItemModel(
       id: id ?? this.id,
@@ -113,6 +127,8 @@ class MenuItemModel {
       optionGroups: optionGroups ?? this.optionGroups,
       isBestSeller: isBestSeller ?? this.isBestSeller,
       isNew: isNew ?? this.isNew,
+      presets: presets ?? this.presets,
+      suggestedItemIds: suggestedItemIds ?? this.suggestedItemIds,
     );
   }
 }

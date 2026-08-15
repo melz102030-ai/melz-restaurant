@@ -31,50 +31,50 @@ class ItemDetailScreen extends ConsumerWidget {
     }
 
     final available = item.isAvailable;
+    final hasBadges = available && (item.isBestSeller || item.isNew || item.hasDiscount);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(item.name),
-      ),
       body: Column(
         children: [
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 260),
-            child: AspectRatio(
-              aspectRatio: 4 / 3,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  item.imageUrl != null
-                      ? Image.network(
-                          item.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder(),
-                        )
-                      : _placeholder(),
-                  if (!available)
-                    Positioned(
-                      top: 14,
-                      right: 14,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.92),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text('نفدت الكمية',
-                            style: TextStyle(
-                                color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+          AspectRatio(
+            aspectRatio: 4 / 3.5,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Container(color: AppColors.surfaceLight),
+                item.imageUrl != null
+                    ? Image.network(
+                        item.imageUrl!,
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, __, ___) => _placeholder(),
+                      )
+                    : _placeholder(),
+                Positioned(
+                  top: 14,
+                  right: 14,
+                  child: _CircleIconButton(
+                    icon: Icons.arrow_back_ios,
+                    onTap: () => context.pop(),
+                  ),
+                ),
+                if (!available)
+                  Positioned(
+                    top: 14,
+                    left: 14,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.92),
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      child: const Text('نفدت الكمية',
+                          style: TextStyle(
+                              color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
                     ),
-                  if (available && (item.isBestSeller || item.isNew))
-                    Positioned(top: 14, left: 14, child: _Badges(item: item)),
-                ],
-              ),
+                  ),
+                if (hasBadges)
+                  Positioned(bottom: 14, left: 14, child: _Badges(item: item)),
+              ],
             ),
           ),
           Padding(
@@ -155,9 +155,10 @@ class _Badges extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (item.isBestSeller) _badge('الأكثر مبيعاً', AppColors.manjawi),
-        if (item.isBestSeller && item.isNew) const SizedBox(height: 4),
-        if (item.isNew) _badge('جديد', AppColors.red),
+        if (item.isBestSeller) ...[_badge('الأكثر مبيعاً', AppColors.manjawi), const SizedBox(height: 4)],
+        if (item.isNew) ...[_badge('جديد', AppColors.red), const SizedBox(height: 4)],
+        if (item.hasDiscount)
+          _badge('خصم ${item.discountPercent!.toStringAsFixed(0)}٪', AppColors.success),
       ],
     );
   }
@@ -168,4 +169,28 @@ class _Badges extends StatelessWidget {
         child: Text(text,
             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
       );
+}
+
+// زر رجوع دائري شبه شفاف يطفو فوق صورة الصنف مباشرة بدل شريط علوي (AppBar)
+// تقليدي، ليتيح للصورة مساحة أكبر وحضوراً بصرياً أقوى
+class _CircleIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  const _CircleIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withOpacity(0.35),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(9),
+          child: Icon(icon, color: Colors.white, size: 16),
+        ),
+      ),
+    );
+  }
 }
