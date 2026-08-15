@@ -885,25 +885,19 @@ class _NavIcon extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback? onTap;
-  final bool enabled;
 
   const _NavIcon({
     required this.icon,
     required this.label,
     required this.active,
     required this.onTap,
-    this.enabled = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = !enabled
-        ? Colors.white.withValues(alpha: 0.28)
-        : active
-            ? Colors.white
-            : Colors.white.withValues(alpha: 0.65);
+    final color = active ? Colors.white : Colors.white.withValues(alpha: 0.65);
     return InkWell(
-      onTap: enabled ? onTap : null,
+      onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
