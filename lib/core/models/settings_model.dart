@@ -1,5 +1,33 @@
 import 'work_shift_model.dart';
 
+// سياسة قبول الدفع النقدي — الدفع الإلكتروني (بطاقة/آبل باي/مدى) غير مفعّل
+// بعد في الواجهة، لذا "both/deliveryOnly/pickupOnly" تعني عملياً "الدفع
+// النقدي مسموح" لنوع الاستلام المذكور. عند تفعيل بوابة دفع إلكتروني لاحقاً،
+// هذا الحقل يبقى مستقلاً ويتحكم بالنقد تحديداً بلا تغيير في معناه.
+enum CashPaymentPolicy { disabled, both, deliveryOnly, pickupOnly }
+
+extension CashPaymentPolicyExt on CashPaymentPolicy {
+  String get label {
+    switch (this) {
+      case CashPaymentPolicy.disabled:
+        return 'الدفع نقداً غير متاح';
+      case CashPaymentPolicy.both:
+        return 'الدفع نقداً متاح للتوصيل والاستلام';
+      case CashPaymentPolicy.deliveryOnly:
+        return 'الدفع نقداً للتوصيل فقط';
+      case CashPaymentPolicy.pickupOnly:
+        return 'الدفع نقداً للاستلام من المطعم فقط';
+    }
+  }
+}
+
+CashPaymentPolicy _cashPolicyFromMap(dynamic raw) {
+  return CashPaymentPolicy.values.firstWhere(
+    (e) => e.name == raw,
+    orElse: () => CashPaymentPolicy.both,
+  );
+}
+
 class RestaurantSettings {
   final String restaurantName;
   final String? logoUrl;
@@ -22,6 +50,7 @@ class RestaurantSettings {
   final bool useDeliveryZones;
   // جدول عمل تفصيلي: مفتاح اليوم (sun..sat) → قائمة شفتات ذلك اليوم (فارغة = عطلة)
   final Map<String, List<WorkShift>> workingHours;
+  final CashPaymentPolicy cashPaymentPolicy;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -44,7 +73,22 @@ class RestaurantSettings {
     this.restaurantLng,
     this.useDeliveryZones = false,
     this.workingHours = const {},
+    this.cashPaymentPolicy = CashPaymentPolicy.both,
   });
+
+  // هل الدفع نقداً مسموح لنوع استلام معيّن (توصيل/استلام من المطعم)؟
+  bool cashAllowedFor({required bool isDelivery}) {
+    switch (cashPaymentPolicy) {
+      case CashPaymentPolicy.disabled:
+        return false;
+      case CashPaymentPolicy.both:
+        return true;
+      case CashPaymentPolicy.deliveryOnly:
+        return isDelivery;
+      case CashPaymentPolicy.pickupOnly:
+        return !isDelivery;
+    }
+  }
 
   bool get hasRestaurantLocation => restaurantLat != null && restaurantLng != null;
 
@@ -149,6 +193,7 @@ class RestaurantSettings {
       restaurantLng: (map['restaurantLng'] as num?)?.toDouble(),
       useDeliveryZones: map['useDeliveryZones'] ?? false,
       workingHours: _workingHoursFromMap(map['workingHours']),
+      cashPaymentPolicy: _cashPolicyFromMap(map['cashPaymentPolicy']),
     );
   }
 
@@ -174,6 +219,7 @@ class RestaurantSettings {
       'restaurantLng': restaurantLng,
       'useDeliveryZones': useDeliveryZones,
       'workingHours': _workingHoursToMap(workingHours),
+      'cashPaymentPolicy': cashPaymentPolicy.name,
     };
   }
 
@@ -198,6 +244,7 @@ class RestaurantSettings {
     double? restaurantLng,
     bool? useDeliveryZones,
     Map<String, List<WorkShift>>? workingHours,
+    CashPaymentPolicy? cashPaymentPolicy,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -220,6 +267,7 @@ class RestaurantSettings {
       restaurantLng: restaurantLng ?? this.restaurantLng,
       useDeliveryZones: useDeliveryZones ?? this.useDeliveryZones,
       workingHours: workingHours ?? this.workingHours,
+      cashPaymentPolicy: cashPaymentPolicy ?? this.cashPaymentPolicy,
     );
   }
 }

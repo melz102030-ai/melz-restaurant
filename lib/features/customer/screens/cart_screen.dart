@@ -241,6 +241,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       return;
     }
 
+    if (!settings.cashAllowedFor(isDelivery: isDelivery)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(isDelivery
+            ? 'الدفع نقداً غير متاح للتوصيل حالياً'
+            : 'الدفع نقداً غير متاح للاستلام من المطعم حالياً'),
+        backgroundColor: AppColors.error,
+      ));
+      return;
+    }
+
     if (isDelivery) {
       final locationOk = await _confirmSavedLocationIfNeeded();
       if (!locationOk || !mounted) return;
@@ -279,6 +289,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         deliveryAddress: isDelivery ? _deliveryAddressNote : null,
         deliveryZoneId: isDelivery ? pricing.zoneId : null,
         deliveryZoneName: isDelivery ? pricing.zoneName : null,
+        paymentMethod: PaymentMethod.cash,
       );
 
       final orderId = await OrderService.placeOrder(order);
@@ -320,6 +331,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     // عند التسعير بحسب النطاق، لا نعرض رسوم التوصيل ولا الإجمالي قبل تحديد
     // الموقع — الرسم الفعلي يعتمد على المسافة ولا يجوز تخمينه مسبقاً
     final pricePendingLocation = isDelivery && settings.useDeliveryZones && locationMissing;
+    final cashBlocked = !settings.cashAllowedFor(isDelivery: isDelivery);
 
     return Scaffold(
       appBar: AppBar(
@@ -546,16 +558,46 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           ),
                         ],
                       ),
+                    )
+                  else if (cashBlocked)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                            color: AppColors.error.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.money_off,
+                              color: AppColors.error, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              isDelivery
+                                  ? 'الدفع نقداً غير متاح للتوصيل حالياً'
+                                  : 'الدفع نقداً غير متاح للاستلام من المطعم حالياً',
+                              style: TextStyle(
+                                  color: AppColors.error, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   AppButton(
                     label:
                         '${AppStrings.checkout} - ${total.toStringAsFixed(2)} ${AppStrings.sar}',
-                    onPressed:
-                        settings.effectivelyOpen ? _placeOrder : null,
+                    onPressed: (settings.effectivelyOpen && !cashBlocked)
+                        ? _placeOrder
+                        : null,
                     isLoading: _isPlacingOrder,
                     icon: Icons.check_circle,
                     width: double.infinity,
-                    color: settings.effectivelyOpen
+                    color: (settings.effectivelyOpen && !cashBlocked)
                         ? AppColors.purple
                         : AppColors.textHint,
                   ),

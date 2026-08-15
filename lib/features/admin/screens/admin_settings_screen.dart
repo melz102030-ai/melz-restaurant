@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/models/settings_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/settings_service.dart';
+import '../../../shared/widgets/admin_action_widgets.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -27,6 +29,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _addressCtrl = TextEditingController();
   final _welcomeMsgCtrl = TextEditingController();
   bool _allowOrders = true;
+  CashPaymentPolicy _cashPolicy = CashPaymentPolicy.both;
   bool _isSaving = false;
   bool _isLoaded = false;
 
@@ -49,6 +52,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _addressCtrl.text = settings.address ?? '';
         _welcomeMsgCtrl.text = settings.welcomeMessage ?? '';
         _allowOrders = settings.allowOrders;
+        _cashPolicy = settings.cashPaymentPolicy;
         _isLoaded = true;
       });
     }
@@ -103,6 +107,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             ? null
             : _welcomeMsgCtrl.text.trim(),
         allowOrders: _allowOrders,
+        cashPaymentPolicy: _cashPolicy,
       );
 
       await SettingsService.updateSettings(settings);
@@ -202,6 +207,46 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
               hint: '30',
               suffix: 'دقيقة',
               keyboardType: TextInputType.number,
+            ),
+
+            const SizedBox(height: 24),
+
+            _SectionTitle(title: 'طريقة الدفع', icon: Icons.payments_outlined),
+            Text(
+              'الدفع الإلكتروني (بطاقة/آبل باي/مدى) غير مفعّل بعد، وطريقة الدفع الوحيدة'
+              ' حالياً هي النقد — تحكّم متى وأين يُسمح به للعميل.',
+              style: TextStyle(color: AppColors.textHint, fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TypeChip(
+                  label: CashPaymentPolicy.both.label,
+                  icon: Icons.check_circle_outline,
+                  selected: _cashPolicy == CashPaymentPolicy.both,
+                  onTap: () => setState(() => _cashPolicy = CashPaymentPolicy.both),
+                ),
+                TypeChip(
+                  label: CashPaymentPolicy.deliveryOnly.label,
+                  icon: Icons.delivery_dining_outlined,
+                  selected: _cashPolicy == CashPaymentPolicy.deliveryOnly,
+                  onTap: () => setState(() => _cashPolicy = CashPaymentPolicy.deliveryOnly),
+                ),
+                TypeChip(
+                  label: CashPaymentPolicy.pickupOnly.label,
+                  icon: Icons.storefront_outlined,
+                  selected: _cashPolicy == CashPaymentPolicy.pickupOnly,
+                  onTap: () => setState(() => _cashPolicy = CashPaymentPolicy.pickupOnly),
+                ),
+                TypeChip(
+                  label: CashPaymentPolicy.disabled.label,
+                  icon: Icons.money_off,
+                  selected: _cashPolicy == CashPaymentPolicy.disabled,
+                  onTap: () => setState(() => _cashPolicy = CashPaymentPolicy.disabled),
+                ),
+              ],
             ),
 
             const SizedBox(height: 32),
