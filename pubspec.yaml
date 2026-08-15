@@ -33,7 +33,9 @@ dependencies:
   # Utilities
   url_launcher: ^6.3.0
   http: ^1.2.1
-  intl: ^0.19.0
+  # النسخة غير مثبَّتة عمداً — flutter_localizations من SDK نفسه يفرض نسخة intl
+  # محددة بدقة حسب قناة Flutter الحالية؛ أي قيد هنا قد يتعارض معها ويكسر الحل
+  intl: any
   shared_preferences: ^2.2.3
   uuid: ^4.4.0
   equatable: ^2.0.5
