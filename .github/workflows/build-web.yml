@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths-ignore:
       - 'build/**'
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -17,6 +18,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      HAS_FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +36,22 @@ jobs:
 
       - name: Build web
         run: flutter build web --release
+
+      # يُنشر مباشرة بعد البناء (قبل الالتزام بالمخرجات) بدل الاعتماد على
+      # تشغيل منفصل يُحفَّز بتعديل build/web — التزام البناء يحمل [skip ci]
+      # فيُعطَّل أي تشغيل جديد لأي workflow أصلاً على ذلك الالتزام
+      - name: Install Firebase CLI
+        if: env.HAS_FIREBASE_SA == 'true'
+        run: npm install -g firebase-tools
+
+      - name: Deploy to Firebase Hosting
+        if: env.HAS_FIREBASE_SA == 'true'
+        run: |
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /tmp/firebase-sa.json
+          firebase hosting:sites:create meals --project melz-restaurant || true
+          firebase deploy --only hosting --project melz-restaurant --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-sa.json
 
       - name: Commit and push build
         run: |
