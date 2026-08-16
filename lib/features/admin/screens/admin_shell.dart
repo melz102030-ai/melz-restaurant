@@ -9,6 +9,14 @@ const double _railCollapsedWidth = 64;
 const double _railExpandedWidth = 220;
 const _railExpandedPrefKey = 'admin_rail_expanded';
 
+// ألوان القائمة الجانبية معكوسة عمداً عن ألوان الواجهة الحالية (وليست ثابتة
+// حرفياً) — فهي تبقى دائماً "عكس" الواجهة حتى لو غيّر الأدمن لاحقاً ألوان
+// المظهر بالكامل من شاشة "المظهر"، بدل الاعتماد على درجة داكنة ثابتة قد
+// تتطابق يوماً مع لون خلفية اختاره الأدمن نفسه فتفقد اللوحة تميّزها
+Color get _sidebarBg => AppColors.textPrimary;
+Color get _sidebarFg => AppColors.background;
+Color get _sidebarFgMuted => Color.lerp(_sidebarFg, _sidebarBg, 0.45)!;
+
 typedef _NavItem = ({IconData icon, String label, String route});
 typedef _NavSection = ({String? title, List<_NavItem> items});
 
@@ -122,15 +130,15 @@ class _AdminShellState extends ConsumerState<AdminShell> {
               curve: Curves.easeOutCubic,
               width: _expanded ? _railExpandedWidth : _railCollapsedWidth,
               child: Material(
-                color: AppColors.surface,
+                color: _sidebarBg,
                 elevation: _expanded ? 6 : 0,
-                shadowColor: Colors.black.withOpacity(0.15),
+                shadowColor: Colors.black.withOpacity(0.35),
                 child: Column(
                   children: [
                     const SizedBox(height: 6),
                     IconButton(
                       icon: Icon(_expanded ? Icons.menu_open : Icons.menu,
-                          color: AppColors.purple, size: 22),
+                          color: AppColors.purpleLight, size: 22),
                       tooltip: _expanded ? 'طي القائمة' : 'توسيع القائمة',
                       onPressed: () => _setExpanded(!_expanded),
                     ),
@@ -140,7 +148,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         child: Text(
                           user?.name ?? 'الإدارة',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                          style: TextStyle(color: _sidebarFgMuted, fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                         ),
@@ -210,7 +218,7 @@ class _NavSectionWidget extends StatelessWidget {
                     child: Text(
                       section.title!,
                       style: TextStyle(
-                        color: AppColors.textHint,
+                        color: _sidebarFgMuted,
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
@@ -219,7 +227,7 @@ class _NavSectionWidget extends StatelessWidget {
                 )
               : Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 18),
-                  child: Divider(color: AppColors.surfaceLight, height: 1),
+                  child: Divider(color: _sidebarFg.withValues(alpha: 0.14), height: 1),
                 ),
         for (final item in section.items)
           _NavRow(
@@ -248,7 +256,7 @@ class _NavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.purple : AppColors.textHint;
+    final color = selected ? AppColors.purpleLight : _sidebarFgMuted;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: Material(
@@ -261,7 +269,7 @@ class _NavRow extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: expanded ? 12 : 0),
             alignment: expanded ? Alignment.centerRight : Alignment.center,
             decoration: BoxDecoration(
-              color: selected ? AppColors.purple.withOpacity(0.12) : null,
+              color: selected ? AppColors.purpleLight.withOpacity(0.18) : null,
               borderRadius: BorderRadius.circular(10),
             ),
             child: expanded
@@ -273,7 +281,7 @@ class _NavRow extends StatelessWidget {
                         child: Text(
                           item.label,
                           style: TextStyle(
-                            color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+                            color: selected ? _sidebarFg : _sidebarFgMuted,
                             fontWeight: selected ? FontWeight.w700 : FontWeight.normal,
                             fontSize: 13.5,
                           ),
