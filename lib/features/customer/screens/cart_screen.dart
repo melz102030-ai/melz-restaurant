@@ -225,69 +225,73 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     if (_isPlacingOrder) return;
 
     final cart = ref.read(cartProvider);
-    final settings = ref.read(settingsProvider);
-    final cartTotal = ref.read(cartTotalProvider);
-
     if (cart.isEmpty) return;
 
-    if (!settings.effectivelyOpen) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('المطعم مغلق حالياً، لا يمكن إرسال الطلب'),
-        backgroundColor: AppColors.error,
-      ));
-      return;
-    }
-
-    if (cartTotal < settings.minOrderAmount) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(
-          'الحد الأدنى للطلب ${settings.minOrderAmount.toStringAsFixed(0)} ${AppStrings.sar}'),
-        backgroundColor: AppColors.warning,
-      ));
-      return;
-    }
-
-    final isDelivery =
-        settings.deliveryEnabled && _orderType == OrderType.delivery;
-
-    if (isDelivery && (_deliveryLat == null || _deliveryLng == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('الرجاء تحديد موقع التوصيل على الخريطة أولاً'),
-        backgroundColor: AppColors.warning,
-      ));
-      return;
-    }
-
-    final zones = ref.read(deliveryZonesProvider).valueOrNull ?? const <DeliveryZone>[];
-    final pricing = _resolveDeliveryPricing(settings, zones);
-
-    if (isDelivery && pricing.outsideServiceArea) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('عذراً، موقعك خارج نطاق التوصيل المتاح'),
-        backgroundColor: AppColors.error,
-      ));
-      return;
-    }
-
-    if (!settings.cashAllowedFor(isDelivery: isDelivery)) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(isDelivery
-            ? 'الدفع نقداً غير متاح للتوصيل حالياً'
-            : 'الدفع نقداً غير متاح للاستلام من المطعم حالياً'),
-        backgroundColor: AppColors.error,
-      ));
-      return;
-    }
-
-    if (isDelivery) {
-      final locationOk = await _confirmSavedLocationIfNeeded();
-      if (!locationOk || !mounted) return;
-      final distanceOk = await _confirmDistanceIfFar();
-      if (!distanceOk || !mounted) return;
-    }
-
+    // يُضبط فوراً عند أول ضغطة، قبل أي عملية غير متزامنة (بما فيها حواري
+    // تأكيد الموقع/المسافة التي قد تنتظر عدة ثوانٍ لتحديد الموقع الجغرافي) —
+    // سابقاً كان يُضبط بعدها، فيبقى الزر قابلاً للضغط خلال هذه الفترة، وأي
+    // ضغطة ثانية أثناءها كانت تمرّ من الحارس أعلاه وتُنشئ طلباً مكرَّراً فعلياً
     setState(() => _isPlacingOrder = true);
     try {
+      final settings = ref.read(settingsProvider);
+      final cartTotal = ref.read(cartTotalProvider);
+
+      if (!settings.effectivelyOpen) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('المطعم مغلق حالياً، لا يمكن إرسال الطلب'),
+          backgroundColor: AppColors.error,
+        ));
+        return;
+      }
+
+      if (cartTotal < settings.minOrderAmount) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+            'الحد الأدنى للطلب ${settings.minOrderAmount.toStringAsFixed(0)} ${AppStrings.sar}'),
+          backgroundColor: AppColors.warning,
+        ));
+        return;
+      }
+
+      final isDelivery =
+          settings.deliveryEnabled && _orderType == OrderType.delivery;
+
+      if (isDelivery && (_deliveryLat == null || _deliveryLng == null)) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('الرجاء تحديد موقع التوصيل على الخريطة أولاً'),
+          backgroundColor: AppColors.warning,
+        ));
+        return;
+      }
+
+      final zones = ref.read(deliveryZonesProvider).valueOrNull ?? const <DeliveryZone>[];
+      final pricing = _resolveDeliveryPricing(settings, zones);
+
+      if (isDelivery && pricing.outsideServiceArea) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('عذراً، موقعك خارج نطاق التوصيل المتاح'),
+          backgroundColor: AppColors.error,
+        ));
+        return;
+      }
+
+      if (!settings.cashAllowedFor(isDelivery: isDelivery)) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(isDelivery
+              ? 'الدفع نقداً غير متاح للتوصيل حالياً'
+              : 'الدفع نقداً غير متاح للاستلام من المطعم حالياً'),
+          backgroundColor: AppColors.error,
+        ));
+        return;
+      }
+
+      if (isDelivery) {
+        final locationOk = await _confirmSavedLocationIfNeeded();
+        if (!locationOk || !mounted) return;
+        final distanceOk = await _confirmDistanceIfFar();
+        if (!distanceOk || !mounted) return;
+      }
+
       var user = ref.read(authProvider);
       if (user == null) {
         final loggedIn = await showLoginBottomSheet(context);
