@@ -617,11 +617,14 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   final _descCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _discountCtrl = TextEditingController();
+  final _caloriesCtrl = TextEditingController();
   String? _selectedCategoryId;
   String? _selectedCategoryName;
   bool _isAvailable = true;
   bool _isBestSeller = false;
   bool _isNew = false;
+  bool _showNutritionInfo = false;
+  List<String> _allergens = [];
   bool _isSaving = false;
   String? _imageUrl;
   Uint8List? _imageBytes;
@@ -651,6 +654,9 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       _optionGroups = List.from(item.optionGroups);
       _presets = List.from(item.presets);
       _suggestedItemIds = List.from(item.suggestedItemIds);
+      _caloriesCtrl.text = item.calories?.toString() ?? '';
+      _allergens = List.from(item.allergens);
+      _showNutritionInfo = item.showNutritionInfo;
     }
   }
 
@@ -660,6 +666,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
     _descCtrl.dispose();
     _priceCtrl.dispose();
     _discountCtrl.dispose();
+    _caloriesCtrl.dispose();
     _tabCtrl.dispose();
     super.dispose();
   }
@@ -689,6 +696,14 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         return;
       }
     }
+    int? calories;
+    if (_caloriesCtrl.text.trim().isNotEmpty) {
+      calories = int.tryParse(_caloriesCtrl.text.trim());
+      if (calories == null || calories < 0) {
+        setState(() => _saveError = 'عدد السعرات المُدخل غير صحيح');
+        return;
+      }
+    }
     setState(() => _isSaving = true);
     try {
       String? finalImageUrl = _imageUrl;
@@ -712,6 +727,9 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         isNew: _isNew,
         presets: _presets,
         suggestedItemIds: _suggestedItemIds,
+        calories: calories,
+        allergens: _allergens,
+        showNutritionInfo: _showNutritionInfo,
       );
       if (widget.item != null && !widget.isDuplicate) {
         await MenuService.updateMenuItem(newItem);
@@ -938,6 +956,52 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
               Switch(
                 value: _isNew,
                 onChanged: (v) => setState(() => _isNew = v),
+              ),
+            ],
+          ),
+          const Divider(height: 28),
+          Text('السعرات الحرارية ومسبّبات الحساسية',
+              style: TextStyle(
+                  color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _caloriesCtrl,
+            keyboardType: TextInputType.number,
+            style: TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(labelText: 'السعرات الحرارية', hintText: '450'),
+          ),
+          const SizedBox(height: 12),
+          Text('مسبّبات الحساسية',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: kAllergens.entries.map((entry) {
+              final selected = _allergens.contains(entry.key);
+              return FilterChip(
+                label: Text(entry.value),
+                selected: selected,
+                onSelected: (v) => setState(() {
+                  if (v) {
+                    _allergens = [..._allergens, entry.key];
+                  } else {
+                    _allergens = _allergens.where((a) => a != entry.key).toList();
+                  }
+                }),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: Text('إظهار هذه المعلومات للعميل',
+                    style: TextStyle(color: AppColors.textSecondary)),
+              ),
+              Switch(
+                value: _showNutritionInfo,
+                onChanged: (v) => setState(() => _showNutritionInfo = v),
               ),
             ],
           ),

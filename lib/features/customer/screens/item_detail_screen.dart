@@ -122,6 +122,11 @@ class ItemDetailScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+                if (item.showNutritionInfo &&
+                    (item.calories != null || item.allergens.isNotEmpty)) ...[
+                  const SizedBox(height: 12),
+                  _NutritionInfo(item: item),
+                ],
               ],
             ),
           ),
@@ -169,6 +174,47 @@ class _Badges extends StatelessWidget {
         child: Text(text,
             style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
       );
+}
+
+// السعرات الحرارية ومسبّبات الحساسية — تظهر فقط إن فعّلها الأدمن صراحةً
+// لهذا الصنف (item.showNutritionInfo) وعبّأ بيانات فعلية فيها
+class _NutritionInfo extends StatelessWidget {
+  final MenuItemModel item;
+  const _NutritionInfo({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (item.calories != null)
+          Row(
+            children: [
+              Icon(Icons.local_fire_department_outlined, color: AppColors.textSecondary, size: 16),
+              const SizedBox(width: 6),
+              Text('${item.calories} سعرة حرارية',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            ],
+          ),
+        if (item.allergens.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 16),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  'يحتوي على: ${item.allergens.map((id) => kAllergens[id] ?? id).join('، ')}',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 // زر رجوع دائري شبه شفاف يطفو فوق صورة الصنف مباشرة بدل شريط علوي (AppBar)

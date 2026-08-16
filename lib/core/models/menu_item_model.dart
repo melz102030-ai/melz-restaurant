@@ -1,5 +1,25 @@
 import 'option_group_model.dart';
 
+// قائمة ثابتة شاملة لمسبّبات الحساسية الشائعة (مطابقة لقائمة الاتحاد
+// الأوروبي/الهيئة العامة للغذاء والدواء السعودية المكوّنة من ١٤ مسبّباً) —
+// يختار الأدمن منها بدل كتابة نص حر يختلف بين صنف وآخر
+const Map<String, String> kAllergens = {
+  'gluten': 'الغلوتين (يشمل القمح والشعير والشوفان)',
+  'crustaceans': 'القشريات (روبيان، كابوريا، جراد بحر)',
+  'eggs': 'البيض',
+  'fish': 'الأسماك',
+  'peanuts': 'الفول السوداني',
+  'soy': 'الصويا',
+  'milk': 'الألبان (يشمل اللاكتوز)',
+  'nuts': 'المكسرات (لوز، بندق، جوز، كاجو، فستق)',
+  'celery': 'الكرفس',
+  'mustard': 'الخردل',
+  'sesame': 'السمسم',
+  'sulphites': 'ثاني أكسيد الكبريت / الكبريتات',
+  'lupin': 'الترمس',
+  'molluscs': 'الرخويات (محار، حلزون، أخطبوط)',
+};
+
 class MenuItemModel {
   final String id;
   final String name;
@@ -19,6 +39,13 @@ class MenuItemModel {
   final List<ItemPreset> presets;
   // معرّفات أصناف أخرى يقترحها الأدمن كـ"غالباً ما يُطلب معه"
   final List<String> suggestedItemIds;
+  final int? calories;
+  // معرّفات من kAllergens أعلاه
+  final List<String> allergens;
+  // مفتاح إظهار قسم السعرات/الحساسية للعميل — منفصل عن تعبئة البيانات نفسها،
+  // حتى يستطيع الأدمن تجهيزها مسبقاً بلا إظهارها قبل اكتمالها/مراجعتها.
+  // افتراضياً معطّل فلا يظهر قسم فارغ للأصناف التي لم تُعبَّأ بياناتها بعد.
+  final bool showNutritionInfo;
 
   const MenuItemModel({
     required this.id,
@@ -37,6 +64,9 @@ class MenuItemModel {
     this.isNew = false,
     this.presets = const [],
     this.suggestedItemIds = const [],
+    this.calories,
+    this.allergens = const [],
+    this.showNutritionInfo = false,
   });
 
   double get finalPrice {
@@ -71,6 +101,9 @@ class MenuItemModel {
           .map((p) => ItemPreset.fromMap(p as Map<String, dynamic>))
           .toList(),
       suggestedItemIds: List<String>.from(map['suggestedItemIds'] ?? []),
+      calories: map['calories'],
+      allergens: List<String>.from(map['allergens'] ?? []),
+      showNutritionInfo: map['showNutritionInfo'] ?? false,
     );
   }
 
@@ -91,6 +124,9 @@ class MenuItemModel {
       'isNew': isNew,
       'presets': presets.map((p) => p.toMap()).toList(),
       'suggestedItemIds': suggestedItemIds,
+      'calories': calories,
+      'allergens': allergens,
+      'showNutritionInfo': showNutritionInfo,
     };
   }
 
@@ -111,6 +147,9 @@ class MenuItemModel {
     bool? isNew,
     List<ItemPreset>? presets,
     List<String>? suggestedItemIds,
+    int? calories,
+    List<String>? allergens,
+    bool? showNutritionInfo,
   }) {
     return MenuItemModel(
       id: id ?? this.id,
@@ -129,6 +168,9 @@ class MenuItemModel {
       isNew: isNew ?? this.isNew,
       presets: presets ?? this.presets,
       suggestedItemIds: suggestedItemIds ?? this.suggestedItemIds,
+      calories: calories ?? this.calories,
+      allergens: allergens ?? this.allergens,
+      showNutritionInfo: showNutritionInfo ?? this.showNutritionInfo,
     );
   }
 }
