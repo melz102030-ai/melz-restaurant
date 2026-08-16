@@ -590,102 +590,6 @@ class _MiniQtyBadge extends StatelessWidget {
       );
 }
 
-// بطاقة صغيرة لصنف مقترَح ضمن قسم "غالباً ما يُطلب معه" — إضافة مباشرة إن
-// كان بلا خيارات، أو فتح صفحته الكاملة إن كان يحتاج اختيار خيارات أولاً
-// بطاقة صنف مقترَح — الضغط في أي مكان منها (الصورة أو الاسم أو الشارة) يفتح
-// صفحة الصنف الأخرى دائماً (بلا إضافة فورية صامتة) لتصفّحه/تخصيصه/ضبط
-// كميته أو إزالته — نفس نمط بطاقات الشبكة المضغوطة في بقية التطبيق
-class _SuggestedItemTile extends ConsumerWidget {
-  final MenuItemModel item;
-  const _SuggestedItemTile({required this.item});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final totalQty = ref.watch(cartProvider.select(
-      (c) => c.where((i) => i.item.id == item.id).fold(0, (s, c) => s + c.quantity),
-    ));
-    return GestureDetector(
-      onTap: () => context.push('/item/${item.id}'),
-      child: Container(
-        width: 118,
-        decoration: BoxDecoration(
-          color: AppColors.cardBackground,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: totalQty > 0 ? AppColors.purple : AppColors.surfaceLight,
-            width: totalQty > 0 ? 1.4 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AspectRatio(
-              aspectRatio: 1.3,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: item.imageUrl != null
-                        ? Image.network(
-                            item.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(color: AppColors.surfaceLight),
-                          )
-                        : Container(
-                            color: AppColors.surfaceLight,
-                            child: Icon(Icons.restaurant, color: AppColors.textHint, size: 22),
-                          ),
-                  ),
-                  Positioned(
-                    bottom: 4,
-                    left: 4,
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-                      alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                      decoration: BoxDecoration(
-                        color: AppColors.purple,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        totalQty > 0 ? '×$totalQty' : '+',
-                        style: const TextStyle(
-                            color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                        color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600, height: 1.25),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
-                    style: TextStyle(
-                        color: AppColors.purple, fontSize: 11.5, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ── Small reusable controls ───────────────────────────────────────────────────
 
 class _AddBtn extends StatelessWidget {
@@ -1081,13 +985,17 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                   style: TextStyle(
                       color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
+              // نفس حجم بطاقات القائمة الأساسية (MenuItemGridCard بعرض 140
+              // وارتفاع 190) المستخدَم أيضاً في قسم "الأكثر مبيعاً" بالصفحة
+              // الرئيسية، بدل بطاقة مصغّرة مخصَّصة بحجم مختلف عن بقية التطبيق
               SizedBox(
-                height: 158,
+                height: 190,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: suggested.length,
                   separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (_, i) => _SuggestedItemTile(item: suggested[i]),
+                  itemBuilder: (_, i) =>
+                      SizedBox(width: 140, child: MenuItemGridCard(item: suggested[i])),
                 ),
               ),
             ],
