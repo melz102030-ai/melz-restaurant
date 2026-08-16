@@ -98,10 +98,13 @@ class MenuItemModel {
       isBestSeller: map['isBestSeller'] ?? false,
       isNew: map['isNew'] ?? false,
       presets: (map['presets'] as List? ?? [])
-          .map((p) => ItemPreset.fromMap(p as Map<String, dynamic>))
+          .map((p) => ItemPreset.fromMap(Map<String, dynamic>.from(p as Map)))
           .toList(),
       suggestedItemIds: List<String>.from(map['suggestedItemIds'] ?? []),
-      calories: map['calories'],
+      // (map['calories'] as num?)?.toInt() بدل تحويل مباشر — Firestore على
+      // الويب قد يعيد الأرقام كـdouble حتى لو كُتبت أصلاً كـint، فيكسر أي
+      // تحويل ضمني مباشر إلى int؟ ويُسقط الصنف كاملاً من القائمة بصمت
+      calories: (map['calories'] as num?)?.toInt(),
       allergens: List<String>.from(map['allergens'] ?? []),
       showNutritionInfo: map['showNutritionInfo'] ?? false,
     );

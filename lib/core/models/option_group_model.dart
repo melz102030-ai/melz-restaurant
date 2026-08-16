@@ -105,8 +105,12 @@ class ItemPreset {
   factory ItemPreset.fromMap(Map<String, dynamic> m) => ItemPreset(
         id: m['id'] ?? const Uuid().v4(),
         label: m['label'] ?? '',
-        selections: (m['selections'] as Map? ?? {}).map(
-          (k, v) => MapEntry(k as String, List<String>.from(v as List? ?? [])),
+        // Map<String, dynamic>.from(...) بدل (as Map?) مباشرة — أكثر تسامحاً
+        // مع نوع الخريطة الفعلي الذي يعيده Firestore على الويب لبيانات
+        // متداخلة (Map داخل List)، بعكس (as Map<String, dynamic>) الذي يفشل
+        // فوراً إن لم يطابق النوع تماماً
+        selections: Map<String, dynamic>.from(m['selections'] as Map? ?? {}).map(
+          (k, v) => MapEntry(k, List<String>.from(v as List? ?? const [])),
         ),
       );
 
