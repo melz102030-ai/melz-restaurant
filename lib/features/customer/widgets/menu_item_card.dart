@@ -695,6 +695,7 @@ class _QtyRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 2),
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: AppColors.surfaceLight,
           borderRadius: BorderRadius.circular(20),
@@ -826,7 +827,10 @@ class ItemOptionsView extends ConsumerStatefulWidget {
   final MenuItemModel item;
   // true لصفحة كاملة (تملأ الارتفاع المتاح)، false لنافذة سفلية (تتقلّص حسب المحتوى)
   final bool asPage;
-  const ItemOptionsView({super.key, required this.item, this.asPage = false});
+  // محتوى يُعرض فوق قائمة الخيارات ويتمرّر معها (صورة الصنف وتفاصيله في
+  // الصفحة الكاملة) بدل أن يبقى ثابتاً بمعزل عن التمرير ويسرق مساحة دائمة
+  final Widget? header;
+  const ItemOptionsView({super.key, required this.item, this.asPage = false, this.header});
 
   @override
   ConsumerState<ItemOptionsView> createState() => _ItemOptionsViewState();
@@ -834,12 +838,17 @@ class ItemOptionsView extends ConsumerStatefulWidget {
 
 class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   final Map<String, Set<String>> _selections = {};
+  final Map<String, GlobalKey> _groupKeys = {};
   int _qty = 1;
+  // مجموعة إجبارية ناقصة يُشار إليها بالأحمر بعد محاولة إضافة فاشلة — تُمسح
+  // تلقائياً بمجرد أي اختيار جديد من المستخدم
+  String? _invalidGroupId;
 
   @override
   void initState() {
     super.initState();
     for (final group in widget.item.optionGroups) {
+      _groupKeys[group.id] = GlobalKey();
       if (group.type == OptionGroupType.single &&
           group.required &&
           group.options.isNotEmpty) {
@@ -848,13 +857,6 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
         _selections[group.id] = {};
       }
     }
-  }
-
-  bool get _canAdd {
-    for (final group in widget.item.optionGroups) {
-      if (group.required && (_selections[group.id]?.isEmpty ?? true)) return false;
-    }
-    return true;
   }
 
   double get _extraTotal {
@@ -904,6 +906,27 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     ));
   }
 
+  // يحاول الإضافة؛ إن كانت مجموعة إجبارية ناقصة يُمرَّر إليها ويُبرزها
+  // بالأحمر مؤقتاً بدل تعطيل الزر بنص طويل — الزر نفسه يبقى بمظهر واحد ثابت دائماً
+  void _attemptAddToCart() {
+    for (final group in widget.item.optionGroups) {
+      if (group.required && (_selections[group.id]?.isEmpty ?? true)) {
+        setState(() => _invalidGroupId = group.id);
+        final ctx = _groupKeys[group.id]?.currentContext;
+        if (ctx != null) {
+          Scrollable.ensureVisible(
+            ctx,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOut,
+            alignment: 0.1,
+          );
+        }
+        return;
+      }
+    }
+    _addToCart();
+  }
+
   // يستبدل كل الاختيارات الحالية بمحتوى تركيبة جاهزة يحدّدها الأدمن دفعة
   // واحدة — يبقى قابلاً للتعديل يدوياً بعد ذلك بلا أي قيد
   void _applyPreset(ItemPreset preset) {
@@ -915,16 +938,69 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   }
 
   Widget _buildPresetsRow() {
+    // تُستبعد التركيبات التي لم يُحدَّد لها أي خيار فعلياً من الأدمن (نتيجة
+    // إنشاء تركيبة بلا اختيار خيارات داخلها) — لا فائدة من عرضها للعميل
+    final validPresets = widget.item.presets
+        .where((p) => p.selections.values.any((ids) => ids.isNotEmpty))
+        .toList();
+    if (validPresets.isEmpty) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: widget.item.presets.map((preset) {
-          return ActionChip(
-            label: Text(preset.label.isEmpty ? 'تركيبة جاهزة' : preset.label),
-            avatar: Icon(Icons.flash_on, size: 16, color: AppColors.purple),
-            onPressed: () => _applyPreset(preset),
+        children: validPresets.map((preset) {
+          // يُبنى اسم كل خيار مختار داخل التركيبة ليظهر كمعاينة تحت اسمها،
+          // بدل شارة فارغة لا توضح ماذا يختار الضغط عليها فعلياً
+          final selectedNames = <String>[];
+          for (final group in widget.item.optionGroups) {
+            final ids = preset.selections[group.id] ?? const [];
+            for (final opt in group.options) {
+              if (ids.contains(opt.id)) selectedNames.add(opt.name);
+            }
+          }
+          return GestureDetector(
+            onTap: () => _applyPreset(preset),
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 220),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.purple.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.purple.withValues(alpha: 0.4)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.flash_on, size: 14, color: AppColors.purple),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          preset.label.isEmpty ? 'تركيبة جاهزة' : preset.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: AppColors.purple, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (selectedNames.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      selectedNames.join('، '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+                    ),
+                  ],
+                ],
+              ),
+            ),
           );
         }).toList(),
       ),
@@ -973,9 +1049,27 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       shrinkWrap: !widget.asPage,
       children: [
+        // يُلغي حشوة القائمة الأفقية لهذا العنصر تحديداً حتى تمتد صورة
+        // الصنف بعرض الشاشة الكامل رغم أن كل عناصر القائمة الأخرى محشوّة
+        if (widget.header != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: -20),
+            child: widget.header,
+          ),
         if (widget.item.presets.isNotEmpty) _buildPresetsRow(),
         ...widget.item.optionGroups.map((group) {
-        return Column(
+        final isInvalid = _invalidGroupId == group.id;
+        return AnimatedContainer(
+          key: _groupKeys[group.id],
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: isInvalid ? const EdgeInsets.all(10) : EdgeInsets.zero,
+          decoration: BoxDecoration(
+            color: isInvalid ? AppColors.error.withValues(alpha: 0.06) : null,
+            borderRadius: BorderRadius.circular(10),
+            border: isInvalid ? Border.all(color: AppColors.error, width: 1.3) : null,
+          ),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
@@ -984,7 +1078,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                   child: Text(
                     group.name,
                     style: TextStyle(
-                      color: AppColors.textPrimary,
+                      color: isInvalid ? AppColors.error : AppColors.textPrimary,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
@@ -993,15 +1087,19 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                   decoration: BoxDecoration(
-                    color: group.required
-                        ? AppColors.manjawi.withValues(alpha: 0.15)
-                        : AppColors.surfaceLight,
+                    color: isInvalid
+                        ? AppColors.error.withValues(alpha: 0.15)
+                        : group.required
+                            ? AppColors.manjawi.withValues(alpha: 0.15)
+                            : AppColors.surfaceLight,
                     borderRadius: BorderRadius.circular(5),
                   ),
                   child: Text(
-                    group.required ? 'إجباري' : 'اختياري',
+                    isInvalid ? 'مطلوب اختياره' : (group.required ? 'إجباري' : 'اختياري'),
                     style: TextStyle(
-                      color: group.required ? AppColors.manjawi : AppColors.textHint,
+                      color: isInvalid
+                          ? AppColors.error
+                          : (group.required ? AppColors.manjawi : AppColors.textHint),
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1021,6 +1119,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                     selected ? s.remove(opt.id) : s.add(opt.id);
                     _selections[group.id] = s;
                   }
+                  if (_invalidGroupId == group.id) _invalidGroupId = null;
                 }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
@@ -1080,12 +1179,17 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
             }),
             const SizedBox(height: 8),
           ],
+          ),
         );
         }),
         if (widget.item.suggestedItemIds.isNotEmpty) _buildSuggestedItems(),
       ],
     );
 
+    // صف واحد بنفس الارتفاع لكليهما: عدّاد الكمية (يمين، عرض ثابت) وزر
+    // الإضافة (يسار، أعرض) — بدل عمود بزر منفصل يتغيّر نصه ولونه حسب
+    // اكتمال الاختيارات؛ الزر الآن ثابت المظهر دائماً، والتحقق يتم عبر
+    // _attemptAddToCart (تمرير + إبراز أحمر للمجموعة الناقصة بدل تعطيله)
     final footer = Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
       decoration: BoxDecoration(
@@ -1094,36 +1198,33 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
           BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, -3))
         ],
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Center(
-            child: _QtyRow(
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _QtyRow(
               qty: _qty,
               onRemove: () {
                 if (_qty > 1) setState(() => _qty--);
               },
               onAdd: () => setState(() => _qty++),
             ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _canAdd ? _addToCart : null,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                backgroundColor: _canAdd ? AppColors.purple : AppColors.textHint,
-              ),
-              child: Text(
-                _canAdd
-                    ? 'أضف للسلة — ${_totalPrice.toStringAsFixed(0)} ${AppStrings.sar}'
-                    : 'اختر الخيارات الإجبارية',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _attemptAddToCart,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.purple,
+                ),
+                child: Text(
+                  'أضف للسلة — ${_totalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
 
