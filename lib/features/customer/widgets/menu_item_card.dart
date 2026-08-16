@@ -592,53 +592,90 @@ class _MiniQtyBadge extends StatelessWidget {
 
 // بطاقة صغيرة لصنف مقترَح ضمن قسم "غالباً ما يُطلب معه" — إضافة مباشرة إن
 // كان بلا خيارات، أو فتح صفحته الكاملة إن كان يحتاج اختيار خيارات أولاً
+// بطاقة صنف مقترَح — الضغط في أي مكان منها (الصورة أو الاسم أو الشارة) يفتح
+// صفحة الصنف الأخرى دائماً (بلا إضافة فورية صامتة) لتصفّحه/تخصيصه/ضبط
+// كميته أو إزالته — نفس نمط بطاقات الشبكة المضغوطة في بقية التطبيق
 class _SuggestedItemTile extends ConsumerWidget {
   final MenuItemModel item;
   const _SuggestedItemTile({required this.item});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final totalQty = ref.watch(cartProvider.select(
+      (c) => c.where((i) => i.item.id == item.id).fold(0, (s, c) => s + c.quantity),
+    ));
     return GestureDetector(
-      onTap: () => _handleTap(context, ref),
+      onTap: () => context.push('/item/${item.id}'),
       child: Container(
-        width: 92,
+        width: 118,
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.surfaceLight),
+          border: Border.all(
+            color: totalQty > 0 ? AppColors.purple : AppColors.surfaceLight,
+            width: totalQty > 0 ? 1.4 : 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: item.imageUrl != null
-                    ? Image.network(
-                        item.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(color: AppColors.surfaceLight),
-                      )
-                    : Container(
-                        color: AppColors.surfaceLight,
-                        child: Icon(Icons.restaurant, color: AppColors.textHint, size: 20),
+            AspectRatio(
+              aspectRatio: 1.3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                    child: item.imageUrl != null
+                        ? Image.network(
+                            item.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(color: AppColors.surfaceLight),
+                          )
+                        : Container(
+                            color: AppColors.surfaceLight,
+                            child: Icon(Icons.restaurant, color: AppColors.textHint, size: 22),
+                          ),
+                  ),
+                  Positioned(
+                    bottom: 4,
+                    left: 4,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.purple,
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      child: Text(
+                        totalQty > 0 ? '×$totalQty' : '+',
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: Row(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      item.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: AppColors.textPrimary, fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
+                  Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600, height: 1.25),
                   ),
-                  Icon(Icons.add_circle, color: AppColors.purple, size: 18),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${item.finalPrice.toStringAsFixed(0)} ${AppStrings.sar}',
+                    style: TextStyle(
+                        color: AppColors.purple, fontSize: 11.5, fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
             ),
@@ -646,19 +683,6 @@ class _SuggestedItemTile extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  void _handleTap(BuildContext context, WidgetRef ref) {
-    if (item.hasOptions) {
-      context.push('/item/${item.id}');
-      return;
-    }
-    ref.read(cartProvider.notifier).addItem(item);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('تمت إضافة ${item.name} للسلة'),
-      backgroundColor: AppColors.success,
-      duration: const Duration(seconds: 2),
-    ));
   }
 }
 
@@ -843,20 +867,24 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   // مجموعة إجبارية ناقصة يُشار إليها بالأحمر بعد محاولة إضافة فاشلة — تُمسح
   // تلقائياً بمجرد أي اختيار جديد من المستخدم
   String? _invalidGroupId;
+  // التركيبة الجاهزة المطبَّقة حالياً (إن وُجدت) — تُمسح فور أي تعديل يدوي
+  // لأي خيار حتى لا تبقى "مُختارة" بصرياً رغم أن الاختيار الفعلي تغيّر عنها
+  String? _activePresetId;
 
   @override
   void initState() {
     super.initState();
     for (final group in widget.item.optionGroups) {
       _groupKeys[group.id] = GlobalKey();
-      if (group.type == OptionGroupType.single &&
-          group.required &&
-          group.options.isNotEmpty) {
-        _selections[group.id] = {group.options.first.id};
-      } else {
-        _selections[group.id] = {};
-      }
+      _selections[group.id] = _defaultSelectionFor(group);
     }
+  }
+
+  Set<String> _defaultSelectionFor(OptionGroup group) {
+    if (group.type == OptionGroupType.single && group.required && group.options.isNotEmpty) {
+      return {group.options.first.id};
+    }
+    return {};
   }
 
   double get _extraTotal {
@@ -927,13 +955,23 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     _addToCart();
   }
 
-  // يستبدل كل الاختيارات الحالية بمحتوى تركيبة جاهزة يحدّدها الأدمن دفعة
-  // واحدة — يبقى قابلاً للتعديل يدوياً بعد ذلك بلا أي قيد
-  void _applyPreset(ItemPreset preset) {
+  // يبدّل تركيبة جاهزة: الضغط عليها وهي غير مُختارة يملأ كل مجموعات الخيارات
+  // بمحتواها دفعة واحدة (يبقى قابلاً للتعديل يدوياً بعدها)، والضغط عليها
+  // مجدداً وهي المُختارة حالياً يُلغي اختيارها ويعيد مجموعاتها لحالتها
+  // الافتراضية بدل تركها كما تركتها التركيبة
+  void _togglePreset(ItemPreset preset) {
+    final deselecting = _activePresetId == preset.id;
     setState(() {
       for (final group in widget.item.optionGroups) {
-        _selections[group.id] = Set<String>.from(preset.selections[group.id] ?? const []);
+        if (deselecting) {
+          if (preset.selections.containsKey(group.id)) {
+            _selections[group.id] = _defaultSelectionFor(group);
+          }
+        } else {
+          _selections[group.id] = Set<String>.from(preset.selections[group.id] ?? const []);
+        }
       }
+      _activePresetId = deselecting ? null : preset.id;
     });
   }
 
@@ -951,23 +989,32 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
         runSpacing: 8,
         children: validPresets.map((preset) {
           // يُبنى اسم كل خيار مختار داخل التركيبة ليظهر كمعاينة تحت اسمها،
-          // بدل شارة فارغة لا توضح ماذا يختار الضغط عليها فعلياً
+          // بدل شارة فارغة لا توضح ماذا يختار الضغط عليها فعلياً — وسعرها
+          // الإضافي الفعلي (مجموع فروقات أسعار خياراتها) يظهر بجانب الاسم
           final selectedNames = <String>[];
+          double extra = 0;
           for (final group in widget.item.optionGroups) {
             final ids = preset.selections[group.id] ?? const [];
             for (final opt in group.options) {
-              if (ids.contains(opt.id)) selectedNames.add(opt.name);
+              if (ids.contains(opt.id)) {
+                selectedNames.add(opt.name);
+                extra += opt.priceAdjustment;
+              }
             }
           }
+          final isActive = _activePresetId == preset.id;
+          final fg = isActive ? Colors.white : AppColors.purple;
           return GestureDetector(
-            onTap: () => _applyPreset(preset),
-            child: Container(
+            onTap: () => _togglePreset(preset),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
               constraints: const BoxConstraints(maxWidth: 220),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.purple.withValues(alpha: 0.08),
+                color: isActive ? AppColors.purple : AppColors.purple.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.purple.withValues(alpha: 0.4)),
+                border: Border.all(
+                    color: isActive ? AppColors.purple : AppColors.purple.withValues(alpha: 0.4)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -976,17 +1023,23 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.flash_on, size: 14, color: AppColors.purple),
+                      Icon(isActive ? Icons.check_circle : Icons.flash_on, size: 14, color: fg),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           preset.label.isEmpty ? 'تركيبة جاهزة' : preset.label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              color: AppColors.purple, fontSize: 13, fontWeight: FontWeight.bold),
+                          style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                       ),
+                      if (extra != 0) ...[
+                        const SizedBox(width: 4),
+                        Text(
+                          '${extra > 0 ? '+' : ''}${extra.toStringAsFixed(0)} ${AppStrings.sar}',
+                          style: TextStyle(color: fg, fontSize: 11.5, fontWeight: FontWeight.w600),
+                        ),
+                      ],
                     ],
                   ),
                   if (selectedNames.isNotEmpty) ...[
@@ -995,7 +1048,9 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                       selectedNames.join('، '),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+                      style: TextStyle(
+                          color: isActive ? Colors.white.withValues(alpha: 0.85) : AppColors.textSecondary,
+                          fontSize: 11.5),
                     ),
                   ],
                 ],
@@ -1027,7 +1082,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                       color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               SizedBox(
-                height: 96,
+                height: 158,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: suggested.length,
@@ -1120,6 +1175,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                     _selections[group.id] = s;
                   }
                   if (_invalidGroupId == group.id) _invalidGroupId = null;
+                  _activePresetId = null;
                 }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
