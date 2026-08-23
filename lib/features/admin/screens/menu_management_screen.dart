@@ -188,7 +188,6 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
   Widget build(BuildContext context) {
     final itemsAsync = ref.watch(adminMenuItemsProvider);
     final categories = ref.watch(adminCategoriesProvider).valueOrNull ?? [];
-    final hasFilter = _query.isNotEmpty || _categoryFilter != null;
 
     return Column(
       children: [
@@ -274,10 +273,12 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
                 );
               }
 
-              // إعادة الترتيب بالسحب منطقية فقط على القائمة الكاملة غير
-              // المصفّاة — بخلاف ذلك يُعاد ترتيب عناصر مصفّاة فقط بأرقام
-              // sortOrder التي تحكم كل القائمة، فتُربك ترتيب العناصر المخفية
-              if (hasFilter) {
+              // السحب معطّل فقط أثناء البحث النصي: البحث قد يُخفي جزءاً من
+              // عناصر نفس الفئة، فإعادة ترتيب الجزء الظاهر فقط بأرقام
+              // sortOrder المتسلسلة تُربك ترتيب العناصر المخفية من نفس
+              // الفئة. أما فلتر الفئة فيعرض كامل عناصرها دون إخفاء أي
+              // منها، فالسحب ضمنه آمن تماماً.
+              if (_query.isNotEmpty) {
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: items.length,
@@ -285,18 +286,20 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
                 );
               }
 
-              // نجمّع العناصر بحسب ترتيب فئاتها قبل عرضها — sortOrder حقل
-              // مسطّح مشترك بين كل الأصناف بغضّ النظر عن الفئة، فبدون هذا
-              // التجميع تظهر أصناف الفئات المختلفة متداخلة عشوائياً في "الكل"
-              final categoryOrder = {
-                for (var i = 0; i < categories.length; i++) categories[i].id: i,
-              };
-              items.sort((a, b) {
-                final catCompare = (categoryOrder[a.categoryId] ?? categories.length)
-                    .compareTo(categoryOrder[b.categoryId] ?? categories.length);
-                if (catCompare != 0) return catCompare;
-                return a.sortOrder.compareTo(b.sortOrder);
-              });
+              if (_categoryFilter == null) {
+                // نجمّع العناصر بحسب ترتيب فئاتها قبل عرضها — sortOrder حقل
+                // مسطّح مشترك بين كل الأصناف بغضّ النظر عن الفئة، فبدون هذا
+                // التجميع تظهر أصناف الفئات المختلفة متداخلة عشوائياً في "الكل"
+                final categoryOrder = {
+                  for (var i = 0; i < categories.length; i++) categories[i].id: i,
+                };
+                items.sort((a, b) {
+                  final catCompare = (categoryOrder[a.categoryId] ?? categories.length)
+                      .compareTo(categoryOrder[b.categoryId] ?? categories.length);
+                  if (catCompare != 0) return catCompare;
+                  return a.sortOrder.compareTo(b.sortOrder);
+                });
+              }
 
               return ReorderableListView.builder(
                 padding: const EdgeInsets.all(16),
