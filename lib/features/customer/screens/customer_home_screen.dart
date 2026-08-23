@@ -83,7 +83,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       case PopupAdLinkType.item:
         if (ad.linkId != null) {
           final matches = allItems.where((i) => i.id == ad.linkId);
-          if (matches.isNotEmpty) _selectCategory(matches.first.categoryId);
+          if (matches.isNotEmpty) context.push('/item/${ad.linkId}');
         }
         break;
       case PopupAdLinkType.url:
@@ -406,13 +406,13 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     }
   }
 
-  // نقر على بانر مرتبط بفئة أو صنف — ينقل للقسم المناسب في القائمة (نفس منطق حبات الفئات)
+  // نقر على بانر مرتبط بفئة (ينقل للقسم، نفس منطق حبات الفئات) أو بصنف (يفتح تفاصيله مباشرة)
   void _handleBannerTap(PromoBannerModel banner, List<MenuItemModel> allItems) {
     if (banner.linkType == BannerLinkType.category && banner.linkId != null) {
       _selectCategory(banner.linkId);
     } else if (banner.linkType == BannerLinkType.item && banner.linkId != null) {
       final matches = allItems.where((i) => i.id == banner.linkId);
-      if (matches.isNotEmpty) _selectCategory(matches.first.categoryId);
+      if (matches.isNotEmpty) context.push('/item/${banner.linkId}');
     }
   }
 
@@ -748,7 +748,13 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   // Returns a header sliver + items sliver for one category
   List<Widget> _buildCategorySection(
       CategoryModel cat, List<MenuItemModel> allItems, MenuDisplayStyle displayStyle) {
-    final catItems = allItems.where((i) => i.categoryId == cat.id).toList();
+    // الأصناف النافدة تُدفع لآخر القائمة دون تغيير sortOrder الأصلي في
+    // قاعدة البيانات — فتعود لموضعها الطبيعي تلقائياً فور توفرها من جديد
+    final catItems = allItems.where((i) => i.categoryId == cat.id).toList()
+      ..sort((a, b) {
+        if (a.isAvailable != b.isAvailable) return a.isAvailable ? -1 : 1;
+        return a.sortOrder.compareTo(b.sortOrder);
+      });
     if (catItems.isEmpty) return const [];
 
     // Create the GlobalKey once and reuse across rebuilds
@@ -1430,6 +1436,7 @@ class _PromoCarouselState extends State<_PromoCarousel> {
               itemBuilder: (_, i) {
                 final banner = widget.banners[i];
                 return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
                   onTap: () => widget.onBannerTap(banner),
                   child: Image.network(
                     banner.imageUrl,
@@ -1685,10 +1692,14 @@ class _WavyCoverBannerState extends State<_WavyCoverBanner>
     return Stack(
       children: [
         widget.child,
+        // زخرفة بصرية بحتة — تُتجاهل في اختبار اللمس كي لا تحجب أي تفاعل
+        // (كالضغط على البانر) تحتها رغم أنها تملأ نفس المساحة بالكامل
         Positioned.fill(
-          child: AnimatedBuilder(
-            animation: _ctrl,
-            builder: (_, __) => CustomPaint(painter: _WavyLinesPainter()),
+          child: IgnorePointer(
+            child: AnimatedBuilder(
+              animation: _ctrl,
+              builder: (_, __) => CustomPaint(painter: _WavyLinesPainter()),
+            ),
           ),
         ),
       ],
