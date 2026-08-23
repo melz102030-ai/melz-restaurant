@@ -1240,21 +1240,23 @@ class _SearchCategoryBar extends StatelessWidget {
                         padding: const EdgeInsets.all(2.5),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          // حدّ محايد دائماً — بدونه تختفي الدائرة غير المحدَّدة
+                          // إذا تقارب لون صورتها مع لون الخلفية
                           border: Border.all(
                             color: isSelected
                                 ? AppColors.purple
-                                : Colors.transparent,
-                            width: 2.4,
+                                : Colors.black.withValues(alpha: 0.1),
+                            width: isSelected ? 2.4 : 1.4,
                           ),
-                          boxShadow: isSelected
-                              ? [
-                                  BoxShadow(
-                                    color: AppColors.purple.withValues(alpha: 0.35),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ]
-                              : null,
+                          boxShadow: [
+                            BoxShadow(
+                              color: isSelected
+                                  ? AppColors.purple.withValues(alpha: 0.35)
+                                  : Colors.black.withValues(alpha: 0.08),
+                              blurRadius: isSelected ? 8 : 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: ClipOval(
                           child: imageUrl != null
