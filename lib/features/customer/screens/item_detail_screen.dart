@@ -75,7 +75,7 @@ class _ItemHeader extends StatelessWidget {
                         item.imageUrl!,
                         width: double.infinity,
                         fit: BoxFit.fitWidth,
-                        alignment: Alignment.topCenter,
+                        alignment: Alignment.center,
                         errorBuilder: (_, __, ___) => _placeholder(),
                       )
                     : _placeholder(),
