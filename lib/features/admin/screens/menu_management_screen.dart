@@ -285,8 +285,22 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
                 );
               }
 
+              // نجمّع العناصر بحسب ترتيب فئاتها قبل عرضها — sortOrder حقل
+              // مسطّح مشترك بين كل الأصناف بغضّ النظر عن الفئة، فبدون هذا
+              // التجميع تظهر أصناف الفئات المختلفة متداخلة عشوائياً في "الكل"
+              final categoryOrder = {
+                for (var i = 0; i < categories.length; i++) categories[i].id: i,
+              };
+              items.sort((a, b) {
+                final catCompare = (categoryOrder[a.categoryId] ?? categories.length)
+                    .compareTo(categoryOrder[b.categoryId] ?? categories.length);
+                if (catCompare != 0) return catCompare;
+                return a.sortOrder.compareTo(b.sortOrder);
+              });
+
               return ReorderableListView.builder(
                 padding: const EdgeInsets.all(16),
+                buildDefaultDragHandles: false,
                 onReorder: (oldIndex, newIndex) {
                   if (newIndex > oldIndex) newIndex--;
                   final reordered = List<MenuItemModel>.from(items);
@@ -328,9 +342,13 @@ class _MenuItemTile extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          // إشارة بصرية أن هذا العنصر قابل لإعادة الترتيب بالسحب — بدون
-          // هذا التلميح، السحب سلوك افتراضي غير موسوم يصعب اكتشافه
-          Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          // مقبض السحب الفعلي — في RTL يضع Flutter مقبضه الافتراضي فوق
+          // منطقة المفتاح/الأزرار على الطرف الآخر، لذا نربطه يدوياً بهذه
+          // الأيقونة الظاهرة عبر buildDefaultDragHandles: false أعلاه
+          ReorderableDragStartListener(
+            index: index,
+            child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          ),
           const SizedBox(width: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
@@ -489,6 +507,7 @@ class _CategoriesTab extends ConsumerWidget {
           }
           return ReorderableListView.builder(
             padding: const EdgeInsets.all(16),
+            buildDefaultDragHandles: false,
             onReorder: (oldIndex, newIndex) {
               if (newIndex > oldIndex) newIndex--;
               final reordered = List<CategoryModel>.from(cats);
@@ -531,7 +550,10 @@ class _CategoryTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          ReorderableDragStartListener(
+            index: index,
+            child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          ),
           const SizedBox(width: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
@@ -1060,6 +1082,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
           Expanded(
             child: ReorderableListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
+              buildDefaultDragHandles: false,
               onReorder: (oldIdx, newIdx) {
                 setState(() {
                   if (newIdx > oldIdx) newIdx--;
@@ -1072,6 +1095,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                 final group = e.value;
                 return _OptionGroupTile(
                   key: ValueKey(group.id),
+                  index: i,
                   group: group,
                   onEdit: () => _editOptionGroup(i),
                   onDelete: () => setState(() => _optionGroups.removeAt(i)),
@@ -1314,12 +1338,14 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
 // ── Option group tile ─────────────────────────────────────────────────────────
 
 class _OptionGroupTile extends StatelessWidget {
+  final int index;
   final OptionGroup group;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
   const _OptionGroupTile({
     super.key,
+    required this.index,
     required this.group,
     required this.onEdit,
     required this.onDelete,
@@ -1360,7 +1386,10 @@ class _OptionGroupTile extends StatelessWidget {
             const SizedBox(width: 6),
             ActionIcon(icon: Icons.delete, color: AppColors.error, tooltip: 'حذف', onTap: onDelete),
             const SizedBox(width: 6),
-            Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
+            ReorderableDragStartListener(
+              index: index,
+              child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
+            ),
           ],
         ),
         children: group.options.map((opt) {
