@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:js' as js;
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -1415,65 +1414,61 @@ class _PromoCarouselState extends State<_PromoCarousel> {
     // لا بانرات نشطة — نعود لسلوك الغلاف الثابت القديم كـ fallback
     if (widget.banners.isEmpty) {
       if (widget.fallbackImageUrl == null) return const SizedBox.shrink();
-      return _WavyCoverBanner(
-        child: Image.network(
-          widget.fallbackImageUrl!,
-          width: widget.screenWidth,
-          fit: BoxFit.fitWidth,
-          errorBuilder: (_, __, ___) => _fallbackGradient(height),
-        ),
+      return Image.network(
+        widget.fallbackImageUrl!,
+        width: widget.screenWidth,
+        fit: BoxFit.fitWidth,
+        errorBuilder: (_, __, ___) => _fallbackGradient(height),
       );
     }
 
-    return _WavyCoverBanner(
-      child: SizedBox(
-        height: height,
-        width: widget.screenWidth,
-        child: Stack(
-          children: [
-            PageView.builder(
-              controller: _pageController,
-              itemCount: widget.banners.length,
-              onPageChanged: (i) => setState(() => _page = i),
-              itemBuilder: (_, i) {
-                final banner = widget.banners[i];
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => widget.onBannerTap(banner),
-                  child: Image.network(
-                    banner.imageUrl,
-                    width: widget.screenWidth,
-                    height: height,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _fallbackGradient(height),
-                  ),
-                );
-              },
-            ),
-            if (widget.banners.length > 1)
-              Positioned(
-                bottom: 10,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(widget.banners.length, (i) {
-                    final active = i == _page;
-                    return AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.symmetric(horizontal: 3),
-                      width: active ? 18 : 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(active ? 0.95 : 0.5),
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    );
-                  }),
+    return SizedBox(
+      height: height,
+      width: widget.screenWidth,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            itemCount: widget.banners.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (_, i) {
+              final banner = widget.banners[i];
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => widget.onBannerTap(banner),
+                child: Image.network(
+                  banner.imageUrl,
+                  width: widget.screenWidth,
+                  height: height,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _fallbackGradient(height),
                 ),
+              );
+            },
+          ),
+          if (widget.banners.length > 1)
+            Positioned(
+              bottom: 10,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(widget.banners.length, (i) {
+                  final active = i == _page;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: active ? 18 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(active ? 0.95 : 0.5),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  );
+                }),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -1657,93 +1652,6 @@ class _InstallBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── Wavy lines header overlay ─────────────────────────────────────────────────
-
-class _WavyCoverBanner extends StatefulWidget {
-  final Widget child;
-  const _WavyCoverBanner({required this.child});
-
-  @override
-  State<_WavyCoverBanner> createState() => _WavyCoverBannerState();
-}
-
-class _WavyCoverBannerState extends State<_WavyCoverBanner>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    // 16ms just triggers repaint; real positions come from DateTime.now()
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 16),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        widget.child,
-        // زخرفة بصرية بحتة — تُتجاهل في اختبار اللمس كي لا تحجب أي تفاعل
-        // (كالضغط على البانر) تحتها رغم أنها تملأ نفس المساحة بالكامل
-        Positioned.fill(
-          child: IgnorePointer(
-            child: AnimatedBuilder(
-              animation: _ctrl,
-              builder: (_, __) => CustomPaint(painter: _WavyLinesPainter()),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _WavyLinesPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final t = DateTime.now().millisecondsSinceEpoch / 1000.0;
-
-    void drawWave(double yFrac, double amp, double freq, double speed,
-        double opacity, double strokeW, double dir) {
-      final paint = Paint()
-        ..color = Colors.white.withOpacity(opacity)
-        ..strokeWidth = strokeW
-        ..style = PaintingStyle.stroke
-        ..isAntiAlias = true;
-
-      final baseY = size.height * yFrac;
-      final offset = t * speed * dir;
-
-      final path = Path();
-      path.moveTo(0, baseY + amp * math.sin(offset * freq));
-      for (double x = 3; x <= size.width; x += 3) {
-        path.lineTo(x, baseY + amp * math.sin((x + offset) * freq));
-      }
-      canvas.drawPath(path, paint);
-    }
-
-    drawWave(0.10, 13, 0.011, 58,  0.18, 1.8,  1);
-    drawWave(0.23,  8, 0.015, 72,  0.13, 1.2, -1);
-    drawWave(0.37, 15, 0.009, 44,  0.21, 2.0,  1);
-    drawWave(0.50, 10, 0.013, 66,  0.15, 1.5, -1);
-    drawWave(0.63, 12, 0.010, 51,  0.17, 1.8,  1);
-    drawWave(0.77,  7, 0.017, 78,  0.12, 1.2, -1);
-    drawWave(0.90, 14, 0.012, 62,  0.20, 2.0,  1);
-  }
-
-  @override
-  bool shouldRepaint(_WavyLinesPainter old) => true;
 }
 
 // ── Skeleton loader (أول تحميل) ─────────────────────────────────────────────────
