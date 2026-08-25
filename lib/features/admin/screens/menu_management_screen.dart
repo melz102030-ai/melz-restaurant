@@ -1847,9 +1847,9 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
                 border: Border.all(color: AppColors.purpleDark),
               ),
               child: _imageBytes != null
-                  ? ClipOval(child: Image.memory(_imageBytes!, fit: BoxFit.cover))
+                  ? ClipOval(child: Image.memory(_imageBytes!, fit: BoxFit.contain))
                   : _imageUrl != null
-                      ? ClipOval(child: Image.network(_imageUrl!, fit: BoxFit.cover))
+                      ? ClipOval(child: Image.network(_imageUrl!, fit: BoxFit.contain))
                       : Icon(Icons.add_photo_alternate, color: AppColors.textHint, size: 28),
             ),
           ),

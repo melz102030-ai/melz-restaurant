@@ -1261,7 +1261,8 @@ class _SearchCategoryBar extends StatelessWidget {
                           child: imageUrl != null
                               ? Image.network(
                                   imageUrl,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
+                                  alignment: Alignment.center,
                                   errorBuilder: (_, __, ___) =>
                                       const _CategoryIconFallback(),
                                 )
