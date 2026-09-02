@@ -213,7 +213,7 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    _getStatusIcon(order.status),
+                    _getStatusIcon(order.status, order.orderType),
                     color: statusColor,
                     size: 48,
                   ),
@@ -560,7 +560,7 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
     );
   }
 
-  IconData _getStatusIcon(OrderStatus s) {
+  IconData _getStatusIcon(OrderStatus s, OrderType orderType) {
     switch (s) {
       case OrderStatus.pending:
         return Icons.hourglass_empty;
@@ -569,7 +569,8 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
       case OrderStatus.preparing:
         return Icons.restaurant;
       case OrderStatus.ready:
-        return Icons.delivery_dining;
+        // طلب الاستلام لا يمر بمندوب توصيل أصلاً — أيقونة الدبّاب هنا مضلِّلة
+        return orderType == OrderType.pickup ? Icons.storefront : Icons.delivery_dining;
       case OrderStatus.outForDelivery:
         return Icons.two_wheeler;
       case OrderStatus.delivered:
