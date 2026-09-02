@@ -161,6 +161,7 @@
 
     /* Square banner — logo is 1:1 so no letterboxing */
     .logo-banner {
+      position: relative;
       width: min(80vw, 300px);
       height: min(80vw, 300px);
       border-radius: 24px;
@@ -171,7 +172,33 @@
       margin: 0 auto 28px;
       box-shadow: 0 8px 40px rgba(106,13,173,0.32);
       overflow: hidden;
-      animation: popIn 0.75s ease-out forwards;
+      animation: popIn 0.75s ease-out forwards,
+                 glowPulse 2.6s ease-in-out 0.75s infinite;
+    }
+
+    /* نبضة توهّج هادئة حول المربع بعد ظهوره — الحيوية المطلوبة بدون تغيير الشكل */
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 8px 40px rgba(106,13,173,0.32); }
+      50%      { box-shadow: 0 10px 56px rgba(106,13,173,0.5), 0 0 0 5px rgba(255,255,255,0.05); }
+    }
+
+    /* شعاع لمعان يمرّ فوق المربع دورياً */
+    .logo-banner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(115deg,
+        transparent 40%, rgba(255,255,255,0.32) 50%, transparent 60%);
+      background-size: 300% 300%;
+      background-position: 130% 130%;
+      animation: shimmer 3.4s ease-in-out 1.2s infinite;
+      pointer-events: none;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 130% 130%; }
+      35%  { background-position: -30% -30%; }
+      100% { background-position: -30% -30%; }
     }
 
     .logo-banner img {
