@@ -592,7 +592,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                       Expanded(
                         child: Text(
                           'طلبك الحالي: ${activeOrder.status.label}',
-                          textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
