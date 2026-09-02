@@ -575,7 +575,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               child: GestureDetector(
                 onTap: () => context.push('/track/${activeOrder.id}'),
                 child: Container(
-                  margin: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                  margin: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
