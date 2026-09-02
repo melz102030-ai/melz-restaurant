@@ -411,6 +411,12 @@
     // مُهيَّأ من إشعار Firestore (وليس من تفاعل مستخدم مباشر)، فتبدأ المتصفحات
     // الحديثة هذا السياق الجديد بحالة "معلَّق" ولا يصدر أي صوت فعلياً بصمت
     var _kCtx = null;
+    // النغمات المجدولة حالياً ولم تُشغَّل بعد — لازمة لأن تعليق السياق
+    // (suspend) لا يُلغي جدولة start/stop المستقبلية، فقط يُجمّد ساعته.
+    // أي استئناف لاحق للسياق (مثلاً عند تنبيه طلب جديد، أو نقرة مستخدم
+    // تستدعي primeKitchenAudio) كان يُكمل تشغيل نغمات طلب سابق تم قبوله
+    // فعلاً — وهذا بالضبط سبب عودة صوت المنبه بعد صمت قصير رغم القبول
+    var _kScheduled = [];
 
     function _getKitchenCtx() {
       if (!_kCtx) {
@@ -436,6 +442,7 @@
             gain.gain.linearRampToValueAtTime(0, ctx.currentTime + startSec + durationSec);
             osc.start(ctx.currentTime + startSec);
             osc.stop(ctx.currentTime + startSec + durationSec + 0.01);
+            _kScheduled.push(osc);
           }
 
           // Pattern: HIGH(0.27s) + LOW(0.23s) = 0.5s per rep, 40 reps = 20 seconds of alarm
@@ -462,7 +469,13 @@
     }
 
     function stopKitchenAlarm() {
-      // تعليق السياق بدل إغلاقه — يبقى صالحاً لإعادة الاستخدام في التنبيه التالي
+      // يجب إيقاف كل نغمة مجدولة لم تُشغَّل بعد فعلياً (لا يكفي تعليق
+      // السياق) — وإلا فستُكمل تشغيلها لاحقاً بمجرد استئناف السياق لأي
+      // سبب (تنبيه طلب جديد مثلاً)، فيبدو المنبه وكأنه "يعود من تلقاء نفسه"
+      for (var i = 0; i < _kScheduled.length; i++) {
+        try { _kScheduled[i].stop(); } catch (e) {}
+      }
+      _kScheduled = [];
       if (_kCtx) {
         try { _kCtx.suspend(); } catch (e) {}
       }
