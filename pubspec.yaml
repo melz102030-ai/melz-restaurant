@@ -64,10 +64,10 @@ flutter:
   assets:
     - assets/icon/
 
-# يولّد أيقونة التطبيق لأندرويد من شعار المطعم الفعلي (assets/icon/icon.jpg)
+# يولّد أيقونة التطبيق لأندرويد من شعار المطعم الفعلي (assets/icon/icon.png)
 # — الشعار يحتوي خلفية بنفسجية مصمتة بالفعل فلا حاجة لأيقونة adaptive منفصلة.
 # شغّلها محلياً بعد أي تحديث للشعار عبر: dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: true
-  image_path: "assets/icon/icon.jpg"
+  image_path: "assets/icon/icon.png"
   min_sdk_android: 21
