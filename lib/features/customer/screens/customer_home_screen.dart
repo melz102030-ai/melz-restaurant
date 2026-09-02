@@ -1073,18 +1073,18 @@ class _OrderTypeSelector extends StatelessWidget {
           children: [
             Expanded(
               child: _OrderTypePill(
-                icon: Icons.delivery_dining,
-                label: 'توصيل',
-                active: selected == OrderType.delivery,
-                onTap: () => onChanged(OrderType.delivery),
-              ),
-            ),
-            Expanded(
-              child: _OrderTypePill(
                 icon: Icons.storefront,
                 label: 'استلام',
                 active: selected == OrderType.pickup,
                 onTap: () => onChanged(OrderType.pickup),
+              ),
+            ),
+            Expanded(
+              child: _OrderTypePill(
+                icon: Icons.delivery_dining,
+                label: 'توصيل',
+                active: selected == OrderType.delivery,
+                onTap: () => onChanged(OrderType.delivery),
               ),
             ),
           ],

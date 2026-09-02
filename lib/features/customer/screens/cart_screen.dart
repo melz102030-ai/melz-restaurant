@@ -946,18 +946,18 @@ class _OrderTypeToggle extends StatelessWidget {
         children: [
           Expanded(
             child: _ToggleOption(
-              label: 'توصيل',
-              icon: Icons.delivery_dining,
-              isSelected: orderType == OrderType.delivery,
-              onTap: () => onChanged(OrderType.delivery),
-            ),
-          ),
-          Expanded(
-            child: _ToggleOption(
               label: 'استلام من المطعم',
               icon: Icons.storefront,
               isSelected: orderType == OrderType.pickup,
               onTap: () => onChanged(OrderType.pickup),
+            ),
+          ),
+          Expanded(
+            child: _ToggleOption(
+              label: 'توصيل',
+              icon: Icons.delivery_dining,
+              isSelected: orderType == OrderType.delivery,
+              onTap: () => onChanged(OrderType.delivery),
             ),
           ),
         ],
