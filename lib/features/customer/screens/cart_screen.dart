@@ -34,7 +34,7 @@ class CartScreen extends ConsumerStatefulWidget {
 class _CartScreenState extends ConsumerState<CartScreen> {
   final _notesController = TextEditingController();
   bool _isPlacingOrder = false;
-  OrderType _orderType = OrderType.delivery;
+  OrderType _orderType = OrderType.pickup;
   double? _deliveryLat;
   double? _deliveryLng;
   String? _deliveryAddressNote;
