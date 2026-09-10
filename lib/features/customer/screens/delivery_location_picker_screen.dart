@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart' as ll;
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/map_config.dart';
 import '../../../core/models/delivery_zone_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/delivery_location_cache_provider.dart';
@@ -328,8 +329,14 @@ class _DeliveryLocationPickerScreenState
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      userAgentPackageName: 'com.melz.restaurant',
+                      urlTemplate: MapConfig.tileUrl,
+                      userAgentPackageName: MapConfig.userAgentPackageName,
+                    ),
+                    const RichAttributionWidget(
+                      attributions: [
+                        TextSourceAttribution('CARTO'),
+                        TextSourceAttribution('OpenStreetMap contributors'),
+                      ],
                     ),
                     // دائرة شفافة توضّح النطاق الكامل الذي يوصّل له المطعم
                     if (showServiceArea)

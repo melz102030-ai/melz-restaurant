@@ -1,8 +1,13 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:latlong2/latlong.dart' as ll;
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/constants/map_config.dart';
 import '../../../core/models/delivery_zone_model.dart';
 import '../../../core/providers/delivery_zone_provider.dart';
 import '../../../core/providers/settings_provider.dart';
@@ -57,6 +62,7 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final zonesAsync = ref.watch(deliveryZonesProvider);
+    final zones = zonesAsync.valueOrNull ?? const <DeliveryZone>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -144,6 +150,19 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
                   icon: Icon(Icons.edit_location_alt, size: 18),
                   label: Text(settings.hasRestaurantLocation ? 'تغيير الموقع' : 'تحديد موقع المطعم'),
                 ),
+                if (settings.hasRestaurantLocation) ...[
+                  const SizedBox(height: 12),
+                  _ZonesMap(
+                    centerLat: settings.restaurantLat!,
+                    centerLng: settings.restaurantLng!,
+                    zones: zones,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'الدوائر تمثّل نطاقات المسافة حول المطعم — للعرض فقط',
+                    style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                  ),
+                ],
                 Divider(height: 28, color: AppColors.surfaceLight),
                 Row(
                   children: [
@@ -207,6 +226,99 @@ class AdminDeliveryZonesScreen extends ConsumerWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+// خريطة عرض (لا تفاعل تحرير) تُظهر موقع المطعم ودوائر نطاقات المسافة حوله
+class _ZonesMap extends StatelessWidget {
+  final double centerLat;
+  final double centerLng;
+  final List<DeliveryZone> zones;
+  const _ZonesMap({
+    required this.centerLat,
+    required this.centerLng,
+    required this.zones,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final center = ll.LatLng(centerLat, centerLng);
+    final maxKm = zones.isEmpty
+        ? 3.0
+        : zones.map((z) => z.maxDistanceKm).reduce((a, b) => a > b ? a : b);
+
+    // إطار يشمل أكبر دائرة نطاق (تقريب: درجة عرض ≈ 111 كم)
+    final latDelta = maxKm / 111.0;
+    final lngDelta = maxKm / (111.0 * math.cos(centerLat * math.pi / 180.0));
+    final bounds = LatLngBounds(
+      ll.LatLng(centerLat - latDelta, centerLng - lngDelta),
+      ll.LatLng(centerLat + latDelta, centerLng + lngDelta),
+    );
+
+    // من الأكبر للأصغر كي تبقى حواف الدوائر الداخلية ظاهرة فوق الأكبر
+    final sorted = [...zones]
+      ..sort((a, b) => b.maxDistanceKm.compareTo(a.maxDistanceKm));
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        height: 220,
+        child: FlutterMap(
+          options: MapOptions(
+            initialCameraFit: CameraFit.bounds(
+              bounds: bounds,
+              padding: const EdgeInsets.all(24),
+            ),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: MapConfig.tileUrl,
+              userAgentPackageName: MapConfig.userAgentPackageName,
+            ),
+            const RichAttributionWidget(
+              attributions: [
+                TextSourceAttribution('CARTO'),
+                TextSourceAttribution('OpenStreetMap contributors'),
+              ],
+            ),
+            if (sorted.isNotEmpty)
+              CircleLayer(
+                circles: [
+                  for (final z in sorted)
+                    CircleMarker(
+                      point: center,
+                      radius: z.maxDistanceKm * 1000,
+                      useRadiusInMeter: true,
+                      color: AppColors.purple.withOpacity(0.06),
+                      borderColor: AppColors.purple.withOpacity(0.55),
+                      borderStrokeWidth: 1.5,
+                    ),
+                ],
+              ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: center,
+                  width: 40,
+                  height: 40,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.purple,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 6),
+                      ],
+                    ),
+                    child: const Icon(Icons.storefront, color: Colors.white, size: 20),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

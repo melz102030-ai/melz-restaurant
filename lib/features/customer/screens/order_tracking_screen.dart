@@ -12,6 +12,7 @@ import 'package:latlong2/latlong.dart' as ll;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/constants/map_config.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../shared/utils/format_utils.dart';
@@ -775,8 +776,14 @@ class _DriverLiveMapCard extends StatelessWidget {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.melz.restaurant',
+                    urlTemplate: MapConfig.tileUrl,
+                    userAgentPackageName: MapConfig.userAgentPackageName,
+                  ),
+                  const RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution('CARTO'),
+                      TextSourceAttribution('OpenStreetMap contributors'),
+                    ],
                   ),
                   MarkerLayer(markers: [
                     Marker(
