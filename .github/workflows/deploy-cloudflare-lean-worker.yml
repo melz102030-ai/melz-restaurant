@@ -1,0 +1,46 @@
+name: Deploy Cloudflare Worker (Lean payments)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "cloudflare/lean-payments/**"
+      - ".github/workflows/deploy-cloudflare-lean-worker.yml"
+
+concurrency:
+  group: deploy-cloudflare-lean-worker
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: cloudflare/lean-payments
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Deploy worker
+        run: npx wrangler@latest deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # تُضبط في كل تشغيل (idempotent) بدل مرة واحدة يدوياً، حتى تبقى إعادة
+      # النشر بسيطة ولا تعتمد على خطوة يدوية منفصلة تُنسى — بنفس أسلوب
+      # deploy-cloudflare-worker.yml (Cloudinary)
+      - name: Set Lean + Firebase secrets
+        run: |
+          echo "${{ secrets.LEAN_APP_TOKEN }}" | npx wrangler@latest secret put LEAN_APP_TOKEN
+          echo "${{ secrets.LEAN_CLIENT_SECRET }}" | npx wrangler@latest secret put LEAN_CLIENT_SECRET
+          echo "${{ secrets.LEAN_WEBHOOK_SECRET }}" | npx wrangler@latest secret put LEAN_WEBHOOK_SECRET
+          echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' | npx wrangler@latest secret put FIREBASE_SERVICE_ACCOUNT_JSON
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

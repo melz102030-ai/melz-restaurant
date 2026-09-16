@@ -227,6 +227,10 @@ class OrderModel {
   final DateTime? driverLocationUpdatedAt;
   final PaymentMethod paymentMethod;
   final PaymentStatus paymentStatus;
+  // معرّف "نية الدفع" عند لين (Lean) لطلبات الدفع المباشر من الحساب البنكي —
+  // تكتبه الدالة الخلفية (Cloudflare Worker) عند فتح نافذة الدفع، وتقرأه عند
+  // وصول إشعار نتيجة الدفع (webhook) لمطابقته بالطلب الصحيح
+  final String? leanPaymentIntentId;
 
   const OrderModel({
     required this.id,
@@ -262,6 +266,7 @@ class OrderModel {
     this.driverLocationUpdatedAt,
     this.paymentMethod = PaymentMethod.cash,
     this.paymentStatus = PaymentStatus.pending,
+    this.leanPaymentIntentId,
   });
 
   bool get hasDeliveryLocation => deliveryLat != null && deliveryLng != null;
@@ -341,6 +346,7 @@ class OrderModel {
         (s) => s.name == (map['paymentStatus'] ?? 'pending'),
         orElse: () => PaymentStatus.pending,
       ),
+      leanPaymentIntentId: map['leanPaymentIntentId'],
     );
   }
 
@@ -383,6 +389,7 @@ class OrderModel {
           : null,
       'paymentMethod': paymentMethod.name,
       'paymentStatus': paymentStatus.name,
+      'leanPaymentIntentId': leanPaymentIntentId,
     };
   }
 
@@ -402,6 +409,7 @@ class OrderModel {
     double? driverLat,
     double? driverLng,
     DateTime? driverLocationUpdatedAt,
+    String? leanPaymentIntentId,
   }) {
     return OrderModel(
       id: id,
@@ -437,6 +445,7 @@ class OrderModel {
       driverLocationUpdatedAt: driverLocationUpdatedAt ?? this.driverLocationUpdatedAt,
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
+      leanPaymentIntentId: leanPaymentIntentId ?? this.leanPaymentIntentId,
     );
   }
 }

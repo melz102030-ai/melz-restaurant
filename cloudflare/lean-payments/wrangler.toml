@@ -1,0 +1,20 @@
+name = "melz-lean-payments"
+main = "worker.js"
+compatibility_date = "2024-09-01"
+
+[vars]
+FIREBASE_PROJECT_ID = "melz-restaurant"
+# "sandbox" (تجريبي، الحالي) أو "production" بعد التفعيل الفعلي لاحقاً
+LEAN_ENV = "sandbox"
+
+# LEAN_APP_TOKEN و LEAN_CLIENT_SECRET و LEAN_WEBHOOK_SECRET و
+# FIREBASE_SERVICE_ACCOUNT_JSON تُضبط كأسرار عبر:
+#   npx wrangler secret put LEAN_APP_TOKEN
+#   npx wrangler secret put LEAN_CLIENT_SECRET
+#   npx wrangler secret put LEAN_WEBHOOK_SECRET
+#   npx wrangler secret put FIREBASE_SERVICE_ACCOUNT_JSON
+# (أو تلقائياً من GitHub Actions — راجع .github/workflows/deploy-cloudflare-lean-worker.yml)
+# ملاحظة: LEAN_APP_TOKEN لا يُكتب هنا كقيمة عادية عمداً — رغم أن لين تسمح
+# باستخدامه لاحقاً داخل تطبيق العميل نفسه، إلا أن هذا المستودع عام (public)
+# على GitHub، وتسجيله في ملف مرفوع يُبقيه ظاهراً للأبد في تاريخ Git حتى لو
+# حُذف لاحقاً — أكثر تحفظاً من اللازم أفضل من الاعتماد على تخمين حساسيته
