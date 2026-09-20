@@ -319,12 +319,35 @@ async function handleWebhook(request, env) {
   }
 }
 
+// فحص تشخيصي بلا حاجة لعميل حقيقي أو طلب فعلي — يختبر فقط أن أسرار لين
+// وحساب خدمة Firebase صالحة وتُصدر توكن وصول بنجاح. لا يكشف أي قيمة سرّية
+// في الرد، فقط ok/error لكل جزء. يُزال أو يُقيَّد لاحقاً بعد التأكد النهائي.
+async function handleHealth(env) {
+  const result = {};
+  try {
+    const t = await getLeanAccessToken(env);
+    result.lean = t ? "ok" : "empty-token";
+  } catch (e) {
+    result.lean = `error: ${String(e)}`;
+  }
+  try {
+    const t = await getFirestoreAdminToken(env);
+    result.firebaseAdmin = t ? "ok" : "empty-token";
+  } catch (e) {
+    result.firebaseAdmin = `error: ${String(e)}`;
+  }
+  return json(result);
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
     const url = new URL(request.url);
+    if (url.pathname === "/health") {
+      return handleHealth(env);
+    }
     if (url.pathname === "/webhook") {
       if (request.method !== "POST") return json({ error: "method-not-allowed" }, 405);
       return handleWebhook(request, env);
