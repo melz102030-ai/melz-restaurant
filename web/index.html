@@ -430,6 +430,12 @@
 
   <script src="flutter_bootstrap.js" async></script>
 
+  <!-- لين (Lean) — الدفع المباشر من الحساب البنكي. تحديداً حزمة الويب
+       الرسمية (لا علاقة لها بحزمة lean_sdk_flutter لـ Flutter، وهي
+       مخصَّصة فقط لأندرويد/iOS عبر WebView أصلي ولا تعمل على الويب) —
+       يُستدعى Lean.pay() من كود Dart عبر dart:js، راجع cart_screen.dart -->
+  <script src="https://cdn.leantech.me/link/loader/prod/sa/latest/lean-link-loader.min.js"></script>
+
   <!-- Kitchen alarm — Web Audio API, no file needed -->
   <script>
     // سياق صوتي واحد دائم يُعاد استخدامه دوماً — الخلل السابق كان إنشاء سياق

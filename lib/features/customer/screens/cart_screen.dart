@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lean_sdk_flutter/lean_sdk_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
@@ -364,22 +363,30 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   // يفتح واجهة لين لدفع الطلب المُنشأ للتو مباشرة من حساب العميل البنكي.
   // نكمل لشاشة التتبع دائماً بعد هذه الدالة (نجاح أو إلغاء أو فشل) —
   // الطلب موجود أصلاً بحالة "بانتظار الدفع"، والتأكيد الحقيقي يصل لاحقاً
-  // عبر webhook من لين لا من رد الواجهة هنا (راجع cloudflare/lean-payments)
+  // عبر webhook من لين لا من رد الواجهة هنا (راجع cloudflare/lean-payments).
+  //
+  // نستخدم حزمة الويب الرسمية للين عبر dart:js (سكربت محمَّل في
+  // web/index.html) — وليس حزمة lean_sdk_flutter لـ Flutter، لأنها مخصَّصة
+  // فقط لأندرويد/iOS عبر WebView أصلي ولا تعمل إطلاقاً على تطبيق ويب
+  // (وهذا سبب فشل أول محاولة تجريبية: "تعذّر فتح الدفع البنكي")
   Future<void> _startLeanPayment(String orderId) async {
     try {
       final intent = await LeanPaymentService.createPaymentIntent(orderId);
       final completer = Completer<void>();
 
-      Lean.pay(
-        appToken: intent.appToken,
-        paymentIntentId: intent.paymentIntentId,
+      final config = js.JsObject.jsify({
+        'app_token': intent.appToken,
+        'payment_intent_id': intent.paymentIntentId,
         // TODO: اربطها بإعداد فعلي عند الانتقال لحساب لين الإنتاجي لاحقاً
-        isSandbox: true,
-        showLogs: false,
-        accessToken: '',
-        callback: (LeanResponse response) {
+        'sandbox': true,
+        'access_token': '',
+        'callback': js.allowInterop((dynamic data) {
+          String? status;
+          try {
+            status = (data as js.JsObject)['status'] as String?;
+          } catch (_) {}
           if (mounted) {
-            final succeeded = response.status?.toUpperCase() == 'SUCCESS';
+            final succeeded = status?.toUpperCase() == 'SUCCESS';
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
               content: Text(succeeded
                   ? 'أُرسل طلب الدفع، بانتظار تأكيد البنك'
@@ -388,11 +395,21 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             ));
           }
           if (!completer.isCompleted) completer.complete();
-        },
-        actionCancelled: () {
-          if (!completer.isCompleted) completer.complete();
-        },
-      );
+        }),
+      });
+
+      final lean = js.context['Lean'];
+      if (lean is js.JsObject) {
+        lean.callMethod('pay', [config]);
+      } else {
+        throw Exception('lean-sdk-not-loaded');
+      }
+
+      // احتياط: لو ما استُدعي أي رد فعل (مثلاً السكربت فشل بصمت)، لا نُبقي
+      // العميل معلَّقاً إلى الأبد بانتظار مربّع دفع لن يظهر
+      unawaited(Future.delayed(const Duration(seconds: 45), () {
+        if (!completer.isCompleted) completer.complete();
+      }));
 
       await completer.future;
     } catch (e) {
