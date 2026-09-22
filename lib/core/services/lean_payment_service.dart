@@ -17,8 +17,25 @@ class LeanPaymentService {
   static const String _workerUrl = 'https://melz-lean-payments.melz102030.workers.dev';
 
   static Future<LeanPaymentIntent> createPaymentIntent(String orderId) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw Exception('يجب تسجيل الدخول أولاً');
+    // FirebaseAuth.instance.currentUser قد لا يكون مستعاداً بعد فور تحميل
+    // التطبيق (سباق توقيت) — ننتظر أول حدث حالة مصادقة فعلي بدل الاعتماد
+    // على قيمته الفورية فقط
+    var user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      user = await FirebaseAuth.instance
+          .authStateChanges()
+          .timeout(const Duration(seconds: 5), onTimeout: (sink) => sink.close())
+          .firstWhere((u) => u != null, orElse: () => null);
+    }
+    if (user == null) {
+      throw Exception(
+          'لا توجد جلسة دخول حقيقية (Firebase Auth) — إن كنت استخدمت "دخول تجريبي سريع" '
+          'فقد لا تُنشئ جلسة فعلية؛ سجّل دخولك برقم الجوال وكلمة المرور وحاول مجدداً');
+    }
+    // TODO تشخيصي مؤقت: للتأكد من مطابقة هوية الجلسة مع صاحب الطلب
+    // ignore: avoid_print
+    print(
+        'Lean: uid=${user.uid} isAnonymous=${user.isAnonymous} email=${user.email}');
     final idToken = await user.getIdToken();
 
     final res = await http.post(
