@@ -413,9 +413,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
       await completer.future;
     } catch (e) {
+      // TODO: مؤقت للتشخيص — إظهار نص الخطأ الفعلي بدل رسالة عامة، حتى
+      // نعرف السبب الحقيقي وراء "تعذّر فتح الدفع البنكي" من أول محاولة
+      debugPrint('Lean payment error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('تعذّر فتح الدفع البنكي، لكن طلبك مسجَّل — تواصل معنا لإتمام الدفع'),
+          content: Text('تعذّر فتح الدفع البنكي: $e'),
           backgroundColor: AppColors.error,
         ));
       }
