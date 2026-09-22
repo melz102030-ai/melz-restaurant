@@ -195,7 +195,11 @@ async function handleCreatePayment(request, env) {
     const leanToken = await getLeanAccessToken(env);
     const base = leanBaseUrl(env);
 
-    // app_user_id يمنع لين من إنشاء عميل مكرَّر لنفس المستخدم عبر طلبات متتالية
+    // app_user_id يمنع لين من إنشاء عميل مكرَّر لنفس المستخدم — لكن خلافاً
+    // لما افترضناه أول مرة، لين ليست idempotent هنا: تطلب الإنشاء مرة
+    // ثانية لنفس app_user_id يُرفض صراحة بـ CUSTOMER_ALREADY_EXISTS بدل
+    // إعادة العميل الموجود، فنحتاج جلبه صراحة في هذه الحالة تحديداً
+    let customerId;
     const custRes = await fetch(`${base}/customers/v1`, {
       method: "POST",
       headers: {
@@ -205,10 +209,23 @@ async function handleCreatePayment(request, env) {
       body: JSON.stringify({ app_user_id: uid }),
     });
     const custData = await custRes.json();
-    if (!custRes.ok) {
+    if (custRes.ok) {
+      customerId = custData.customer_id || custData.id;
+    } else if (custData.status === "CUSTOMER_ALREADY_EXISTS") {
+      const lookupRes = await fetch(`${base}/customers/v1/app-user-id/${uid}`, {
+        headers: { Authorization: `Bearer ${leanToken}` },
+      });
+      const lookupData = await lookupRes.json();
+      if (!lookupRes.ok) {
+        return json({ error: "lean-customer-lookup-failed", detail: lookupData }, 502);
+      }
+      customerId = lookupData.customer_id || lookupData.id;
+    } else {
       return json({ error: "lean-customer-failed", detail: custData }, 502);
     }
-    const customerId = custData.customer_id || custData.id;
+    if (!customerId) {
+      return json({ error: "lean-customer-id-missing", detail: custData }, 502);
+    }
 
     const intentRes = await fetch(`${base}/payments/v1/intents`, {
       method: "POST",
