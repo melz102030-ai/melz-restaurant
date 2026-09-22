@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:js' as js;
 
 import 'package:flutter/material.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lean_sdk_flutter/lean_sdk_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
@@ -18,6 +20,7 @@ import '../../../core/models/settings_model.dart';
 import '../../../core/models/delivery_zone_model.dart';
 import '../../../core/services/order_service.dart';
 import '../../../core/services/delivery_zone_service.dart';
+import '../../../core/services/lean_payment_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -35,6 +38,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   final _notesController = TextEditingController();
   bool _isPlacingOrder = false;
   OrderType _orderType = OrderType.pickup;
+  PaymentMethod _paymentMethod = PaymentMethod.cash;
   double? _deliveryLat;
   double? _deliveryLng;
   String? _deliveryAddressNote;
@@ -275,7 +279,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         return;
       }
 
-      if (!settings.cashAllowedFor(isDelivery: isDelivery)) {
+      if (_paymentMethod == PaymentMethod.cash &&
+          !settings.cashAllowedFor(isDelivery: isDelivery)) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(isDelivery
               ? 'الدفع نقداً غير متاح للتوصيل حالياً'
@@ -321,7 +326,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         deliveryAddress: isDelivery ? _deliveryAddressNote : null,
         deliveryZoneId: isDelivery ? pricing.zoneId : null,
         deliveryZoneName: isDelivery ? pricing.zoneName : null,
-        paymentMethod: PaymentMethod.cash,
+        paymentMethod: _paymentMethod,
       );
 
       final orderId = await OrderService.placeOrder(order);
@@ -330,6 +335,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       try {
         js.context.callMethod('requestNotifyPermission', []);
       } catch (_) {}
+
+      // الطلب موجود فعلاً بحالة paymentStatus.pending — نفتح نافذة الدفع
+      // البنكي الآن، ونتابع لشاشة التتبع بعدها بغض النظر عن نتيجتها (نجاح/
+      // إلغاء/فشل)، لأن التأكيد الفعلي يصل لاحقاً عبر webhook لا من هنا
+      if (_paymentMethod == PaymentMethod.leanBankTransfer) {
+        await _startLeanPayment(orderId);
+        if (!mounted) return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: const Text('شكراً لطلبك! يمكنك تتبع طلبك أول بأول'),
         backgroundColor: AppColors.purple,
@@ -344,6 +358,50 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       }
     } finally {
       if (mounted) setState(() => _isPlacingOrder = false);
+    }
+  }
+
+  // يفتح واجهة لين لدفع الطلب المُنشأ للتو مباشرة من حساب العميل البنكي.
+  // نكمل لشاشة التتبع دائماً بعد هذه الدالة (نجاح أو إلغاء أو فشل) —
+  // الطلب موجود أصلاً بحالة "بانتظار الدفع"، والتأكيد الحقيقي يصل لاحقاً
+  // عبر webhook من لين لا من رد الواجهة هنا (راجع cloudflare/lean-payments)
+  Future<void> _startLeanPayment(String orderId) async {
+    try {
+      final intent = await LeanPaymentService.createPaymentIntent(orderId);
+      final completer = Completer<void>();
+
+      Lean.pay(
+        appToken: intent.appToken,
+        paymentIntentId: intent.paymentIntentId,
+        // TODO: اربطها بإعداد فعلي عند الانتقال لحساب لين الإنتاجي لاحقاً
+        isSandbox: true,
+        showLogs: false,
+        accessToken: '',
+        callback: (LeanResponse response) {
+          if (mounted) {
+            final succeeded = response.status?.toUpperCase() == 'SUCCESS';
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(succeeded
+                  ? 'أُرسل طلب الدفع، بانتظار تأكيد البنك'
+                  : 'لم يكتمل الدفع — يمكنك المحاولة مجدداً من صفحة تتبع الطلب'),
+              backgroundColor: succeeded ? AppColors.success : AppColors.warning,
+            ));
+          }
+          if (!completer.isCompleted) completer.complete();
+        },
+        actionCancelled: () {
+          if (!completer.isCompleted) completer.complete();
+        },
+      );
+
+      await completer.future;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تعذّر فتح الدفع البنكي، لكن طلبك مسجَّل — تواصل معنا لإتمام الدفع'),
+          backgroundColor: AppColors.error,
+        ));
+      }
     }
   }
 
@@ -363,7 +421,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     // عند التسعير بحسب النطاق، لا نعرض رسوم التوصيل ولا الإجمالي قبل تحديد
     // الموقع — الرسم الفعلي يعتمد على المسافة ولا يجوز تخمينه مسبقاً
     final pricePendingLocation = isDelivery && settings.useDeliveryZones && locationMissing;
-    final cashBlocked = !settings.cashAllowedFor(isDelivery: isDelivery);
+    final cashBlocked = _paymentMethod == PaymentMethod.cash &&
+        !settings.cashAllowedFor(isDelivery: isDelivery);
 
     return Scaffold(
       appBar: AppBar(
@@ -562,6 +621,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _PaymentMethodToggle(
+                      method: _paymentMethod,
+                      onChanged: (m) => setState(() => _paymentMethod = m),
+                    ),
+                  ),
                   if (!settings.effectivelyOpen)
                     Container(
                       width: double.infinity,
@@ -958,6 +1024,44 @@ class _OrderTypeToggle extends StatelessWidget {
               icon: Icons.delivery_dining,
               isSelected: orderType == OrderType.delivery,
               onTap: () => onChanged(OrderType.delivery),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PaymentMethodToggle extends StatelessWidget {
+  final PaymentMethod method;
+  final ValueChanged<PaymentMethod> onChanged;
+
+  const _PaymentMethodToggle({required this.method, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ToggleOption(
+              label: 'نقداً',
+              icon: Icons.payments_outlined,
+              isSelected: method == PaymentMethod.cash,
+              onTap: () => onChanged(PaymentMethod.cash),
+            ),
+          ),
+          Expanded(
+            child: _ToggleOption(
+              label: 'دفع بنكي مباشر',
+              icon: Icons.account_balance_outlined,
+              isSelected: method == PaymentMethod.leanBankTransfer,
+              onTap: () => onChanged(PaymentMethod.leanBankTransfer),
             ),
           ),
         ],

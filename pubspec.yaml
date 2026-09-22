@@ -48,6 +48,9 @@ dependencies:
   flutter_map: ^6.1.0
   latlong2: ^0.9.1
 
+  # Lean — دفع مباشر من الحساب البنكي (Payment Initiation)
+  lean_sdk_flutter: ^3.0.17
+
   # Appearance settings (admin theme control panel)
   flutter_colorpicker: ^1.1.0
 

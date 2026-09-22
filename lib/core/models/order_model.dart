@@ -18,10 +18,10 @@ extension OrderTypeExt on OrderType {
   String get label => this == OrderType.delivery ? 'توصيل' : 'استلام من المطعم';
 }
 
-// طريقة الدفع — الدفع الإلكتروني (بطاقة/آبل باي/مدى) غير مفعّل حالياً في
-// الواجهة (لا توجد بوابة دفع مربوطة بعد)، والحقل جاهز لتفعيله لاحقاً دون
-// تعديل بنية الطلب. الافتراضي الحالي "نقداً" يعكس الواقع الفعلي فقط
-enum PaymentMethod { cash, card, applePay, mada }
+// طريقة الدفع — بطاقة/آبل باي/مدى غير مفعّلة حالياً في الواجهة (لا توجد
+// بوابة دفع مربوطة بعد)، والحقول جاهزة لتفعيلها لاحقاً دون تعديل بنية
+// الطلب. leanBankTransfer مفعَّلة فعلياً (دفع مباشر من الحساب البنكي عبر لين)
+enum PaymentMethod { cash, card, applePay, mada, leanBankTransfer }
 
 extension PaymentMethodExt on PaymentMethod {
   String get label {
@@ -34,6 +34,8 @@ extension PaymentMethodExt on PaymentMethod {
         return 'Apple Pay';
       case PaymentMethod.mada:
         return 'مدى';
+      case PaymentMethod.leanBankTransfer:
+        return 'دفع مباشر من حسابك البنكي';
     }
   }
 }
