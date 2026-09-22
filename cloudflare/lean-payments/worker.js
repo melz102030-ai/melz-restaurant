@@ -47,16 +47,19 @@ function decodeUid(idToken) {
   }
 }
 
+// نطاق لين مخصَّص للسعودية (kababjik مسجَّل عليه) — مختلف عن النطاق العام
+// الافتراضي (leantech.me بدون .sa.) المستخدم لدول أخرى؛ استخدام النطاق
+// الخطأ يرفض أي app_token/client_secret صحيحين بخطأ invalid_client مضلِّل
 function leanBaseUrl(env) {
   return env.LEAN_ENV === "production"
-    ? "https://api2.leantech.me"
-    : "https://sandbox.leantech.me";
+    ? "https://sa.leantech.me"
+    : "https://sandbox.sa.leantech.me";
 }
 
 function leanAuthUrl(env) {
   return env.LEAN_ENV === "production"
-    ? "https://auth.leantech.me/oauth2/token"
-    : "https://auth.sandbox.leantech.me/oauth2/token";
+    ? "https://auth.sa.leantech.me/oauth2/token"
+    : "https://auth.sandbox.sa.leantech.me/oauth2/token";
 }
 
 // توكن وصول لين (OAuth client_credentials) — نطلبه من جديد كل استدعاء؛ خفيف
