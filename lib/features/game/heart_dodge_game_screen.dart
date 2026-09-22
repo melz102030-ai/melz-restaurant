@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/models/order_model.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/settings_provider.dart';
 import '../customer/providers/orders_provider.dart';
 
 /// لعبة بسيطة لا نهائية: احمِ القلب من الاصطدام بالعقبات القادمة، تسرّع
@@ -156,6 +157,7 @@ class _HeartDodgeGameScreenState extends ConsumerState<HeartDodgeGameScreen>
   @override
   Widget build(BuildContext context) {
     final orderAsync = ref.watch(trackOrderProvider(widget.orderId));
+    final settings = ref.watch(settingsProvider);
 
     ref.listen<AsyncValue<OrderModel?>>(trackOrderProvider(widget.orderId),
         (prev, next) {
@@ -211,11 +213,14 @@ class _HeartDodgeGameScreenState extends ConsumerState<HeartDodgeGameScreen>
                         child: Stack(
                           children: [
                             ..._obstacles.map((o) => _ObstacleWidget(
-                                obstacle: o, fieldSize: _fieldSize)),
+                                obstacle: o,
+                                fieldSize: _fieldSize,
+                                imageUrl: settings.gameObstacleImageUrl)),
                             _HeartWidget(
                               yFrac: _heartY,
                               xFrac: _heartXFrac,
                               fieldSize: _fieldSize,
+                              imageUrl: settings.gameHeartImageUrl,
                             ),
                             if (!_playing)
                               _StartOverlay(
@@ -245,8 +250,15 @@ class _HeartWidget extends StatelessWidget {
   final double yFrac;
   final double xFrac;
   final Size fieldSize;
-  const _HeartWidget(
-      {required this.yFrac, required this.xFrac, required this.fieldSize});
+  // صورة مخصَّصة من الأدمن (تصميم خاص) تحلّ محل شكل القلب الافتراضي —
+  // بلا خلفية دائرية/تدرّج مفروض، الصورة نفسها هي الشكل الكامل
+  final String? imageUrl;
+  const _HeartWidget({
+    required this.yFrac,
+    required this.xFrac,
+    required this.fieldSize,
+    this.imageUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +268,19 @@ class _HeartWidget extends StatelessWidget {
     return Positioned(
       left: xFrac * fieldSize.width - radius,
       top: yFrac * fieldSize.height - radius,
-      child: Container(
+      child: (imageUrl != null && imageUrl!.isNotEmpty)
+          ? Image.network(
+              imageUrl!,
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _defaultHeart(size),
+            )
+          : _defaultHeart(size),
+    );
+  }
+
+  Widget _defaultHeart(double size) => Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
@@ -272,9 +296,7 @@ class _HeartWidget extends StatelessWidget {
           ],
         ),
         child: Icon(Icons.favorite, color: Colors.white, size: size * 0.6),
-      ),
-    );
-  }
+      );
 }
 
 // ── العقبات ────────────────────────────────────────────────────────────────
@@ -282,7 +304,12 @@ class _HeartWidget extends StatelessWidget {
 class _ObstacleWidget extends StatelessWidget {
   final _Obstacle obstacle;
   final Size fieldSize;
-  const _ObstacleWidget({required this.obstacle, required this.fieldSize});
+  final String? imageUrl;
+  const _ObstacleWidget({
+    required this.obstacle,
+    required this.fieldSize,
+    this.imageUrl,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -292,7 +319,19 @@ class _ObstacleWidget extends StatelessWidget {
     return Positioned(
       left: obstacle.x * fieldSize.width - radius,
       top: obstacle.y * fieldSize.height - radius,
-      child: Container(
+      child: (imageUrl != null && imageUrl!.isNotEmpty)
+          ? Image.network(
+              imageUrl!,
+              width: size,
+              height: size,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => _defaultObstacle(size),
+            )
+          : _defaultObstacle(size),
+    );
+  }
+
+  Widget _defaultObstacle(double size) => Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
@@ -305,9 +344,7 @@ class _ObstacleWidget extends StatelessWidget {
         ),
         child: Icon(Icons.close_rounded,
             color: Colors.white.withOpacity(0.85), size: size * 0.55),
-      ),
-    );
-  }
+      );
 }
 
 // ── شريط حالة الطلب — أنيق ومصغّر أعلى اللعبة ─────────────────────────────

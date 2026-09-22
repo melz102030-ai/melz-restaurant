@@ -51,6 +51,10 @@ class RestaurantSettings {
   // جدول عمل تفصيلي: مفتاح اليوم (sun..sat) → قائمة شفتات ذلك اليوم (فارغة = عطلة)
   final Map<String, List<WorkShift>> workingHours;
   final CashPaymentPolicy cashPaymentPolicy;
+  // أيقونتا لعبة "احمِ القلب" (اللعب أثناء الانتظار) — تصميم مخصَّص من
+  // الأدمن بدل الشكل الافتراضي (قلب Material + علامة X)؛ null = الافتراضي
+  final String? gameHeartImageUrl;
+  final String? gameObstacleImageUrl;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -74,6 +78,8 @@ class RestaurantSettings {
     this.useDeliveryZones = false,
     this.workingHours = const {},
     this.cashPaymentPolicy = CashPaymentPolicy.both,
+    this.gameHeartImageUrl,
+    this.gameObstacleImageUrl,
   });
 
   // هل الدفع نقداً مسموح لنوع استلام معيّن (توصيل/استلام من المطعم)؟
@@ -194,6 +200,8 @@ class RestaurantSettings {
       useDeliveryZones: map['useDeliveryZones'] ?? false,
       workingHours: _workingHoursFromMap(map['workingHours']),
       cashPaymentPolicy: _cashPolicyFromMap(map['cashPaymentPolicy']),
+      gameHeartImageUrl: map['gameHeartImageUrl'],
+      gameObstacleImageUrl: map['gameObstacleImageUrl'],
     );
   }
 
@@ -220,6 +228,8 @@ class RestaurantSettings {
       'useDeliveryZones': useDeliveryZones,
       'workingHours': _workingHoursToMap(workingHours),
       'cashPaymentPolicy': cashPaymentPolicy.name,
+      'gameHeartImageUrl': gameHeartImageUrl,
+      'gameObstacleImageUrl': gameObstacleImageUrl,
     };
   }
 
@@ -245,6 +255,8 @@ class RestaurantSettings {
     bool? useDeliveryZones,
     Map<String, List<WorkShift>>? workingHours,
     CashPaymentPolicy? cashPaymentPolicy,
+    String? gameHeartImageUrl,
+    String? gameObstacleImageUrl,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -268,6 +280,8 @@ class RestaurantSettings {
       useDeliveryZones: useDeliveryZones ?? this.useDeliveryZones,
       workingHours: workingHours ?? this.workingHours,
       cashPaymentPolicy: cashPaymentPolicy ?? this.cashPaymentPolicy,
+      gameHeartImageUrl: gameHeartImageUrl ?? this.gameHeartImageUrl,
+      gameObstacleImageUrl: gameObstacleImageUrl ?? this.gameObstacleImageUrl,
     );
   }
 }

@@ -30,6 +30,10 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
   Uint8List? _coverBytes;
   bool _isSavingImages = false;
 
+  Uint8List? _gameHeartBytes;
+  Uint8List? _gameObstacleBytes;
+  bool _isSavingGameImages = false;
+
   AppThemeSettings _draftOrCurrent(AppThemeSettings current) => _draft ?? current;
 
   Future<void> _pickBrandImage(bool isLogo) async {
@@ -90,6 +94,68 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
       }
     } finally {
       if (mounted) setState(() => _isSavingImages = false);
+    }
+  }
+
+  Future<void> _pickGameImage(bool isHeart) async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (result != null && result.files.single.bytes != null) {
+      setState(() {
+        if (isHeart) {
+          _gameHeartBytes = result.files.single.bytes;
+        } else {
+          _gameObstacleBytes = result.files.single.bytes;
+        }
+      });
+    }
+  }
+
+  // يفضَّل صور PNG شفافة الخلفية — الصورة نفسها هي شكل العنصر في اللعبة
+  // بلا خلفية دائرية مفروضة من الكود، عكس الشعار/الغلاف
+  Future<void> _saveGameImages() async {
+    setState(() => _isSavingGameImages = true);
+    try {
+      final current = await SettingsService.getSettings();
+      final oldHeartUrl = current.gameHeartImageUrl;
+      final oldObstacleUrl = current.gameObstacleImageUrl;
+      String? heartUrl = current.gameHeartImageUrl;
+      String? obstacleUrl = current.gameObstacleImageUrl;
+      if (_gameHeartBytes != null) {
+        heartUrl =
+            await CloudinaryService.uploadImage(_gameHeartBytes!, 'game_heart.png') ?? heartUrl;
+      }
+      if (_gameObstacleBytes != null) {
+        obstacleUrl =
+            await CloudinaryService.uploadImage(_gameObstacleBytes!, 'game_obstacle.png') ??
+                obstacleUrl;
+      }
+      await SettingsService.updateSettings(
+        current.copyWith(gameHeartImageUrl: heartUrl, gameObstacleImageUrl: obstacleUrl),
+      );
+      if (_gameHeartBytes != null && oldHeartUrl != null && oldHeartUrl != heartUrl) {
+        CloudinaryService.deleteImage(oldHeartUrl);
+      }
+      if (_gameObstacleBytes != null && oldObstacleUrl != null && oldObstacleUrl != obstacleUrl) {
+        CloudinaryService.deleteImage(oldObstacleUrl);
+      }
+      if (mounted) {
+        setState(() {
+          _gameHeartBytes = null;
+          _gameObstacleBytes = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('تم حفظ أيقونات لعبة الانتظار'),
+          backgroundColor: AppColors.success,
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingGameImages = false);
     }
   }
 
@@ -359,6 +425,46 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
                     width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.save_outlined),
             label: Text(_isSavingImages ? 'جاري الحفظ...' : 'حفظ الشعار والغلاف'),
+          ),
+
+          const SizedBox(height: 24),
+          _SectionTitle('أيقونات لعبة "احمِ القلب" (اللعب أثناء الانتظار)'),
+          const SizedBox(height: 4),
+          Text(
+            'يُفضَّل صور PNG شفافة الخلفية — الصورة نفسها تصبح شكل العنصر كاملاً في اللعبة بلا خلفية دائرية إضافية',
+            style: TextStyle(color: AppColors.textHint, fontSize: 11),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _ImagePicker(
+                  label: 'شكل اللاعب (القلب)',
+                  bytes: _gameHeartBytes,
+                  networkUrl: restaurantSettings.gameHeartImageUrl,
+                  onPick: () => _pickGameImage(true),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ImagePicker(
+                  label: 'شكل العقبة',
+                  bytes: _gameObstacleBytes,
+                  networkUrl: restaurantSettings.gameObstacleImageUrl,
+                  onPick: () => _pickGameImage(false),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _isSavingGameImages ? null : _saveGameImages,
+            icon: _isSavingGameImages
+                ? const SizedBox(
+                    width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.save_outlined),
+            label: Text(_isSavingGameImages ? 'جاري الحفظ...' : 'حفظ أيقونات اللعبة'),
           ),
 
           const SizedBox(height: 32),
