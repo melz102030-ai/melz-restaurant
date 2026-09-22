@@ -49,7 +49,9 @@ class LeanPaymentService {
 
     final data = jsonDecode(res.body) as Map<String, dynamic>;
     if (res.statusCode != 200 || data['paymentIntentId'] == null) {
-      throw Exception(data['error'] ?? 'تعذّر فتح نافذة الدفع، حاول مجدداً');
+      // TODO تشخيصي مؤقت: نُظهر تفاصيل رفض لين نفسها (data['detail']) بدل
+      // رمز الخطأ العام فقط، للتعرّف على السبب الحقيقي من رسالة لين مباشرة
+      throw Exception('${data['error']} — ${jsonEncode(data['detail'] ?? {})}');
     }
 
     return LeanPaymentIntent(
