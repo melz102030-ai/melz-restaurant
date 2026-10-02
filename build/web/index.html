@@ -604,36 +604,33 @@
     });
   </script>
 
-  <!-- طباعة فاتورة الطلب — عبر iframe مخفي بدل نافذة منبثقة (window.open)
-       كي لا يحجبها حاجب النوافذ المنبثقة في المتصفح، خصوصاً أن الطباعة
-       تُستدعى بعد انتظار غير متزامن (تحديث حالة الطلب) لا مباشرة من نقرة
-       المستخدم. يعمل مع أي طابعة افتراضية مُعرَّفة على نظام الجهاز. -->
+  <!-- طباعة فاتورة الطلب — نحقن محتوى الفاتورة في عنصر مخفي داخل الصفحة
+       نفسها بدل iframe/نافذة منبثقة (أوثق توافقاً عبر المتصفحات، خصوصاً
+       متصفحات أندرويد حيث تتصرف الطباعة من إطار فرعي بشكل غير موثوق).
+       @media print يخفي كل شيء آخر في الصفحة عند الطباعة فعلياً فقط. -->
+  <div id="receipt-print-area"></div>
+  <style>
+    #receipt-print-area { display: none; }
+    @media print {
+      body > *:not(#receipt-print-area) { display: none !important; }
+      #receipt-print-area {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        right: 0;
+      }
+    }
+  </style>
   <script>
     function printReceipt(html) {
       try {
-        var old = document.getElementById('_receipt_print_frame');
-        if (old) old.remove();
-        var iframe = document.createElement('iframe');
-        iframe.id = '_receipt_print_frame';
-        iframe.style.position = 'fixed';
-        iframe.style.right = '0';
-        iframe.style.bottom = '0';
-        iframe.style.width = '0';
-        iframe.style.height = '0';
-        iframe.style.border = '0';
-        document.body.appendChild(iframe);
-        var doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write(html);
-        doc.close();
-        iframe.onload = function () {
-          try {
-            iframe.contentWindow.focus();
-            iframe.contentWindow.print();
-          } catch (e) {
-            console.warn('Receipt print failed:', e);
-          }
-        };
+        var el = document.getElementById('receipt-print-area');
+        if (!el) return;
+        el.innerHTML = html;
+        // تأخير بسيط لضمان رسم المحتوى الجديد قبل استدعاء حوار الطباعة
+        setTimeout(function () {
+          try { window.print(); } catch (e) { console.warn('Receipt print failed:', e); }
+        }, 80);
       } catch (e) {
         console.warn('Receipt print setup failed:', e);
       }
