@@ -6,7 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/order_service.dart';
+import '../../../core/services/receipt_print_service.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../providers/admin_provider.dart';
@@ -332,12 +334,12 @@ class _PaymentReceiptRow extends StatelessWidget {
   }
 }
 
-class _StatusActionButtons extends StatelessWidget {
+class _StatusActionButtons extends ConsumerWidget {
   final OrderModel order;
   const _StatusActionButtons({required this.order});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -347,7 +349,12 @@ class _StatusActionButtons extends StatelessWidget {
             label: 'تأكيد',
             icon: Icons.thumb_up,
             color: AppColors.statusConfirmed,
-            onTap: () => OrderService.updateOrderStatus(order.id, OrderStatus.confirmed),
+            onTap: () async {
+              await OrderService.updateOrderStatus(order.id, OrderStatus.confirmed);
+              // طباعة فاتورة الطلب تلقائياً فور التأكيد — على طابعة الجهاز
+              // نفسه إن وُجدت (لا يوقف أي شيء لو ما فيه طابعة متصلة)
+              ReceiptPrintService.printOrder(order, ref.read(settingsProvider));
+            },
           ),
         if (order.status == OrderStatus.confirmed)
           _ActionButton(

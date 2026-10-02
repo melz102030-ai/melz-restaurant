@@ -600,5 +600,41 @@
       document.addEventListener(ev, _onFirstGesture, { capture: true, once: true });
     });
   </script>
+
+  <!-- طباعة فاتورة الطلب — عبر iframe مخفي بدل نافذة منبثقة (window.open)
+       كي لا يحجبها حاجب النوافذ المنبثقة في المتصفح، خصوصاً أن الطباعة
+       تُستدعى بعد انتظار غير متزامن (تحديث حالة الطلب) لا مباشرة من نقرة
+       المستخدم. يعمل مع أي طابعة افتراضية مُعرَّفة على نظام الجهاز. -->
+  <script>
+    function printReceipt(html) {
+      try {
+        var old = document.getElementById('_receipt_print_frame');
+        if (old) old.remove();
+        var iframe = document.createElement('iframe');
+        iframe.id = '_receipt_print_frame';
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+        var doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(html);
+        doc.close();
+        iframe.onload = function () {
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+          } catch (e) {
+            console.warn('Receipt print failed:', e);
+          }
+        };
+      } catch (e) {
+        console.warn('Receipt print setup failed:', e);
+      }
+    }
+  </script>
 </body>
 </html>

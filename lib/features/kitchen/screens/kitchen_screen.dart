@@ -15,6 +15,7 @@ import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/drivers_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/order_service.dart';
+import '../../../core/services/receipt_print_service.dart';
 import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -394,6 +395,11 @@ class _KitchenOrderCardState extends ConsumerState<_KitchenOrderCard> {
         kitchenNotes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
         estimatedMinutes: mins,
       );
+      // طباعة فاتورة الطلب تلقائياً فور التأكيد — على طابعة الجهاز نفسه
+      // إن وُجدت (لا يوقف أي شيء لو ما فيه طابعة متصلة)
+      if (newStatus == OrderStatus.confirmed) {
+        ReceiptPrintService.printOrder(widget.order, ref.read(settingsProvider));
+      }
     } finally {
       if (mounted) setState(() => _isUpdating = false);
     }
