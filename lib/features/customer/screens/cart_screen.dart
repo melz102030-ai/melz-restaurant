@@ -1126,10 +1126,10 @@ class _BankTransferSheetState extends ConsumerState<_BankTransferSheet> {
 
   void _copyIban(String iban) {
     Clipboard.setData(ClipboardData(text: iban));
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('تم نسخ رقم الآيبان'),
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: const Text('تم نسخ رقم الآيبان'),
       backgroundColor: AppColors.purple,
-      duration: Duration(seconds: 2),
+      duration: const Duration(seconds: 2),
     ));
   }
 
