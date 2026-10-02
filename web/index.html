@@ -434,7 +434,10 @@
        الرسمية (لا علاقة لها بحزمة lean_sdk_flutter لـ Flutter، وهي
        مخصَّصة فقط لأندرويد/iOS عبر WebView أصلي ولا تعمل على الويب) —
        يُستدعى Lean.pay() من كود Dart عبر dart:js، راجع cart_screen.dart -->
-  <script src="https://cdn.leantech.me/link/loader/prod/sa/latest/lean-link-loader.min.js"></script>
+  <!-- async: لا يجوز لهذا السكربت الخارجي (مُعطَّل/مؤجَّل حالياً أصلاً) أن
+       يُعطّل تحميل باقي الصفحة على اتصال إنترنت ضعيف أو متقطّع (مثل جهاز
+       الكاشير) — سكربت متزامن بلا async كان يحجز المحلّل حتى يكتمل تحميله -->
+  <script src="https://cdn.leantech.me/link/loader/prod/sa/latest/lean-link-loader.min.js" async></script>
 
   <!-- Kitchen alarm — Web Audio API, no file needed -->
   <script>
