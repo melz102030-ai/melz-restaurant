@@ -44,33 +44,22 @@ class ReceiptPrintService {
         ? '<div class="line"></div><div>ملاحظات: ${_esc(order.notes!)}</div>'
         : '';
 
+    // قطعة محتوى فقط (بلا html/head/body) — تُحقَن داخل عنصر ثابت في
+    // web/index.html (#receipt-print-area) يُظهره @media print وحده عند
+    // الطباعة الفعلية، بدل مستند كامل داخل iframe (أقل توافقاً على أندرويد)
     return '''
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-<meta charset="utf-8">
-<title>فاتورة</title>
 <style>
-  @page { margin: 0; }
-  * { box-sizing: border-box; }
-  body {
-    font-family: 'Tahoma', 'Courier New', monospace;
-    width: 76mm;
-    margin: 0 auto;
-    padding: 3mm;
-    font-size: 12px;
-    color: #000;
-  }
-  h1 { font-size: 16px; text-align: center; margin: 0 0 2px; }
-  .center { text-align: center; }
-  .hint { font-size: 10px; color: #555; }
-  .line { border-top: 1px dashed #000; margin: 6px 0; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  td { padding: 2px 0; vertical-align: top; }
-  .total td { font-weight: bold; font-size: 14px; padding-top: 4px; }
+  #receipt-print-area { font-family: 'Tahoma', 'Courier New', monospace; color: #000; }
+  #receipt-print-area .slip { width: 76mm; margin: 0 auto; padding: 3mm; font-size: 12px; }
+  #receipt-print-area h1 { font-size: 16px; text-align: center; margin: 0 0 2px; }
+  #receipt-print-area .center { text-align: center; }
+  #receipt-print-area .hint { font-size: 10px; color: #555; }
+  #receipt-print-area .line { border-top: 1px dashed #000; margin: 6px 0; }
+  #receipt-print-area table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  #receipt-print-area td { padding: 2px 0; vertical-align: top; }
+  #receipt-print-area .total td { font-weight: bold; font-size: 14px; padding-top: 4px; }
 </style>
-</head>
-<body>
+<div class="slip">
   <h1>${_esc(settings.restaurantName)}</h1>
   <div class="center hint">طلب رقم $shortId</div>
   <div class="center hint">${df.format(order.createdAt)}</div>
@@ -90,8 +79,7 @@ class ReceiptPrintService {
   $notesSection
   <div class="line"></div>
   <div class="center hint">شكراً لطلبك من ${_esc(settings.restaurantName)}</div>
-</body>
-</html>
+</div>
 ''';
   }
 

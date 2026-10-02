@@ -379,6 +379,12 @@ class _StatusActionButtons extends ConsumerWidget {
             onTap: () => OrderService.updateOrderStatus(order.id, OrderStatus.delivered),
           ),
         _ActionButton(
+          label: 'إعادة طباعة',
+          icon: Icons.print_outlined,
+          color: AppColors.purple,
+          onTap: () => ReceiptPrintService.printOrder(order, ref.read(settingsProvider)),
+        ),
+        _ActionButton(
           label: 'إلغاء',
           icon: Icons.cancel,
           color: AppColors.error,

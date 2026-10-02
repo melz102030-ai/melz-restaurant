@@ -884,6 +884,14 @@ class _KitchenOrderCardState extends ConsumerState<_KitchenOrderCard> {
                     else
                       Row(
                         children: [
+                          _ActionBtn(
+                            label: 'طباعة',
+                            color: AppColors.purple,
+                            icon: Icons.print_outlined,
+                            onTap: () =>
+                                ReceiptPrintService.printOrder(order, ref.read(settingsProvider)),
+                          ),
+                          const SizedBox(width: 8),
                           if (order.status == OrderStatus.pending)
                             _ActionBtn(
                               label: AppStrings.confirm,
