@@ -55,6 +55,10 @@ class RestaurantSettings {
   // الأدمن بدل الشكل الافتراضي (قلب Material + علامة X)؛ null = الافتراضي
   final String? gameHeartImageUrl;
   final String? gameObstacleImageUrl;
+  // بيانات التحويل البنكي اليدوي — تُعرض للعميل عند اختيار "تحويل بنكي"
+  final String? bankIban;
+  final String? bankAccountHolderName;
+  final String? bankName;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -80,6 +84,9 @@ class RestaurantSettings {
     this.cashPaymentPolicy = CashPaymentPolicy.both,
     this.gameHeartImageUrl,
     this.gameObstacleImageUrl,
+    this.bankIban,
+    this.bankAccountHolderName,
+    this.bankName,
   });
 
   // هل الدفع نقداً مسموح لنوع استلام معيّن (توصيل/استلام من المطعم)؟
@@ -97,6 +104,8 @@ class RestaurantSettings {
   }
 
   bool get hasRestaurantLocation => restaurantLat != null && restaurantLng != null;
+
+  bool get hasBankTransferInfo => (bankIban ?? '').trim().isNotEmpty;
 
   // هل الجدول التفصيلي (شفتات لكل يوم) مُفعَّل؟ — يُفعَّل تلقائياً بمجرد أول حفظ
   // من شاشة "ساعات العمل"، ويأخذ الأولوية على openTime/closeTime القديمة
@@ -202,6 +211,9 @@ class RestaurantSettings {
       cashPaymentPolicy: _cashPolicyFromMap(map['cashPaymentPolicy']),
       gameHeartImageUrl: map['gameHeartImageUrl'],
       gameObstacleImageUrl: map['gameObstacleImageUrl'],
+      bankIban: map['bankIban'],
+      bankAccountHolderName: map['bankAccountHolderName'],
+      bankName: map['bankName'],
     );
   }
 
@@ -230,6 +242,9 @@ class RestaurantSettings {
       'cashPaymentPolicy': cashPaymentPolicy.name,
       'gameHeartImageUrl': gameHeartImageUrl,
       'gameObstacleImageUrl': gameObstacleImageUrl,
+      'bankIban': bankIban,
+      'bankAccountHolderName': bankAccountHolderName,
+      'bankName': bankName,
     };
   }
 
@@ -257,6 +272,9 @@ class RestaurantSettings {
     CashPaymentPolicy? cashPaymentPolicy,
     String? gameHeartImageUrl,
     String? gameObstacleImageUrl,
+    String? bankIban,
+    String? bankAccountHolderName,
+    String? bankName,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -282,6 +300,9 @@ class RestaurantSettings {
       cashPaymentPolicy: cashPaymentPolicy ?? this.cashPaymentPolicy,
       gameHeartImageUrl: gameHeartImageUrl ?? this.gameHeartImageUrl,
       gameObstacleImageUrl: gameObstacleImageUrl ?? this.gameObstacleImageUrl,
+      bankIban: bankIban ?? this.bankIban,
+      bankAccountHolderName: bankAccountHolderName ?? this.bankAccountHolderName,
+      bankName: bankName ?? this.bankName,
     );
   }
 }

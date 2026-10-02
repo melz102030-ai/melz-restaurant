@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:js' as js;
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:geolocator/geolocator.dart';
@@ -17,6 +19,7 @@ import '../../../core/providers/delivery_zone_provider.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/models/settings_model.dart';
 import '../../../core/models/delivery_zone_model.dart';
+import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/order_service.dart';
 import '../../../core/services/delivery_zone_service.dart';
 import '../../../core/services/lean_payment_service.dart';
@@ -335,11 +338,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         js.context.callMethod('requestNotifyPermission', []);
       } catch (_) {}
 
-      // الطلب موجود فعلاً بحالة paymentStatus.pending — نفتح نافذة الدفع
-      // البنكي الآن، ونتابع لشاشة التتبع بعدها بغض النظر عن نتيجتها (نجاح/
-      // إلغاء/فشل)، لأن التأكيد الفعلي يصل لاحقاً عبر webhook لا من هنا
-      if (_paymentMethod == PaymentMethod.leanBankTransfer) {
-        await _startLeanPayment(orderId);
+      // الطلب موجود فعلاً بحالة paymentStatus.pending — نعرض بيانات التحويل
+      // البنكي الآن ونتيح إرفاق الإيصال، ونتابع لشاشة التتبع بعدها دائماً
+      // (سواء أرفق الإيصال الآن أو لاحقاً) — التحقق الفعلي يدوي من الأدمن
+      if (_paymentMethod == PaymentMethod.manualBankTransfer && mounted) {
+        await _showBankTransferSheet(orderId, cartTotal + deliveryFee);
         if (!mounted) return;
       }
 
@@ -360,6 +363,18 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     }
   }
 
+  // يعرض بيانات التحويل البنكي وخيار إرفاق الإيصال مباشرة بعد إنشاء الطلب
+  Future<void> _showBankTransferSheet(String orderId, double total) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _BankTransferSheet(orderId: orderId, total: total),
+    );
+  }
+
+  // ── لين (Lean) — مؤجَّل مؤقتاً، الكود جاهز ولم يُحذف لإعادة التفعيل لاحقاً ──
+  //
   // يفتح واجهة لين لدفع الطلب المُنشأ للتو مباشرة من حساب العميل البنكي.
   // نكمل لشاشة التتبع دائماً بعد هذه الدالة (نجاح أو إلغاء أو فشل) —
   // الطلب موجود أصلاً بحالة "بانتظار الدفع"، والتأكيد الحقيقي يصل لاحقاً
@@ -369,6 +384,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   // web/index.html) — وليس حزمة lean_sdk_flutter لـ Flutter، لأنها مخصَّصة
   // فقط لأندرويد/iOS عبر WebView أصلي ولا تعمل إطلاقاً على تطبيق ويب
   // (وهذا سبب فشل أول محاولة تجريبية: "تعذّر فتح الدفع البنكي")
+  // ignore: unused_element
   Future<void> _startLeanPayment(String orderId) async {
     try {
       final intent = await LeanPaymentService.createPaymentIntent(orderId);
@@ -1052,6 +1068,273 @@ class _OrderTypeToggle extends StatelessWidget {
   }
 }
 
+// نافذة التحويل البنكي اليدوي — تظهر فور إنشاء الطلب، تعرض بيانات الحساب
+// بشكل أنيق مع نسخ بضغطة، وتتيح إرفاق إيصال التحويل (صورة أو PDF) ليراجعه
+// الأدمن يدوياً. العميل يقدر يتخطاها ويرفق الإيصال لاحقاً.
+class _BankTransferSheet extends ConsumerStatefulWidget {
+  final String orderId;
+  final double total;
+  const _BankTransferSheet({required this.orderId, required this.total});
+
+  @override
+  ConsumerState<_BankTransferSheet> createState() => _BankTransferSheetState();
+}
+
+class _BankTransferSheetState extends ConsumerState<_BankTransferSheet> {
+  PlatformFile? _pickedFile;
+  bool _uploading = false;
+
+  Future<void> _pickReceipt() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
+      withData: true,
+    );
+    if (result != null && result.files.single.bytes != null) {
+      setState(() => _pickedFile = result.files.single);
+    }
+  }
+
+  Future<void> _sendReceipt() async {
+    if (_pickedFile == null) return;
+    setState(() => _uploading = true);
+    try {
+      final url = await CloudinaryService.uploadImage(
+        _pickedFile!.bytes!,
+        _pickedFile!.name,
+      );
+      if (url == null) throw Exception('فشل رفع الملف');
+      await OrderService.attachPaymentReceipt(widget.orderId, url);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('تم إرسال الإيصال، سيراجعه المطعم قريباً'),
+          backgroundColor: AppColors.success,
+        ));
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تعذّر إرسال الإيصال: $e'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  void _copyIban(String iban) {
+    Clipboard.setData(ClipboardData(text: iban));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('تم نسخ رقم الآيبان'),
+      backgroundColor: AppColors.purple,
+      duration: Duration(seconds: 2),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
+    final iban = settings.bankIban ?? '';
+
+    return ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      child: Container(
+        padding: EdgeInsets.fromLTRB(
+            20, 10, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.88),
+        color: AppColors.surface,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Icon(Icons.account_balance, color: AppColors.purple, size: 22),
+                  const SizedBox(width: 8),
+                  Text('التحويل البنكي',
+                      style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17)),
+                  const Spacer(),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: AppColors.textHint),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'حوّل المبلغ إلى الحساب أدناه، ثم أرفق صورة أو ملف PDF للإيصال',
+                style: TextStyle(color: AppColors.textHint, fontSize: 12.5),
+              ),
+              const SizedBox(height: 18),
+
+              // المبلغ المطلوب
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: AppColors.heroGradient,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: [
+                    Text('المبلغ المطلوب تحويله',
+                        style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text('${widget.total.toStringAsFixed(2)} ${AppStrings.sar}',
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24)),
+                  ],
+                ),
+              ).animate().fadeIn(duration: 350.ms).slideY(begin: 0.08, curve: Curves.easeOut),
+
+              const SizedBox(height: 14),
+
+              // بطاقة الآيبان — نسخ بضغطة
+              if (iban.isNotEmpty)
+                InkWell(
+                  onTap: () => _copyIban(iban),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardBackground,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.purple.withOpacity(0.25)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (settings.bankAccountHolderName != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Text(settings.bankAccountHolderName!,
+                                style: TextStyle(
+                                    color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+                          ),
+                        if (settings.bankName != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Text(settings.bankName!,
+                                style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                iban,
+                                style: TextStyle(
+                                  color: AppColors.purple,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  letterSpacing: 0.5,
+                                ),
+                                textDirection: TextDirection.ltr,
+                              ),
+                            ),
+                            Icon(Icons.copy_rounded, color: AppColors.purple, size: 18),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ).animate().fadeIn(delay: 120.ms, duration: 350.ms).slideY(begin: 0.08, curve: Curves.easeOut)
+              else
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'بيانات الحساب البنكي غير مُعدَّة بعد من المطعم — تواصل معنا مباشرة لإتمام التحويل',
+                    style: TextStyle(color: AppColors.error, fontSize: 12.5),
+                  ),
+                ),
+
+              const SizedBox(height: 20),
+              Divider(color: AppColors.surfaceLight),
+              const SizedBox(height: 10),
+
+              Text('إرفاق إيصال التحويل',
+                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 10),
+
+              InkWell(
+                onTap: _uploading ? null : _pickReceipt,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceLight,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _pickedFile != null
+                          ? AppColors.purple.withOpacity(0.5)
+                          : Colors.transparent,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _pickedFile != null ? Icons.insert_drive_file : Icons.attach_file,
+                        color: AppColors.purple,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _pickedFile?.name ?? 'اختر صورة أو ملف PDF للإيصال',
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: _pickedFile != null
+                                ? AppColors.textPrimary
+                                : AppColors.textHint,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              AppButton(
+                label: 'إرسال الإيصال',
+                icon: Icons.send_rounded,
+                width: double.infinity,
+                isLoading: _uploading,
+                onPressed: _pickedFile != null && !_uploading ? _sendReceipt : null,
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: _uploading ? null : () => Navigator.pop(context),
+                child: const Text('سأرسله لاحقاً'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _PaymentMethodToggle extends StatelessWidget {
   final PaymentMethod method;
   final ValueChanged<PaymentMethod> onChanged;
@@ -1078,10 +1361,10 @@ class _PaymentMethodToggle extends StatelessWidget {
           ),
           Expanded(
             child: _ToggleOption(
-              label: 'دفع بنكي مباشر',
+              label: 'تحويل بنكي',
               icon: Icons.account_balance_outlined,
-              isSelected: method == PaymentMethod.leanBankTransfer,
-              onTap: () => onChanged(PaymentMethod.leanBankTransfer),
+              isSelected: method == PaymentMethod.manualBankTransfer,
+              onTap: () => onChanged(PaymentMethod.manualBankTransfer),
             ),
           ),
         ],

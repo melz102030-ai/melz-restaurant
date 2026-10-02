@@ -20,8 +20,10 @@ extension OrderTypeExt on OrderType {
 
 // طريقة الدفع — بطاقة/آبل باي/مدى غير مفعّلة حالياً في الواجهة (لا توجد
 // بوابة دفع مربوطة بعد)، والحقول جاهزة لتفعيلها لاحقاً دون تعديل بنية
-// الطلب. leanBankTransfer مفعَّلة فعلياً (دفع مباشر من الحساب البنكي عبر لين)
-enum PaymentMethod { cash, card, applePay, mada, leanBankTransfer }
+// الطلب. leanBankTransfer مبنية لكن مؤجَّلة مؤقتاً (راجع cloudflare/lean-payments)
+// — الخيار الفعلي الحالي بجانب النقد هو manualBankTransfer (تحويل يدوي +
+// رفع إيصال يراجعه الأدمن يدوياً، بلا أي ربط API خارجي)
+enum PaymentMethod { cash, card, applePay, mada, leanBankTransfer, manualBankTransfer }
 
 extension PaymentMethodExt on PaymentMethod {
   String get label {
@@ -36,6 +38,8 @@ extension PaymentMethodExt on PaymentMethod {
         return 'مدى';
       case PaymentMethod.leanBankTransfer:
         return 'دفع مباشر من حسابك البنكي';
+      case PaymentMethod.manualBankTransfer:
+        return 'تحويل بنكي';
     }
   }
 }
@@ -233,6 +237,9 @@ class OrderModel {
   // تكتبه الدالة الخلفية (Cloudflare Worker) عند فتح نافذة الدفع، وتقرأه عند
   // وصول إشعار نتيجة الدفع (webhook) لمطابقته بالطلب الصحيح
   final String? leanPaymentIntentId;
+  // رابط إيصال التحويل البنكي اليدوي الذي يرفعه العميل (صورة أو PDF) —
+  // يراجعه الأدمن يدوياً قبل تأكيد الدفع، لا تحقّق تلقائي
+  final String? paymentReceiptUrl;
 
   const OrderModel({
     required this.id,
@@ -269,6 +276,7 @@ class OrderModel {
     this.paymentMethod = PaymentMethod.cash,
     this.paymentStatus = PaymentStatus.pending,
     this.leanPaymentIntentId,
+    this.paymentReceiptUrl,
   });
 
   bool get hasDeliveryLocation => deliveryLat != null && deliveryLng != null;
@@ -349,6 +357,7 @@ class OrderModel {
         orElse: () => PaymentStatus.pending,
       ),
       leanPaymentIntentId: map['leanPaymentIntentId'],
+      paymentReceiptUrl: map['paymentReceiptUrl'],
     );
   }
 
@@ -392,6 +401,7 @@ class OrderModel {
       'paymentMethod': paymentMethod.name,
       'paymentStatus': paymentStatus.name,
       'leanPaymentIntentId': leanPaymentIntentId,
+      'paymentReceiptUrl': paymentReceiptUrl,
     };
   }
 
@@ -412,6 +422,7 @@ class OrderModel {
     double? driverLng,
     DateTime? driverLocationUpdatedAt,
     String? leanPaymentIntentId,
+    String? paymentReceiptUrl,
   }) {
     return OrderModel(
       id: id,
@@ -448,6 +459,7 @@ class OrderModel {
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus ?? this.paymentStatus,
       leanPaymentIntentId: leanPaymentIntentId ?? this.leanPaymentIntentId,
+      paymentReceiptUrl: paymentReceiptUrl ?? this.paymentReceiptUrl,
     );
   }
 }

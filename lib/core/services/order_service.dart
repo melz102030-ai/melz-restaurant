@@ -244,6 +244,23 @@ class OrderService {
     });
   }
 
+  // يُستدعى من العميل نفسه بعد تحويل بنكي يدوي — مسموح حسب قاعدة أمان
+  // مخصَّصة في firestore.rules تقيّد الكتابة على هذا الحقل وحده فقط
+  static Future<void> attachPaymentReceipt(String orderId, String receiptUrl) async {
+    await _db.collection(_colOrders).doc(orderId).update({
+      'paymentReceiptUrl': receiptUrl,
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
+  // للأدمن/المطبخ فقط — بعد مراجعة إيصال التحويل البنكي اليدوي يدوياً
+  static Future<void> updatePaymentStatus(String orderId, PaymentStatus status) async {
+    await _db.collection(_colOrders).doc(orderId).update({
+      'paymentStatus': status.name,
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
   // Update order status
   static Future<void> updateOrderStatus(
     String orderId,

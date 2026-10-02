@@ -49,7 +49,7 @@ jobs:
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > /tmp/firebase-sa.json
           firebase hosting:sites:create meals --project melz-restaurant || true
-          firebase deploy --only hosting --project melz-restaurant --non-interactive
+          firebase deploy --only hosting,firestore:rules --project melz-restaurant --non-interactive
         env:
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/firebase-sa.json
 

@@ -263,6 +263,10 @@ class _AdminOrderCardState extends State<_AdminOrderCard> {
                       ],
                     ),
                   ],
+                  if (order.paymentMethod == PaymentMethod.manualBankTransfer) ...[
+                    Divider(color: AppColors.surfaceLight),
+                    _PaymentReceiptRow(order: order),
+                  ],
                 ],
               ),
             ),
@@ -270,6 +274,61 @@ class _AdminOrderCardState extends State<_AdminOrderCard> {
         ],
       ),
     ).animate(delay: Duration(milliseconds: widget.index * 50)).fadeIn();
+  }
+}
+
+// صف مراجعة التحويل البنكي اليدوي — يظهر فقط لطلبات هذه الطريقة تحديداً
+class _PaymentReceiptRow extends StatelessWidget {
+  final OrderModel order;
+  const _PaymentReceiptRow({required this.order});
+
+  @override
+  Widget build(BuildContext context) {
+    final paid = order.paymentStatus == PaymentStatus.paid;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.account_balance, color: AppColors.textHint, size: 16),
+            const SizedBox(width: 8),
+            Text('تحويل بنكي · ', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            Text(
+              order.paymentStatus.label,
+              style: TextStyle(
+                color: order.paymentStatus == PaymentStatus.paid
+                    ? AppColors.success
+                    : order.paymentStatus == PaymentStatus.failed
+                        ? AppColors.error
+                        : AppColors.warning,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (order.paymentReceiptUrl != null)
+          OutlinedButton.icon(
+            onPressed: () => launchUrl(Uri.parse(order.paymentReceiptUrl!),
+                mode: LaunchMode.externalApplication),
+            icon: const Icon(Icons.receipt_long, size: 18),
+            label: const Text('عرض إيصال التحويل'),
+          )
+        else
+          Text('لم يُرفق العميل إيصالاً بعد',
+              style: TextStyle(color: AppColors.textHint, fontSize: 12.5)),
+        if (!paid) ...[
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => OrderService.updatePaymentStatus(order.id, PaymentStatus.paid),
+            style: OutlinedButton.styleFrom(foregroundColor: AppColors.success),
+            icon: const Icon(Icons.check_circle_outline, size: 18),
+            label: const Text('تأكيد استلام المبلغ'),
+          ),
+        ],
+      ],
+    );
   }
 }
 

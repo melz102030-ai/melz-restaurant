@@ -27,6 +27,9 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _reviewUrlCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _welcomeMsgCtrl = TextEditingController();
+  final _bankIbanCtrl = TextEditingController();
+  final _bankHolderCtrl = TextEditingController();
+  final _bankNameCtrl = TextEditingController();
   CashPaymentPolicy _cashPolicy = CashPaymentPolicy.both;
   bool _isSaving = false;
   bool _isLoaded = false;
@@ -49,6 +52,9 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _reviewUrlCtrl.text = settings.googleReviewUrl ?? '';
         _addressCtrl.text = settings.address ?? '';
         _welcomeMsgCtrl.text = settings.welcomeMessage ?? '';
+        _bankIbanCtrl.text = settings.bankIban ?? '';
+        _bankHolderCtrl.text = settings.bankAccountHolderName ?? '';
+        _bankNameCtrl.text = settings.bankName ?? '';
         _cashPolicy = settings.cashPaymentPolicy;
         _isLoaded = true;
       });
@@ -65,6 +71,9 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     _reviewUrlCtrl.dispose();
     _addressCtrl.dispose();
     _welcomeMsgCtrl.dispose();
+    _bankIbanCtrl.dispose();
+    _bankHolderCtrl.dispose();
+    _bankNameCtrl.dispose();
     super.dispose();
   }
 
@@ -103,6 +112,12 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         welcomeMessage: _welcomeMsgCtrl.text.trim().isEmpty
             ? null
             : _welcomeMsgCtrl.text.trim(),
+        bankIban: _bankIbanCtrl.text.trim().isEmpty
+            ? null
+            : _bankIbanCtrl.text.trim().toUpperCase().replaceAll(' ', ''),
+        bankAccountHolderName:
+            _bankHolderCtrl.text.trim().isEmpty ? null : _bankHolderCtrl.text.trim(),
+        bankName: _bankNameCtrl.text.trim().isEmpty ? null : _bankNameCtrl.text.trim(),
         cashPaymentPolicy: _cashPolicy,
       );
 
@@ -223,8 +238,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
 
             _SectionTitle(title: 'طريقة الدفع', icon: Icons.payments_outlined),
             Text(
-              'الدفع الإلكتروني (بطاقة/آبل باي/مدى) غير مفعّل بعد، وطريقة الدفع الوحيدة'
-              ' حالياً هي النقد — تحكّم متى وأين يُسمح به للعميل.',
+              'المتاح للعميل حالياً: النقد والتحويل البنكي اليدوي — تحكّم متى وأين'
+              ' يُسمح بالنقد أدناه، واملأ بيانات الحساب البنكي تحت ليظهر للعميل.',
               style: TextStyle(color: AppColors.textHint, fontSize: 12.5),
             ),
             const SizedBox(height: 12),
@@ -257,6 +272,37 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                   onTap: () => setState(() => _cashPolicy = CashPaymentPolicy.disabled),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 20),
+            Text(
+              'بيانات الحساب البنكي (تحويل يدوي)',
+              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 13.5),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'يختفي خيار "تحويل بنكي" من التطبيق تلقائياً طالما رقم الآيبان فارغ',
+              style: TextStyle(color: AppColors.textHint, fontSize: 11.5),
+            ),
+            const SizedBox(height: 10),
+            _Field(
+              controller: _bankIbanCtrl,
+              label: 'رقم الآيبان (IBAN)',
+              icon: Icons.account_balance_outlined,
+              hint: 'SA0000000000000000000000',
+            ),
+            const SizedBox(height: 12),
+            _Field(
+              controller: _bankHolderCtrl,
+              label: 'اسم صاحب الحساب',
+              icon: Icons.badge_outlined,
+            ),
+            const SizedBox(height: 12),
+            _Field(
+              controller: _bankNameCtrl,
+              label: 'اسم البنك (اختياري)',
+              icon: Icons.business_outlined,
+              hint: 'مصرف الراجحي',
             ),
 
             const SizedBox(height: 32),
