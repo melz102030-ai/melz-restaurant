@@ -1,0 +1,20 @@
+name: sunmi_print_bridge
+description: تطبيق جسر صغير يستقبل أوامر الطباعة من تطبيق Meals عبر رابط sunmiprint:// ويطبعها مباشرة على طابعة Sunmi الداخلية.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sunmi_printer_plus: ^4.1.1
+  app_links: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:js' as js;
 import 'package:intl/intl.dart';
 import '../models/order_model.dart';
@@ -5,18 +6,60 @@ import '../models/settings_model.dart';
 
 /// طباعة فاتورة/إيصال الطلب تلقائياً على طابعة الجهاز نفسه (الموظف يفتح
 /// لوحة التحكم من جهاز متصل بطابعة فواتير — تماماً كأجهزة تطبيقات التوصيل)
-/// فور تأكيد الطلب. لا يحتاج أي اتصال بخدمة خارجية أو طابعة شبكية: يعتمد
-/// فقط على نافذة طباعة المتصفح القياسية (window.print)، فيعمل مع أي طابعة
-/// مُعرَّفة كطابعة افتراضية على نظام الجهاز — بغض النظر عن ماركتها.
+/// فور تأكيد الطلب. على الأجهزة العادية يعتمد على نافذة طباعة المتصفح
+/// القياسية (window.print). أما على نسخة kitchen-lite (أجهزة Sunmi ذات
+/// طابعة داخلية غير مرئية لنظام الطباعة القياسي) فتُرسَل نسخة نصية بسيطة
+/// عبر رابط sunmiprint:// لتطبيق جسر مرافق مثبَّت على الجهاز (راجع
+/// sunmi_print_bridge/) يطبعها مباشرة عبر SDK الرسمي الخاص بـ Sunmi.
 class ReceiptPrintService {
   static void printOrder(OrderModel order, RestaurantSettings settings) {
     try {
       final html = _buildReceiptHtml(order, settings);
-      js.context.callMethod('printReceipt', [html]);
+      final plainText = _buildReceiptPlainText(order, settings);
+      js.context.callMethod('printReceipt', [html, plainText]);
     } catch (_) {
       // فشل الطباعة لا يجوز أن يوقف أي عملية أساسية (تأكيد الطلب نفسه
       // نجح فعلاً) — يُتجاهل بصمت، الموظف يقدر يطبع يدوياً من زر منفصل لاحقاً
     }
+  }
+
+  /// نسخة نصية بسيطة (بلا HTML) بعرض 32 حرفاً تقريباً — مناسبة لطابعات
+  /// حرارية صغيرة (48 ملم) تُطبع عبر SDK مباشر بدل محرك عرض متصفح
+  static String _buildReceiptPlainText(OrderModel order, RestaurantSettings settings) {
+    final df = DateFormat('dd/MM/yyyy - hh:mm a');
+    final shortId = order.id.length > 6 ? order.id.substring(0, 6).toUpperCase() : order.id;
+    const sep = '--------------------------------';
+    final b = StringBuffer();
+    b.writeln(settings.restaurantName);
+    b.writeln('طلب رقم $shortId');
+    b.writeln(df.format(order.createdAt));
+    b.writeln(sep);
+    b.writeln('العميل: ${order.customerName}');
+    b.writeln('الجوال: ${order.customerPhone}');
+    b.writeln('النوع: ${order.orderType == OrderType.delivery ? 'توصيل' : 'استلام من المطعم'}');
+    if (order.orderType == OrderType.delivery && order.deliveryAddress != null) {
+      b.writeln('العنوان: ${order.deliveryAddress}');
+    }
+    b.writeln(sep);
+    for (final item in order.items) {
+      b.writeln('×${item.quantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
+      if (item.optionsSummary.isNotEmpty) {
+        b.writeln('   ${item.optionsSummary}');
+      }
+    }
+    b.writeln(sep);
+    b.writeln('الإجمالي الفرعي: ${order.subtotal.toStringAsFixed(2)}');
+    if (order.deliveryFee > 0) {
+      b.writeln('التوصيل: ${order.deliveryFee.toStringAsFixed(2)}');
+    }
+    b.writeln('الإجمالي: ${order.total.toStringAsFixed(2)}');
+    if (order.notes != null && order.notes!.isNotEmpty) {
+      b.writeln(sep);
+      b.writeln('ملاحظات: ${order.notes}');
+    }
+    b.writeln(sep);
+    b.writeln('شكراً لطلبك من ${settings.restaurantName}');
+    return base64.encode(utf8.encode(b.toString()));
   }
 
   static String _buildReceiptHtml(OrderModel order, RestaurantSettings settings) {
