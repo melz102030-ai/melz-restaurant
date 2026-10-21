@@ -43,8 +43,9 @@ class ReceiptPrintService {
     b.writeln(sep);
     for (final item in order.items) {
       b.writeln('×${item.quantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
-      if (item.optionsSummary.isNotEmpty) {
-        b.writeln('   ${item.optionsSummary}');
+      final optsLine = _optionsReceiptLine(item);
+      if (optsLine.isNotEmpty) {
+        b.writeln('   $optsLine');
       }
     }
     b.writeln(sep);
@@ -67,8 +68,9 @@ class ReceiptPrintService {
     final shortId = order.id.length > 6 ? order.id.substring(0, 6).toUpperCase() : order.id;
 
     final itemsRows = order.items.map((item) {
-      final optionsLine = item.optionsSummary.isNotEmpty
-          ? '<div style="font-size:10px;color:#444;padding-right:14px">${_esc(item.optionsSummary)}</div>'
+      final optsLine = _optionsReceiptLine(item);
+      final optionsLine = optsLine.isNotEmpty
+          ? '<div style="font-size:14px;font-weight:bold;color:#000;padding-right:14px">${_esc(optsLine)}</div>'
           : '';
       return '''
         <tr>
@@ -124,6 +126,19 @@ class ReceiptPrintService {
   <div class="center hint">شكراً لطلبك من ${_esc(settings.restaurantName)}</div>
 </div>
 ''';
+  }
+
+  // نسخة من ملخّص خيارات الصنف مخصّصة للطباعة فقط — تضيف سعر كل مجموعة
+  // خيارات مدفوعة (مثل "مشروب: بيبسي (+3.00)") غير الظاهر في optionsSummary
+  // العادي (المستخدم في شاشات العميل حيث يكفي الإجمالي الكلي للصنف)
+  static String _optionsReceiptLine(OrderItem item) {
+    return item.selectedOptions
+        .where((o) => o.selectedNames.isNotEmpty)
+        .map((o) {
+          final extra = o.extra > 0 ? ' (+${o.extra.toStringAsFixed(2)})' : '';
+          return '${o.groupName}: ${o.summary}$extra';
+        })
+        .join(' | ');
   }
 
   static String _esc(String s) => s

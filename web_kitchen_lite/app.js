@@ -366,7 +366,10 @@ function buildOrderCard(order, index) {
   order.items.forEach(function (item) {
     var optsSummary = (item.selectedOptions || [])
       .filter(function (o) { return (o.selectedNames || []).length; })
-      .map(function (o) { return o.groupName + ': ' + (o.selectedNames || []).join('، '); })
+      .map(function (o) {
+        var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
+        return o.groupName + ': ' + (o.selectedNames || []).join('، ') + extra;
+      })
       .join(' | ');
     itemsWrap.appendChild(el('div', { class: 'order-item-row' }, [
       el('div', { class: 'qty-box' }, ['×' + item.quantity]),
@@ -594,9 +597,12 @@ function printOrder(order) {
     var shortId = order.id.slice(0, 6).toUpperCase();
     var itemsRows = order.items.map(function (item) {
       var optsLine = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
-        .map(function (o) { return o.groupName + ': ' + o.selectedNames.join('، '); }).join(' | ');
+        .map(function (o) {
+          var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
+          return o.groupName + ': ' + o.selectedNames.join('، ') + extra;
+        }).join(' | ');
       return '<tr><td style="width:28px;font-weight:bold">×' + item.quantity + '</td><td>' + esc(item.name) +
-        (optsLine ? '<div style="font-size:10px;color:#444;padding-right:14px">' + esc(optsLine) + '</div>' : '') +
+        (optsLine ? '<div style="font-size:14px;font-weight:bold;color:#000;padding-right:14px">' + esc(optsLine) + '</div>' : '') +
         '</td><td style="text-align:left;white-space:nowrap">' + (item.price * item.quantity).toFixed(2) + '</td></tr>';
     }).join('');
     var addressLine = order.orderType === 'delivery' && order.deliveryAddress ? '<div>العنوان: ' + esc(order.deliveryAddress) + '</div>' : '';
