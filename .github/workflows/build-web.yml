@@ -37,20 +37,15 @@ jobs:
       - name: Build web
         run: flutter build web --release
 
-      # نسخة خفيفة جداً (شاشة المطبخ فقط، بلا عميل/أدمن/مندوب/لعبة/خرائط)
-      # لأجهزة الكاشير ضعيفة الإمكانيات — راجع lib/main_kitchen.dart.
-      # base-href بمسار فرعي ثابت حتى تُحمَّل أصولها الخاصة بشكل صحيح رغم
-      # نشرها داخل نفس موقع الاستضافة؛ التوجيه داخل التطبيق قائم على الهاش
-      # (#/kitchen) أصلاً فلا تعارض مع قواعد إعادة التوجيه لباقي الموقع
-      - name: Build kitchen-lite web
+      # نسخة خفيفة جداً (شاشة المطبخ فقط) لأجهزة الكاشير ضعيفة الإمكانيات —
+      # صفحة HTML/JS عادية بلا فلاتر إطلاقاً (راجع web_kitchen_lite/)، لأن
+      # محرك فلاتر نفسه (CanvasKit, ~7 ميغا WASM) هو أكبر سبب للثقل على هذه
+      # الأجهزة، لا حجم كود التطبيق — تُنسخ كما هي بلا أي خطوة بناء
+      - name: Publish kitchen-lite web
         run: |
-          flutter build web --release \
-            -t lib/main_kitchen.dart \
-            -o build/kitchen \
-            --base-href /kitchen-lite/
           rm -rf build/web/kitchen-lite
           mkdir -p build/web/kitchen-lite
-          cp -r build/kitchen/* build/web/kitchen-lite/
+          cp -r web_kitchen_lite/* build/web/kitchen-lite/
 
       # يُنشر مباشرة بعد البناء (قبل الالتزام بالمخرجات) بدل الاعتماد على
       # تشغيل منفصل يُحفَّز بتعديل build/web — التزام البناء يحمل [skip ci]
