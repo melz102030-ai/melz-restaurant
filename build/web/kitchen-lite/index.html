@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <base href="/kitchen-lite/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Meals - اطلب أشهى المأكولات">
+  <meta name="theme-color" content="#6A0DAD">
+
+  <!-- PWA -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Meals">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Open Graph للمشاركة على واتساب وتويتر وغيرها -->
+  <meta property="og:title" content="Meals - برجر . ساندوتشات . كلوب">
+  <meta property="og:description" content="اطلب أشهى المأكولات بين يديك — برجر، ساندوتشات، كلوب">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://res.cloudinary.com/dwbzohzt9/image/upload/v1782271051/melz_restaurant/1782271049909_logo.jpg">
+  <meta property="og:image:width" content="1080">
+  <meta property="og:image:height" content="1080">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Meals - برجر . ساندوتشات . كلوب">
+  <meta name="twitter:description" content="اطلب أشهى المأكولات بين يديك">
+  <meta name="twitter:image" content="https://res.cloudinary.com/dwbzohzt9/image/upload/v1782271051/melz_restaurant/1782271049909_logo.jpg">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <title>Meals - برجر . ساندوتشات . كلوب</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Preconnect to speed up external resources -->
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Fonts preload -->
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Pacifico&display=swap">
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Pacifico&display=swap">
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #F8F5FF;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: 'Cairo', 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Photo collage background (كولاج صور متحركة يديره الأدمن) ────── */
+    #splash-collage {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      display: none;
+      gap: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.7s ease;
+    }
+
+    #splash-collage.ready { opacity: 1; }
+
+    .collage-col {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .collage-track {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      animation-name: collageScroll;
+      animation-timing-function: linear;
+      animation-iteration-count: infinite;
+    }
+
+    .collage-col:nth-child(1) .collage-track { animation-duration: 34s; }
+    .collage-col:nth-child(2) .collage-track { animation-duration: 26s; }
+    .collage-col:nth-child(3) .collage-track { animation-duration: 30s; }
+
+    @keyframes collageScroll {
+      from { transform: translateY(0); }
+      to   { transform: translateY(-50%); }
+    }
+
+    .collage-track img {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
+    .collage-scrim {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(180deg,
+        rgba(248, 245, 255, 0.55) 0%,
+        rgba(248, 245, 255, 0.82) 45%,
+        rgba(248, 245, 255, 0.94) 100%);
+    }
+
+    /* ── Floating background particles ─────────────────────────────── */
+    .bg-particles {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .bg-particles svg {
+      position: absolute;
+      animation: floatUp linear infinite;
+    }
+
+    @keyframes floatUp {
+      0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+      12%  { opacity: 1; }
+      88%  { opacity: 0.5; }
+      100% { opacity: 0; transform: translateY(calc(-100vh - 60px)) scale(1); }
+    }
+
+    /* ── Loading container ──────────────────────────────────────────── */
+    #loading {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      color: #5B4A75;
+      width: 100%;
+      padding: 0 24px;
+    }
+
+    /* Spring pop-in — mirrors Curves.elasticOut from Flutter login screen */
+    @keyframes popIn {
+      0%   { opacity: 0; transform: scale(0.45); }
+      55%  { opacity: 1; transform: scale(1.07); }
+      72%  { transform: scale(0.96); }
+      86%  { transform: scale(1.03); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Subtle slide-up for text elements */
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Square banner — logo is 1:1 so no letterboxing */
+    .logo-banner {
+      position: relative;
+      width: min(80vw, 300px);
+      height: min(80vw, 300px);
+      border-radius: 24px;
+      background: linear-gradient(135deg, #4A0080, #800040, #8B0000);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 28px;
+      box-shadow: 0 8px 40px rgba(106,13,173,0.32);
+      overflow: hidden;
+      animation: popIn 0.75s ease-out forwards,
+                 glowPulse 2.6s ease-in-out 0.75s infinite;
+    }
+
+    /* نبضة توهّج هادئة حول المربع بعد ظهوره — الحيوية المطلوبة بدون تغيير الشكل */
+    @keyframes glowPulse {
+      0%, 100% { box-shadow: 0 8px 40px rgba(106,13,173,0.32); }
+      50%      { box-shadow: 0 10px 56px rgba(106,13,173,0.5), 0 0 0 5px rgba(255,255,255,0.05); }
+    }
+
+    /* شعاع لمعان يمرّ فوق المربع دورياً */
+    .logo-banner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(115deg,
+        transparent 40%, rgba(255,255,255,0.32) 50%, transparent 60%);
+      background-size: 300% 300%;
+      background-position: 130% 130%;
+      animation: shimmer 3.4s ease-in-out 1.2s infinite;
+      pointer-events: none;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 130% 130%; }
+      35%  { background-position: -30% -30%; }
+      100% { background-position: -30% -30%; }
+    }
+
+    .logo-banner img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .logo-banner svg {
+      width: 80px;
+      height: 80px;
+      fill: rgba(255,255,255,0.85);
+    }
+
+    #loading p {
+      color: #5B4A75;
+      font-size: 0.95rem;
+      margin-bottom: 28px;
+      animation: fadeSlide 0.4s ease 0.3s both;
+    }
+
+    /* Progress bar */
+    .progress-track {
+      width: 200px;
+      height: 4px;
+      background: #EDE7F6;
+      border-radius: 4px;
+      margin: 0 auto 12px;
+      overflow: hidden;
+      animation: fadeSlide 0.4s ease 0.35s both;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6A0DAD, #CC1100);
+      border-radius: 4px;
+      animation: progress 3s ease-in-out forwards;
+    }
+
+    @keyframes progress {
+      0%   { width: 5%; }
+      30%  { width: 40%; }
+      60%  { width: 65%; }
+      85%  { width: 85%; }
+      100% { width: 95%; }
+    }
+
+    .loading-text {
+      color: #9B8BAD;
+      font-size: 0.8rem;
+      animation: fadeSlide 0.4s ease 0.4s both, blink 1.5s 0.8s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 0.4; }
+      50%       { opacity: 1; }
+    }
+
+    /* Fade out when Flutter is ready */
+    #loading.hide {
+      animation: fadeOut 0.4s ease forwards;
+    }
+
+    @keyframes fadeOut {
+      to { opacity: 0; transform: scale(0.95); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- كولاج صور متحرك (يديره الأدمن من لوحة المظهر) -->
+  <div id="splash-collage" aria-hidden="true"></div>
+  <div class="collage-scrim" aria-hidden="true"></div>
+
+  <!-- Floating ambient particles -->
+  <div class="bg-particles" aria-hidden="true">
+    <svg viewBox="0 0 24 24" style="left:8%;  bottom:-30px; width:28px; height:28px; fill:rgba(106,13,173,.18); animation-duration:7.0s; animation-delay:0.0s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:20%; bottom:-20px; width:16px; height:16px; fill:rgba(128,0,64,.15);   animation-duration:10.0s;animation-delay:1.2s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:35%; bottom:-40px; width:36px; height:36px; fill:rgba(204,17,0,.10);   animation-duration:8.5s; animation-delay:2.4s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:52%; bottom:-25px; width:20px; height:20px; fill:rgba(106,13,173,.22); animation-duration:6.5s; animation-delay:0.8s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:65%; bottom:-35px; width:14px; height:14px; fill:rgba(128,0,64,.18);   animation-duration:9.0s; animation-delay:3.1s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:80%; bottom:-28px; width:30px; height:30px; fill:rgba(74,0,128,.15);   animation-duration:7.5s; animation-delay:1.7s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:12%; bottom:-22px; width:18px; height:18px; fill:rgba(204,17,0,.12);   animation-duration:11.0s;animation-delay:4.2s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:44%; bottom:-32px; width:12px; height:12px; fill:rgba(106,13,173,.25); animation-duration:6.0s; animation-delay:2.8s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:70%; bottom:-44px; width:40px; height:40px; fill:rgba(128,0,64,.09);   animation-duration:9.5s; animation-delay:0.4s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:90%; bottom:-18px; width:16px; height:16px; fill:rgba(74,0,128,.20);   animation-duration:8.0s; animation-delay:5.5s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:28%; bottom:-38px; width:24px; height:24px; fill:rgba(106,13,173,.14); animation-duration:12.0s;animation-delay:3.7s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+    <svg viewBox="0 0 24 24" style="left:58%; bottom:-24px; width:10px; height:10px; fill:rgba(204,17,0,.18);   animation-duration:5.5s; animation-delay:1.5s"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+  </div>
+
+  <div id="loading">
+    <div class="logo-banner" id="logo-banner">
+      <!-- Fallback icon until logo loads; replaced instantly on cached visits -->
+      <svg id="logo-fallback" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>
+      </svg>
+    </div>
+    <p>أشهى المأكولات بين يديك</p>
+    <div class="progress-track">
+      <div class="progress-fill"></div>
+    </div>
+    <span class="loading-text">جاري التحميل...</span>
+  </div>
+
+  <script>
+    (function () {
+      var banner = document.getElementById('logo-banner');
+      var shownFromCache = false;
+
+      function showLogo(url) {
+        var img = document.createElement('img');
+        img.alt = 'Meals';
+        img.src = url;
+        // Insert immediately — browser HTTP cache makes this near-instant on repeat visits
+        banner.style.background = 'none';
+        banner.innerHTML = '';
+        banner.appendChild(img);
+        img.onerror = function () {
+          // Restore gradient + icon if image fails to load
+          banner.style.background = 'linear-gradient(135deg,#4A0080,#800040,#8B0000)';
+          banner.innerHTML = '<svg viewBox="0 0 24 24" fill="rgba(255,255,255,.85)" width="80" height="80"><path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/></svg>';
+        };
+      }
+
+      // Show cached URL immediately (no network needed — logo appears from frame 1)
+      var cached = localStorage.getItem('mlz_logo');
+      if (cached) {
+        shownFromCache = true;
+        showLogo(cached);
+      }
+
+      // Fetch fresh URL in background and update cache for next visit
+      fetch('https://firestore.googleapis.com/v1/projects/melz-restaurant/databases/(default)/documents/settings/restaurant?key=AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var url = data && data.fields && data.fields.logoUrl && data.fields.logoUrl.stringValue;
+          if (url) {
+            localStorage.setItem('mlz_logo', url);
+            // Only update DOM if we didn't already show the cached logo
+            if (!shownFromCache) showLogo(url);
+          }
+        })
+        .catch(function () {});
+    })();
+
+    // ── كولاج صور شاشة التحميل — يُقرأ من مجموعة splash_images في Firestore ──
+    (function () {
+      var CACHE_KEY = 'mlz_splash_images';
+      var collage = document.getElementById('splash-collage');
+
+      function buildCollage(urls) {
+        if (!urls || !urls.length) return;
+
+        var cols = window.innerWidth < 480 ? 2 : 3;
+        var heights = [170, 230, 190, 250, 210, 180];
+        var buckets = [];
+        var c;
+        for (c = 0; c < cols; c++) buckets.push([]);
+        urls.forEach(function (u, i) { buckets[i % cols].push(u); });
+
+        collage.innerHTML = '';
+        collage.style.display = 'flex';
+
+        buckets.forEach(function (list, ci) {
+          if (!list.length) return;
+          // نكرر القائمة مرتين لضمان تمرير لا نهائي سلس (النقلة = 50% من الطول)
+          var doubled = list.concat(list);
+          var col = document.createElement('div');
+          col.className = 'collage-col';
+          var track = document.createElement('div');
+          track.className = 'collage-track';
+          doubled.forEach(function (u, i) {
+            var img = document.createElement('img');
+            img.src = u;
+            img.alt = '';
+            img.style.height = heights[(i + ci * 2) % heights.length] + 'px';
+            track.appendChild(img);
+          });
+          col.appendChild(track);
+          collage.appendChild(col);
+        });
+
+        requestAnimationFrame(function () {
+          collage.classList.add('ready');
+        });
+      }
+
+      var cached = localStorage.getItem(CACHE_KEY);
+      var shownFromCache = false;
+      if (cached) {
+        try {
+          var parsed = JSON.parse(cached);
+          if (parsed && parsed.length) {
+            shownFromCache = true;
+            buildCollage(parsed);
+          }
+        } catch (e) {}
+      }
+
+      fetch('https://firestore.googleapis.com/v1/projects/melz-restaurant/databases/(default)/documents/splash_images?orderBy=sortOrder&pageSize=40&key=AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var docs = (data && data.documents) || [];
+          var urls = docs
+            .filter(function (d) {
+              var active = d.fields && d.fields.isActive;
+              return !active || active.booleanValue !== false;
+            })
+            .map(function (d) {
+              return d.fields && d.fields.imageUrl && d.fields.imageUrl.stringValue;
+            })
+            .filter(Boolean);
+
+          if (urls.length) {
+            localStorage.setItem(CACHE_KEY, JSON.stringify(urls));
+            if (!shownFromCache) buildCollage(urls);
+          }
+        })
+        .catch(function () {});
+    })();
+
+    window.addEventListener('flutter-first-frame', function () {
+      var el = document.getElementById('loading');
+      el.classList.add('hide');
+      setTimeout(function () { el.style.display = 'none'; }, 420);
+    });
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
+
+  <!-- لين (Lean) — الدفع المباشر من الحساب البنكي. تحديداً حزمة الويب
+       الرسمية (لا علاقة لها بحزمة lean_sdk_flutter لـ Flutter، وهي
+       مخصَّصة فقط لأندرويد/iOS عبر WebView أصلي ولا تعمل على الويب) —
+       يُستدعى Lean.pay() من كود Dart عبر dart:js، راجع cart_screen.dart -->
+  <!-- async: لا يجوز لهذا السكربت الخارجي (مُعطَّل/مؤجَّل حالياً أصلاً) أن
+       يُعطّل تحميل باقي الصفحة على اتصال إنترنت ضعيف أو متقطّع (مثل جهاز
+       الكاشير) — سكربت متزامن بلا async كان يحجز المحلّل حتى يكتمل تحميله -->
+  <script src="https://cdn.leantech.me/link/loader/prod/sa/latest/lean-link-loader.min.js" async></script>
+
+  <!-- Kitchen alarm — Web Audio API, no file needed -->
+  <script>
+    // سياق صوتي واحد دائم يُعاد استخدامه دوماً — الخلل السابق كان إنشاء سياق
+    // جديد مؤقت في التهيئة (primeKitchenAudio) يُغلَق فوراً، بينما التشغيل
+    // الفعلي (playKitchenAlarm) كان يُنشئ سياقاً آخر مختلفاً تماماً وغير
+    // مُهيَّأ من إشعار Firestore (وليس من تفاعل مستخدم مباشر)، فتبدأ المتصفحات
+    // الحديثة هذا السياق الجديد بحالة "معلَّق" ولا يصدر أي صوت فعلياً بصمت
+    var _kCtx = null;
+    // النغمات المجدولة حالياً ولم تُشغَّل بعد — لازمة لأن تعليق السياق
+    // (suspend) لا يُلغي جدولة start/stop المستقبلية، فقط يُجمّد ساعته.
+    // أي استئناف لاحق للسياق (مثلاً عند تنبيه طلب جديد، أو نقرة مستخدم
+    // تستدعي primeKitchenAudio) كان يُكمل تشغيل نغمات طلب سابق تم قبوله
+    // فعلاً — وهذا بالضبط سبب عودة صوت المنبه بعد صمت قصير رغم القبول
+    var _kScheduled = [];
+
+    function _getKitchenCtx() {
+      if (!_kCtx) {
+        _kCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return _kCtx;
+    }
+
+    function playKitchenAlarm() {
+      try {
+        var ctx = _getKitchenCtx();
+
+        function scheduleTones() {
+          function tone(freq, startSec, durationSec, vol) {
+            var osc = ctx.createOscillator();
+            var gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + startSec);
+            gain.gain.setValueAtTime(vol, ctx.currentTime + startSec);
+            gain.gain.setValueAtTime(vol, ctx.currentTime + startSec + durationSec - 0.02);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + startSec + durationSec);
+            osc.start(ctx.currentTime + startSec);
+            osc.stop(ctx.currentTime + startSec + durationSec + 0.01);
+            _kScheduled.push(osc);
+          }
+
+          // Pattern: HIGH(0.27s) + LOW(0.23s) = 0.5s per rep, 40 reps = 20 seconds of alarm
+          var REPS = 40;
+          for (var i = 0; i < REPS; i++) {
+            var t = i * 0.5;
+            tone(1400, t,        0.25, 1.0);   // high, very loud
+            tone(750,  t + 0.25, 0.23, 1.0);   // low, very loud
+          }
+        }
+
+        // السياق قد يكون معلَّقاً (خصوصاً عند استدعائه من إشعار خلفي وليس من
+        // ضغطة مستخدم مباشرة) — نستأنفه أولاً ثم نجدول النغمات بعد التأكد
+        if (ctx.state === 'suspended') {
+          ctx.resume().then(scheduleTones).catch(function (e) {
+            console.warn('Kitchen alarm resume failed:', e);
+          });
+        } else {
+          scheduleTones();
+        }
+      } catch (e) {
+        console.warn('Kitchen alarm error:', e);
+      }
+    }
+
+    function stopKitchenAlarm() {
+      // يجب إيقاف كل نغمة مجدولة لم تُشغَّل بعد فعلياً (لا يكفي تعليق
+      // السياق) — وإلا فستُكمل تشغيلها لاحقاً بمجرد استئناف السياق لأي
+      // سبب (تنبيه طلب جديد مثلاً)، فيبدو المنبه وكأنه "يعود من تلقاء نفسه"
+      for (var i = 0; i < _kScheduled.length; i++) {
+        try { _kScheduled[i].stop(); } catch (e) {}
+      }
+      _kScheduled = [];
+      if (_kCtx) {
+        try { _kCtx.suspend(); } catch (e) {}
+      }
+    }
+
+    // تهيئة السياق الصوتي الدائم مبكراً عند أول تفاعل من المستخدم — يمنح
+    // المتصفح إذناً بتشغيل صوت لاحقاً برمجياً من إشعار خلفي بلا تفاعل مباشر
+    function primeKitchenAudio() {
+      try {
+        var ctx = _getKitchenCtx();
+        if (ctx.state === 'suspended') ctx.resume();
+      } catch (e) {}
+    }
+
+    // ── إشعارات المتصفح (Web Notification API) ─────────────────────────
+    // تعمل طالما التبويب مفتوح في الخلفية — بدون حاجة لخادم إشعارات
+    function requestNotifyPermission() {
+      try {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') {
+          Notification.requestPermission();
+        }
+      } catch (e) {}
+    }
+
+    function showOrderReadyNotification(title, body) {
+      try {
+        if (!('Notification' in window)) return;
+        if (Notification.permission !== 'granted') return;
+        var n = new Notification(title, {
+          body: body,
+          icon: 'icons/Icon-192.png',
+          tag: 'order-ready',
+        });
+        n.onclick = function () {
+          window.focus();
+          n.close();
+        };
+      } catch (e) {}
+    }
+
+    // ── كشف iOS Safari (لا يدعم beforeinstallprompt) ────────────────────
+    function isIosSafariInstallable() {
+      try {
+        var isIos = /iP(hone|od|ad)/.test(navigator.platform) ||
+          (navigator.userAgent.includes('Mac') && 'ontouchend' in document);
+        var isStandalone = window.navigator.standalone === true ||
+          window.matchMedia('(display-mode: standalone)').matches;
+        return isIos && !isStandalone;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // ── PWA Install Prompt ────────────────────────────────────────────
+    var _pwaInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();           // منع ظهور البانر التلقائي للمتصفح
+      _pwaInstallPrompt = e;
+      window._pwaInstallReady = true;
+    });
+
+    // تُستدعى من Flutter عند ضغط المستخدم على زر التحميل
+    window.showPwaInstallPrompt = function() {
+      if (!_pwaInstallPrompt) return;
+      _pwaInstallPrompt.prompt();
+      _pwaInstallPrompt.userChoice.then(function() {
+        _pwaInstallPrompt = null;
+        window._pwaInstallReady = false;
+      });
+    };
+
+    // إخفاء البانر بعد التثبيت الفعلي
+    window.addEventListener('appinstalled', function() {
+      _pwaInstallPrompt = null;
+      window._pwaInstallReady = false;
+    });
+
+    // تهيئة تلقائية عند أول تفاعل في أي مكان بالصفحة
+    // (يضمن أن الصوت جاهز قبل وصول المستخدم لشاشة المطبخ)
+    function _onFirstGesture() {
+      primeKitchenAudio();
+      ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(function(ev) {
+        document.removeEventListener(ev, _onFirstGesture, true);
+      });
+    }
+    ['click', 'touchstart', 'keydown', 'pointerdown'].forEach(function(ev) {
+      document.addEventListener(ev, _onFirstGesture, { capture: true, once: true });
+    });
+  </script>
+
+  <!-- طباعة فاتورة الطلب — نحقن محتوى الفاتورة في عنصر مخفي داخل الصفحة
+       نفسها بدل iframe/نافذة منبثقة (أوثق توافقاً عبر المتصفحات، خصوصاً
+       متصفحات أندرويد حيث تتصرف الطباعة من إطار فرعي بشكل غير موثوق).
+       @media print يخفي كل شيء آخر في الصفحة عند الطباعة فعلياً فقط. -->
+  <div id="receipt-print-area"></div>
+  <style>
+    #receipt-print-area { display: none; }
+    @media print {
+      body > *:not(#receipt-print-area) { display: none !important; }
+      #receipt-print-area {
+        display: block !important;
+        position: absolute;
+        top: 0;
+        right: 0;
+      }
+    }
+  </style>
+  <script>
+    function printReceipt(html) {
+      try {
+        var el = document.getElementById('receipt-print-area');
+        if (!el) return;
+        el.innerHTML = html;
+        // تأخير بسيط لضمان رسم المحتوى الجديد قبل استدعاء حوار الطباعة
+        setTimeout(function () {
+          try { window.print(); } catch (e) { console.warn('Receipt print failed:', e); }
+        }, 80);
+      } catch (e) {
+        console.warn('Receipt print setup failed:', e);
+      }
+    }
+  </script>
+</body>
+</html>
