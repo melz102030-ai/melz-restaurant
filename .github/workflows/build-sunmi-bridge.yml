@@ -57,4 +57,12 @@ jobs:
           git add sunmi_print_bridge/release/sunmi-print-bridge.apk -f
           git diff --staged --quiet && echo "No changes" && exit 0
           git commit -m "build: sunmi-print-bridge apk [skip ci]"
-          git push
+          # قد يكون main قد تحرّك (مثلاً تشغيل build-web.yml المتزامن يرفع
+          # التزامه الخاص) بين سحب هذا التشغيل للكود وبين وصوله لهذه الخطوة
+          # — إعادة المحاولة بعد rebase تمنع رفض الدفع (rejected، fetch first)
+          for i in 1 2 3 4 5; do
+            if git push; then break; fi
+            echo "Push rejected, retrying after rebase ($i)..."
+            git pull --rebase origin main
+            sleep 3
+          done
