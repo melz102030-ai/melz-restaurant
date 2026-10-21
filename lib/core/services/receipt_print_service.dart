@@ -93,14 +93,14 @@ class ReceiptPrintService {
     return '''
 <style>
   #receipt-print-area { font-family: 'Tahoma', 'Courier New', monospace; color: #000; }
-  #receipt-print-area .slip { width: 76mm; margin: 0 auto; padding: 3mm; font-size: 12px; }
-  #receipt-print-area h1 { font-size: 16px; text-align: center; margin: 0 0 2px; }
+  #receipt-print-area .slip { width: 76mm; margin: 0 auto; padding: 3mm; font-size: 17px; font-weight: bold; }
+  #receipt-print-area h1 { font-size: 22px; font-weight: bold; text-align: center; margin: 0 0 3px; }
   #receipt-print-area .center { text-align: center; }
-  #receipt-print-area .hint { font-size: 10px; color: #555; }
-  #receipt-print-area .line { border-top: 1px dashed #000; margin: 6px 0; }
-  #receipt-print-area table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  #receipt-print-area td { padding: 2px 0; vertical-align: top; }
-  #receipt-print-area .total td { font-weight: bold; font-size: 14px; padding-top: 4px; }
+  #receipt-print-area .hint { font-size: 15px; font-weight: bold; color: #000; }
+  #receipt-print-area .line { border-top: 2px dashed #000; margin: 8px 0; }
+  #receipt-print-area table { width: 100%; border-collapse: collapse; font-size: 17px; font-weight: bold; }
+  #receipt-print-area td { padding: 3px 0; vertical-align: top; }
+  #receipt-print-area .total td { font-weight: bold; font-size: 20px; padding-top: 5px; }
 </style>
 <div class="slip">
   <h1>${_esc(settings.restaurantName)}</h1>
