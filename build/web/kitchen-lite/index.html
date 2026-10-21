@@ -622,8 +622,21 @@
     }
   </style>
   <script>
-    function printReceipt(html) {
+    // نسخة kitchen-lite (أجهزة Sunmi الضعيفة) فقط: طابعتها الداخلية غير
+    // مرئية لنافذة طباعة أندرويد القياسية، فتُرسَل نسخة نصية عبر رابط
+    // sunmiprint:// لتطبيق جسر مرافق مثبَّت على الجهاز (sunmi_print_bridge/)
+    // يطبعها مباشرة عبر SDK الرسمي. باقي الأجهزة تستمر على window.print().
+    function printReceipt(html, plainTextBase64) {
       try {
+        var isKitchenLite = window.location.pathname.indexOf('/kitchen-lite/') !== -1;
+        if (isKitchenLite && plainTextBase64) {
+          try {
+            window.location.href = 'sunmiprint://print?data=' + encodeURIComponent(plainTextBase64);
+            return;
+          } catch (e) {
+            console.warn('Sunmi bridge print failed, falling back to window.print:', e);
+          }
+        }
         var el = document.getElementById('receipt-print-area');
         if (!el) return;
         el.innerHTML = html;
