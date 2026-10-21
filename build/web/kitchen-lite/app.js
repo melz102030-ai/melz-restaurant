@@ -1,5 +1,9 @@
 'use strict';
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function () {});
+}
+
 // ─── إعداد فايربيس (نفس بيانات تطبيق Meals الرئيسي) ─────────────────────────
 firebase.initializeApp({
   apiKey: 'AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0',
