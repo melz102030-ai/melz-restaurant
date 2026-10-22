@@ -305,6 +305,14 @@
   </div>
 
   <script>
+    // صور Cloudinary مرفوعة بدقتها الأصلية (~300 كيلو للواحدة، 16 صورة ≈ 4.8 ميغا)
+    // وكانت تنافس تحميل محرك فلاتر نفسه على أول زيارة — نطلب نسخة مصغّرة
+    // ومضغوطة تلقائياً (WebP/AVIF حسب المتصفح) تكفي شاشة التحميل (≈ 380 كيلو)
+    function _cdnSmall(url, w) {
+      if (!url || url.indexOf('res.cloudinary.com') === -1 || url.indexOf('/upload/') === -1) return url;
+      return url.replace('/upload/', '/upload/f_auto,q_auto,w_' + w + '/');
+    }
+
     (function () {
       var banner = document.getElementById('logo-banner');
       var shownFromCache = false;
@@ -312,7 +320,7 @@
       function showLogo(url) {
         var img = document.createElement('img');
         img.alt = 'Meals';
-        img.src = url;
+        img.src = _cdnSmall(url, 600);
         // Insert immediately — browser HTTP cache makes this near-instant on repeat visits
         banner.style.background = 'none';
         banner.innerHTML = '';
@@ -373,8 +381,9 @@
           track.className = 'collage-track';
           doubled.forEach(function (u, i) {
             var img = document.createElement('img');
-            img.src = u;
+            img.src = _cdnSmall(u, 500);
             img.alt = '';
+            img.decoding = 'async';
             img.style.height = heights[(i + ci * 2) % heights.length] + 'px';
             track.appendChild(img);
           });

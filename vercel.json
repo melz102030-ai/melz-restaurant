@@ -27,7 +27,7 @@
     {
       "source": "/main.dart.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        { "key": "Cache-Control", "value": "no-cache" }
       ]
     },
     {
@@ -45,7 +45,7 @@
     {
       "source": "/kitchen-lite/main.dart.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        { "key": "Cache-Control", "value": "no-cache" }
       ]
     },
     {
@@ -57,7 +57,7 @@
     {
       "source": "/order/app.js",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        { "key": "Cache-Control", "value": "no-cache" }
       ]
     }
   ]
