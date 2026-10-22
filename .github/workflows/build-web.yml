@@ -47,6 +47,15 @@ jobs:
           mkdir -p build/web/kitchen-lite
           cp -r web_kitchen_lite/* build/web/kitchen-lite/
 
+      # نسخة خفيفة جداً لتجربة الطلب الكاملة للعميل (تصفح القائمة، السلة،
+      # الدفع، تتبع الطلب) — نفس سبب kitchen-lite أعلاه بالضبط: محرك فلاتر
+      # نفسه هو أكبر سبب لبطء أول تحميل، لا حجم كود التطبيق (راجع web_customer_lite/)
+      - name: Publish customer-lite web
+        run: |
+          rm -rf build/web/order
+          mkdir -p build/web/order
+          cp -r web_customer_lite/* build/web/order/
+
       # يُنشر مباشرة بعد البناء (قبل الالتزام بالمخرجات) بدل الاعتماد على
       # تشغيل منفصل يُحفَّز بتعديل build/web — التزام البناء يحمل [skip ci]
       # فيُعطَّل أي تشغيل جديد لأي workflow أصلاً على ذلك الالتزام
