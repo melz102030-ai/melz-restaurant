@@ -386,7 +386,9 @@ function buildOrderCard(order, index) {
     el('div', { class: 'order-id' }, ['#' + pad4(order.orderNumber)]),
     el('div', { class: 'order-info' }, [
       el('div', { class: 'order-name' }, [order.customerName]),
-      el('div', { class: 'order-phone' }, [order.customerPhone]),
+      el('div', {
+        class: 'order-phone', onclick: function () { window.location.href = 'tel:' + order.customerPhone; },
+      }, [order.customerPhone]),
       el('div', { class: 'badges' }, badges),
     ]),
     side,
@@ -436,9 +438,9 @@ function buildOrderCard(order, index) {
   var actionsRow = el('div', { class: 'action-btns' });
   actionsRow.appendChild(actionBtn('طباعة', 'ghost', function () { printOrder(order); }));
 
-  function doUpdate(newStatus, btnEl) {
+  function doUpdate(newStatus, btnEl, minutesOverride) {
     btnEl.classList.add('loading');
-    var mins = parseInt(timeInput.value, 10);
+    var mins = minutesOverride != null ? minutesOverride : parseInt(timeInput.value, 10);
     if (isNaN(mins)) mins = order.estimatedMinutes == null ? (state.settings.estimatedPrepTime || 30) : null;
     var update = { status: newStatus, updatedAt: firebase.firestore.Timestamp.now() };
     var notesVal = notesInput.value.trim();
@@ -454,15 +456,17 @@ function buildOrderCard(order, index) {
 
   if (order.status === 'pending') {
     actionsRow.appendChild(actionBtn('تأكيد', 'primary', function (btnEl) {
-      if (order.driverId && !order.driverAcceptedAt) {
-        openConfirmModal(
-          'المندوب لم يوافق بعد',
-          'المندوب "' + order.driverName + '" لم يوافق بعد على استلام هذا الطلب. يمكنك تأكيد الطلب الآن على أي حال، أو الانتظار حتى يوافق.',
-          'تأكيد الآن', function () { doUpdate('confirmed', btnEl); }
-        );
-      } else {
-        doUpdate('confirmed', btnEl);
-      }
+      openWaitTimeModal(function (minutes) {
+        if (order.driverId && !order.driverAcceptedAt) {
+          openConfirmModal(
+            'المندوب لم يوافق بعد',
+            'المندوب "' + order.driverName + '" لم يوافق بعد على استلام هذا الطلب. يمكنك تأكيد الطلب الآن على أي حال، أو الانتظار حتى يوافق.',
+            'تأكيد الآن', function () { doUpdate('confirmed', btnEl, minutes); }
+          );
+        } else {
+          doUpdate('confirmed', btnEl, minutes);
+        }
+      });
     }));
   }
   if (order.status === 'confirmed') {
@@ -653,6 +657,30 @@ function openConfirmModal(title, text, confirmLabel, onConfirm, danger) {
     el('button', { class: danger ? 'btn-danger' : 'btn-ghost', style: danger ? '' : 'background:var(--purple);color:#fff', onclick: function () { closeModal(); onConfirm(); } }, [confirmLabel]),
   ]);
   openModal(title, body, [actions]);
+}
+
+// ─── مودال وقت الانتظار الإجباري عند تأكيد الطلب ──────────────────────────────
+var WAIT_TIME_OPTIONS = [10, 15, 20, 25, 30, 40];
+function openWaitTimeModal(onPick) {
+  var body = el('div', { class: 'modal-body' }, [
+    el('div', { class: 'confirm-text', style: 'padding-bottom:4px' }, ['حدّد وقت تجهيز الطلب المتوقع قبل التأكيد:']),
+    el('div', { style: 'display:flex;flex-wrap:wrap;gap:8px;padding:6px 4px 10px' },
+      WAIT_TIME_OPTIONS.map(function (mins) {
+        var btn = el('button', {
+          style: 'flex:1;min-width:70px;padding:14px 8px;border-radius:10px;border:1.5px solid var(--purple);' +
+            'background:transparent;color:var(--purple);font-weight:bold;font-size:14px;cursor:pointer',
+        }, [mins + ' د']);
+        btn.addEventListener('click', function () {
+          closeModal();
+          onPick(mins);
+        });
+        return btn;
+      })),
+  ]);
+  var actions = el('div', { class: 'modal-actions' }, [
+    el('button', { class: 'btn-ghost', onclick: closeModal }, ['تراجع']),
+  ]);
+  openModal('وقت الانتظار المتوقع', body, [actions]);
 }
 
 function openModal(title, bodyEl, extra) {

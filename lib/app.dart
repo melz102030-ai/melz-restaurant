@@ -7,7 +7,6 @@ import 'core/models/user_model.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/app_theme_provider.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/staff_login_screen.dart';
 import 'features/customer/screens/customer_home_screen.dart';
 import 'features/customer/screens/cart_screen.dart';
@@ -61,14 +60,12 @@ final _routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final user = ref.read(authProvider);
       final loc = state.matchedLocation;
-      final isAuthRoute = loc == '/login' || loc == '/staff-login';
-      final isGuestAllowedRoute =
-          loc == '/home' || loc == '/cart' || loc.startsWith('/item');
+      final isStaffAuthRoute = loc == '/staff-login';
       final isAdminRoute = loc.startsWith('/admin');
       final isDriverRoute = loc.startsWith('/driver');
-      // مسارات "عميل" عامة يبقى الوصول إليها متاحاً لأي دور (بما فيه الأدمن/
-      // المطبخ/المندوب) — مفيدة أثناء المعاينة والاختبار من نفس الحساب، وحتى
-      // لموظف حقيقي يفتح رابط تتبع طلب أو سجل طلباته الشخصي
+      // لا يوجد نظام تسجيل دخول للعملاء إطلاقاً — كل مسارات العميل متاحة
+      // دائماً سواء زائراً أو بجلسة ضيف (تُنشأ تلقائياً فقط لحظة إرسال أول
+      // طلب)؛ مفيدة أيضاً لأي موظف (أدمن/مندوب) يفتح رابط تتبع أو ملفه الشخصي
       final isSharedCustomerRoute = loc.startsWith('/home') ||
           loc.startsWith('/cart') ||
           loc.startsWith('/item') ||
@@ -78,11 +75,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
           loc.startsWith('/support') ||
           loc.startsWith('/game');
 
-      // زوار بلا تسجيل دخول: يدخلون القائمة والسلة مباشرة للمعاينة والطلب
       if (user == null) {
-        if (isAuthRoute || isGuestAllowedRoute) return null;
+        if (isStaffAuthRoute || isSharedCustomerRoute) return null;
         if (isAdminRoute || isDriverRoute) return '/staff-login';
-        return '/login'; // مثل /profile أو /track تتطلب تسجيل دخول
+        return '/home';
       }
 
       // دور "مطبخ" لا مكان له داخل تطبيق فلاتر إطلاقاً — تحويل فوري خارجي
@@ -92,7 +88,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      if (isAuthRoute) {
+      if (isStaffAuthRoute) {
         return _getHomeRoute(user.role);
       }
 
@@ -109,10 +105,6 @@ final _routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // Auth
-      GoRoute(
-        path: '/login',
-        builder: (_, state) => LoginScreen(returnTo: state.extra as String?),
-      ),
       GoRoute(
         path: '/staff-login',
         builder: (_, __) => const StaffLoginScreen(),

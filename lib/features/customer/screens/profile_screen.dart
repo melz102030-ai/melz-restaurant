@@ -35,12 +35,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final orders = ref.watch(customerOrdersStreamProvider).valueOrNull ?? [];
 
     if (user == null) {
+      // لا يوجد نظام تسجيل دخول للعملاء — حساب الضيف المجهول يُنشأ تلقائياً
+      // فقط لحظة إرسال أول طلب، فمن لم يطلب بعد على هذا الجهاز ببساطة لا
+      // يملك سجلاً بعد، لا "تسجيل دخول" ناقصاً يحتاج إتمامه
       return Scaffold(
         body: EmptyState(
-          message: 'يرجى تسجيل الدخول أولاً',
-          icon: Icons.person_off,
-          actionLabel: 'تسجيل الدخول',
-          onAction: () => context.go('/login'),
+          message: 'لا يوجد سجل طلبات بعد على هذا الجهاز\nابدأ بتصفح القائمة واطلب!',
+          icon: Icons.receipt_long_outlined,
+          actionLabel: 'تصفّح القائمة',
+          onAction: () => context.go('/home'),
         ),
       );
     }
@@ -210,12 +213,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Logout
+            // لا يوجد "تسجيل خروج" حقيقي بلا نظام حسابات — هذا يمسح فقط ربط
+            // سجل الطلبات بهذا الجهاز؛ الطلب القادم يبدأ سجلاً جديداً من الصفر
             AppButton(
-              label: AppStrings.logout,
+              label: 'نسيان بياناتي على هذا الجهاز',
               onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('نسيان بياناتي؟'),
+                    content: const Text(
+                        'سيُمسح ربط سجل طلباتك بهذا الجهاز، ولن تتمكن من رؤيتها هنا بعد ذلك.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                        child: const Text('نسيان'),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm != true) return;
                 await ref.read(authProvider.notifier).logout();
-                if (context.mounted) context.go('/login');
+                if (context.mounted) context.go('/home');
               },
               isOutlined: true,
               icon: Icons.logout,

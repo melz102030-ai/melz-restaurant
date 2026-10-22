@@ -28,7 +28,6 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../auth/widgets/guest_checkout_sheet.dart';
-import '../../auth/widgets/login_bottom_sheet.dart';
 import 'delivery_location_picker_screen.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
@@ -301,18 +300,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         if (!distanceOk || !mounted) return;
       }
 
+      // لا يوجد نظام تسجيل دخول للعملاء — اسم ورقم جوال فقط لحظة الطلب،
+      // بلا حساب دائم ولا كلمة مرور (راجع AuthService.guestLogin)
       var user = ref.read(authProvider);
       if (user == null) {
-        if (settings.isGuestCheckoutMode) {
-          final guestInfo = await showGuestCheckoutSheet(context);
-          if (guestInfo == null || !mounted) return;
-          final guestUser =
-              await AuthService.guestLogin(name: guestInfo.name, phone: guestInfo.phone);
-          await ref.read(authProvider.notifier).login(guestUser);
-        } else {
-          final loggedIn = await showLoginBottomSheet(context);
-          if (!loggedIn || !mounted) return;
-        }
+        final guestInfo = await showGuestCheckoutSheet(context);
+        if (guestInfo == null || !mounted) return;
+        final guestUser =
+            await AuthService.guestLogin(name: guestInfo.name, phone: guestInfo.phone);
+        await ref.read(authProvider.notifier).login(guestUser);
         user = ref.read(authProvider);
         if (user == null) return;
       }
@@ -356,10 +352,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         if (!mounted) return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: const Text('شكراً لطلبك! يمكنك تتبع طلبك أول بأول'),
-        backgroundColor: AppColors.purple,
-      ));
+      if (mounted) await _showOrderConfirmationDialog(settings.restaurantPhone);
+      if (!mounted) return;
       context.go('/track/$orderId');
     } catch (e) {
       if (mounted) {
@@ -371,6 +365,67 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     } finally {
       if (mounted) setState(() => _isPlacingOrder = false);
     }
+  }
+
+  // يظهر فور نجاح إرسال الطلب — يُطمئن العميل بأن اتصالاً قادم من المطعم
+  // لتأكيد الطلب (لا يوجد تأكيد تلقائي فوري بعد إلغاء نظام الحسابات)،
+  // ويعرض رقم المطعم صراحةً ليعرفه عند وصول الاتصال فلا يتجاهله كرقم مجهول
+  Future<void> _showOrderConfirmationDialog(String restaurantPhone) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.call_outlined, color: AppColors.purple),
+            const SizedBox(width: 10),
+            const Expanded(child: Text('تم استلام طلبك!')),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'سيتصل بك المطعم خلال دقائق لتأكيد الطلب.',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+            ),
+            if (restaurantPhone.trim().isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Text('الاتصال سيصلك من هذا الرقم:',
+                  style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.purple.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  restaurantPhone,
+                  style: TextStyle(
+                    color: AppColors.purple,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.purple),
+            child: const Text('حسناً، تتبّع طلبي'),
+          ),
+        ],
+      ),
+    );
   }
 
   // يعرض بيانات التحويل البنكي وخيار إرفاق الإيصال مباشرة بعد إنشاء الطلب

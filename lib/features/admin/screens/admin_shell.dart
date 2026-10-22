@@ -178,7 +178,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                         tooltip: 'تسجيل الخروج',
                         onPressed: () async {
                           await ref.read(authProvider.notifier).logout();
-                          if (context.mounted) context.go('/login');
+                          if (context.mounted) context.go('/staff-login');
                         },
                       ),
                     ),

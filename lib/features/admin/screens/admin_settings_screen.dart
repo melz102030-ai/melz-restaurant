@@ -34,7 +34,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   CashPaymentPolicy _cashPolicy = CashPaymentPolicy.both;
   String _driverSystemMode = 'full';
   String _supportMode = 'app';
-  String _customerLoginMode = 'required';
   bool _isSaving = false;
   bool _isLoaded = false;
 
@@ -63,7 +62,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _driverSystemMode = settings.driverSystemMode;
         _supportMode = settings.supportMode;
         _supportWhatsappCtrl.text = settings.supportWhatsappNumber ?? '';
-        _customerLoginMode = settings.customerLoginMode;
         _isLoaded = true;
       });
     }
@@ -132,7 +130,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         supportMode: _supportMode,
         supportWhatsappNumber:
             _supportWhatsappCtrl.text.trim().isEmpty ? null : _supportWhatsappCtrl.text.trim(),
-        customerLoginMode: _customerLoginMode,
       );
 
       await SettingsService.updateSettings(settings);
@@ -386,35 +383,6 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
               ),
             ],
 
-            const SizedBox(height: 24),
-
-            _SectionTitle(title: 'تسجيل دخول العميل', icon: Icons.verified_user_outlined),
-            Text(
-              'النظام الحالي: حساب برقم جوال وكلمة مرور قبل الطلب (يحفظ سجل'
-              ' الطلبات والعناوين). بدون تسجيل دخول: يتصفّح العميل ويطلب مباشرة،'
-              ' ويكتفي باسمه ورقم جواله فقط لحظة إرسال الطلب — أسرع لكن بلا حساب دائم.',
-              style: TextStyle(color: AppColors.textHint, fontSize: 12.5),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                TypeChip(
-                  label: 'النظام الحالي (حساب)',
-                  icon: Icons.lock_outline,
-                  selected: _customerLoginMode == 'required',
-                  onTap: () => setState(() => _customerLoginMode = 'required'),
-                ),
-                TypeChip(
-                  label: 'بدون تسجيل دخول',
-                  icon: Icons.flash_on_outlined,
-                  selected: _customerLoginMode == 'guest',
-                  onTap: () => setState(() => _customerLoginMode = 'guest'),
-                ),
-              ],
-            ),
-
             const SizedBox(height: 32),
 
             AppButton(
@@ -454,7 +422,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                   );
                   if (confirm == true && mounted) {
                     await ref.read(authProvider.notifier).logout();
-                    if (mounted) context.go('/login');
+                    if (mounted) context.go('/staff-login');
                   }
                 },
                 icon: Icon(Icons.logout, color: AppColors.error),

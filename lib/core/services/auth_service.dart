@@ -9,62 +9,8 @@ class AuthService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _colUsers = 'users';
 
-  // ─── تطبيع رقم الجوال إلى صيغة موحّدة بغض النظر عن كيفية كتابته ─────────────
-  // يقبل: 05XXXXXXXX، 5XXXXXXXX، 966XXXXXXXXX، +966 5XXXXXXXX ... إلخ
-  static String normalizePhone(String countryCode, String rawInput) {
-    final ccDigits = countryCode.replaceAll(RegExp(r'\D'), '');
-    var digits = rawInput.replaceAll(RegExp(r'\D'), '');
-    if (digits.startsWith(ccDigits) && ccDigits.isNotEmpty) {
-      return digits;
-    }
-    digits = digits.replaceFirst(RegExp(r'^0+'), '');
-    return '$ccDigits$digits';
-  }
-
   static String _pseudoEmail(String normalizedPhone) =>
       '$normalizedPhone@meals.local';
-
-  // ─── إنشاء حساب عميل برقم جوال + كلمة مرور ───────────────────────────────
-  static Future<UserModel> signUpWithPhonePassword(
-    String countryCode,
-    String rawPhone,
-    String password,
-    String name,
-  ) async {
-    final normalized = normalizePhone(countryCode, rawPhone);
-    final credential = await _auth.createUserWithEmailAndPassword(
-      email: _pseudoEmail(normalized),
-      password: password,
-    );
-    final firebaseUser = credential.user;
-    if (firebaseUser == null) throw Exception('فشل إنشاء الحساب');
-
-    final user = UserModel(
-      id: firebaseUser.uid,
-      phone: normalized,
-      name: name.trim().isEmpty ? 'عميل' : name.trim(),
-      role: UserRole.customer,
-      createdAt: DateTime.now(),
-    );
-    await _db.collection(_colUsers).doc(firebaseUser.uid).set(user.toMap());
-    return user;
-  }
-
-  // ─── تسجيل الدخول برقم الجوال + كلمة المرور ──────────────────────────────
-  static Future<UserModel> loginWithPhonePassword(
-    String countryCode,
-    String rawPhone,
-    String password,
-  ) async {
-    final normalized = normalizePhone(countryCode, rawPhone);
-    final credential = await _auth.signInWithEmailAndPassword(
-      email: _pseudoEmail(normalized),
-      password: password,
-    );
-    final firebaseUser = credential.user;
-    if (firebaseUser == null) throw Exception('فشل تسجيل الدخول');
-    return await _getOrCreateUser(firebaseUser, normalized);
-  }
 
   static String phonePasswordError(String code) {
     switch (code) {
@@ -85,24 +31,6 @@ class AuthService {
       default:
         return 'خطأ: $code';
     }
-  }
-
-  // ─── إنشاء أو جلب مستخدم من Firestore ────────────────────────────────────
-  static Future<UserModel> _getOrCreateUser(User firebaseUser,
-      [String? phone]) async {
-    final doc = await _db.collection(_colUsers).doc(firebaseUser.uid).get();
-    if (doc.exists) {
-      return UserModel.fromMap(doc.data()!, doc.id);
-    }
-    final user = UserModel(
-      id: firebaseUser.uid,
-      phone: phone ?? firebaseUser.phoneNumber ?? '',
-      name: 'عميل',
-      role: UserRole.customer,
-      createdAt: DateTime.now(),
-    );
-    await _db.collection(_colUsers).doc(firebaseUser.uid).set(user.toMap());
-    return user;
   }
 
   // ─── الجلسة ───────────────────────────────────────────────────────────────

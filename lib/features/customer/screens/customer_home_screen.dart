@@ -26,13 +26,10 @@ import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/app_theme_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/utils/kitchen_redirect.dart';
-import '../../auth/widgets/login_bottom_sheet.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/menu_item_card.dart';
 import '../widgets/popup_ad_dialog.dart';
-
-const _guestLoginPromptDismissedKey = 'guest_login_prompt_dismissed';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -54,9 +51,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   bool _installBannerDismissed = false;
   UserRole? _quickLoginRole;
   bool _popupAdChecked = false;
-  // يمنع تزامن نافذة الدخول المبكرة مع الإعلان المنبثق — الإعلان ينتظر حتى
-  // تُحسم نافذة الدخول (تظهر ثم تُغلق، أو لا تظهر أصلاً) قبل أن يُسمح له بالظهور
-  bool _loginPromptResolved = false;
 
   // إعلان الأدمن المنبثق — يظهر مرة واحدة فقط لكل حملة إعلانية لكل عميل
   Future<void> _maybeShowPopupAd(PopupAdModel ad) async {
@@ -197,31 +191,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       _checkInstallPrompt();
       Future.delayed(const Duration(seconds: 4), _checkInstallPrompt);
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowGuestLoginPrompt());
-  }
-
-  // يعرض دعوة تسجيل دخول مبكرة للضيف (مرة واحدة فقط) مع إمكانية تخطّيها
-  // والمتابعة كضيف — بدل انتظار آخر خطوة في الطلب لطلب ذلك منه
-  Future<void> _maybeShowGuestLoginPrompt() async {
-    if (ref.read(authProvider) != null) {
-      setState(() => _loginPromptResolved = true);
-      return;
-    }
-    // وضع "ضيف": لا داعي لأي دعوة تسجيل دخول مبكرة — يكتفي العميل باسمه
-    // ورقم جواله لحظة الطلب فقط، لا قبلها بأي خطوة
-    if (ref.read(settingsProvider).isGuestCheckoutMode) {
-      setState(() => _loginPromptResolved = true);
-      return;
-    }
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_guestLoginPromptDismissedKey) == true) {
-      if (mounted) setState(() => _loginPromptResolved = true);
-      return;
-    }
-    if (!mounted) return;
-    await showLoginBottomSheet(context, showSkip: true);
-    await prefs.setBool(_guestLoginPromptDismissedKey, true);
-    if (mounted) setState(() => _loginPromptResolved = true);
   }
 
   void _checkInstallPrompt() {
@@ -433,7 +402,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final activeOrder = ref.watch(activeOrderProvider);
 
     final popupAd = ref.watch(activePopupAdProvider).valueOrNull;
-    if (popupAd != null && !_popupAdChecked && _loginPromptResolved) {
+    if (popupAd != null && !_popupAdChecked) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowPopupAd(popupAd));
     }
 

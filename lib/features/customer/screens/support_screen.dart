@@ -29,10 +29,19 @@ class SupportScreen extends ConsumerWidget {
         title: const Text('الدعم الفني'),
         leading: IconButton(icon: Icon(Icons.arrow_back_ios), onPressed: () => context.pop()),
       ),
-      body: user == null
-          ? const EmptyState(message: 'يرجى تسجيل الدخول أولاً', icon: Icons.person_off)
-          : settings.isWhatsappSupportMode
-              ? _WhatsappSupportView(settings: settings, userName: user.name, userPhone: user.phone)
+      // وضع واتساب لا يحتاج أي طلب سابق — متاح دائماً. وضع التذاكر داخل
+      // التطبيق يحتاج هوية (تُنشأ تلقائياً فقط بعد أول طلب فعلي)
+      body: settings.isWhatsappSupportMode
+          ? _WhatsappSupportView(
+              settings: settings,
+              userName: user?.name ?? '',
+              userPhone: user?.phone ?? '',
+            )
+          : user == null
+              ? const EmptyState(
+                  message: 'اطلب مرة واحدة على الأقل أولاً حتى تقدر تفتح تذكرة دعم',
+                  icon: Icons.info_outline,
+                )
               : _TicketListView(userId: user.id, userName: user.name, userPhone: user.phone),
     );
   }
@@ -79,7 +88,10 @@ class _WhatsappSupportView extends StatelessWidget {
                 icon: Icons.chat,
                 width: double.infinity,
                 onPressed: () {
-                  final text = Uri.encodeComponent('مرحباً، أحتاج مساعدة بخصوص طلبي.\nالاسم: $userName\nالجوال: $userPhone');
+                  final lines = ['مرحباً، أحتاج مساعدة.'];
+                  if (userName.isNotEmpty) lines.add('الاسم: $userName');
+                  if (userPhone.isNotEmpty) lines.add('الجوال: $userPhone');
+                  final text = Uri.encodeComponent(lines.join('\n'));
                   launchUrl(Uri.parse('https://wa.me/$number?text=$text'), mode: LaunchMode.externalApplication);
                 },
               ),
