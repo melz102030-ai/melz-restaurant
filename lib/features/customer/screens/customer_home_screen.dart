@@ -25,6 +25,7 @@ import '../../../core/providers/popup_ad_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/app_theme_provider.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../shared/utils/kitchen_redirect.dart';
 import '../../auth/widgets/login_bottom_sheet.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
@@ -104,7 +105,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       if (!mounted) return;
       switch (role) {
         case UserRole.kitchen:
-          context.go('/kitchen');
+          redirectToKitchenLite();
           break;
         case UserRole.driver:
           context.go('/driver');

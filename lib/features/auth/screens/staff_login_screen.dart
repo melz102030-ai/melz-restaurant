@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../shared/utils/kitchen_redirect.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 
@@ -49,7 +50,7 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
           context.go('/admin');
           break;
         case UserRole.kitchen:
-          context.go('/kitchen');
+          redirectToKitchenLite();
           break;
         case UserRole.driver:
           context.go('/driver');

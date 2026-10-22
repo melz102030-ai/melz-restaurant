@@ -29,9 +29,8 @@ import 'features/admin/screens/admin_appearance_screen.dart';
 import 'features/admin/screens/admin_popup_ads_screen.dart';
 import 'features/admin/screens/admin_banners_screen.dart';
 import 'features/admin/screens/admin_splash_screen.dart';
-import 'features/kitchen/screens/kitchen_screen.dart';
-import 'features/kitchen/screens/kitchen_availability_screen.dart';
 import 'features/driver/screens/driver_screen.dart';
+import 'shared/utils/kitchen_redirect.dart';
 import 'features/game/heart_dodge_game_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
@@ -62,7 +61,6 @@ final _routerProvider = Provider<GoRouter>((ref) {
       final isGuestAllowedRoute =
           loc == '/home' || loc == '/cart' || loc.startsWith('/item');
       final isAdminRoute = loc.startsWith('/admin');
-      final isKitchenRoute = loc.startsWith('/kitchen');
       final isDriverRoute = loc.startsWith('/driver');
       // مسارات "عميل" عامة يبقى الوصول إليها متاحاً لأي دور (بما فيه الأدمن/
       // المطبخ/المندوب) — مفيدة أثناء المعاينة والاختبار من نفس الحساب، وحتى
@@ -78,8 +76,15 @@ final _routerProvider = Provider<GoRouter>((ref) {
       // زوار بلا تسجيل دخول: يدخلون القائمة والسلة مباشرة للمعاينة والطلب
       if (user == null) {
         if (isAuthRoute || isGuestAllowedRoute) return null;
-        if (isAdminRoute || isKitchenRoute || isDriverRoute) return '/staff-login';
+        if (isAdminRoute || isDriverRoute) return '/staff-login';
         return '/login'; // مثل /profile أو /track تتطلب تسجيل دخول
+      }
+
+      // دور "مطبخ" لا مكان له داخل تطبيق فلاتر إطلاقاً — تحويل فوري خارجي
+      // لنسخة kitchen-lite الخفيفة بغض النظر عن المسار الحالي
+      if (user.role == UserRole.kitchen) {
+        redirectToKitchenLite();
+        return null;
       }
 
       if (isAuthRoute) {
@@ -90,9 +95,6 @@ final _routerProvider = Provider<GoRouter>((ref) {
       // المشتركة أعلاه
       if (user.role == UserRole.admin && !isAdminRoute && !isSharedCustomerRoute) {
         return '/admin';
-      }
-      if (user.role == UserRole.kitchen && !isKitchenRoute && !isSharedCustomerRoute) {
-        return '/kitchen';
       }
       if (user.role == UserRole.driver && !isDriverRoute && !isSharedCustomerRoute) {
         return '/driver';
@@ -204,16 +206,6 @@ final _routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
 
-      // Kitchen
-      GoRoute(
-        path: '/kitchen',
-        builder: (_, __) => const KitchenScreen(),
-      ),
-      GoRoute(
-        path: '/kitchen/availability',
-        builder: (_, __) => const KitchenAvailabilityScreen(),
-      ),
-
       // Driver
       GoRoute(
         path: '/driver',
@@ -242,6 +234,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
 
 String _getInitialRoute(UserModel? user) {
   if (user == null) return '/home';
+  if (user.role == UserRole.kitchen) {
+    redirectToKitchenLite();
+    return '/home'; // لن يُعرَض فعلياً — المتصفح يغادر الصفحة فوراً أعلاه
+  }
   return _getHomeRoute(user.role);
 }
 
@@ -250,7 +246,7 @@ String _getHomeRoute(UserRole role) {
     case UserRole.admin:
       return '/admin';
     case UserRole.kitchen:
-      return '/kitchen';
+      return '/home'; // يُعاد توجيهه فعلياً عبر redirectToKitchenLite أعلاه
     case UserRole.driver:
       return '/driver';
     case UserRole.customer:

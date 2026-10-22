@@ -72,51 +72,6 @@ class OrderService {
     });
   }
 
-  // Stream kitchen orders — active + delivered in last 4 hours
-  static Stream<List<OrderModel>> streamKitchenOrders() {
-    final cutoff = DateTime.now().subtract(const Duration(hours: 4));
-    return _db
-        .collection(_colOrders)
-        .where('status', whereIn: [
-          OrderStatus.pending.name,
-          OrderStatus.confirmed.name,
-          OrderStatus.preparing.name,
-          OrderStatus.ready.name,
-          OrderStatus.outForDelivery.name,
-          OrderStatus.delivered.name,
-        ])
-        .snapshots()
-        .map((snap) {
-          final orders = snap.docs
-              .map((d) => OrderModel.fromMap(d.data(), d.id))
-              .toList();
-          // Keep delivered only from last 4 hours
-          final filtered = orders.where((o) =>
-              o.status != OrderStatus.delivered ||
-              o.updatedAt.isAfter(cutoff)).toList();
-          filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-          return filtered;
-        });
-  }
-
-  // بث حالة الاتصال بالخادم لنفس استعلام طلبات المطبخ — true يعني أن البيانات
-  // المعروضة حالياً من الكاش المحلي فقط (لا اتصال فعلي)، لتنبيه المطبخ بدل
-  // استمرار الشاشة بالعمل بصمت وكأن كل شيء محدَّث فعلياً
-  static Stream<bool> streamKitchenConnectivity() {
-    return _db
-        .collection(_colOrders)
-        .where('status', whereIn: [
-          OrderStatus.pending.name,
-          OrderStatus.confirmed.name,
-          OrderStatus.preparing.name,
-          OrderStatus.ready.name,
-          OrderStatus.outForDelivery.name,
-          OrderStatus.delivered.name,
-        ])
-        .snapshots(includeMetadataChanges: true)
-        .map((snap) => snap.metadata.isFromCache);
-  }
-
   // دعوات تعيين لم يردّ عليها المندوب بعد — تُعرض له كـ"قبول/رفض" بغض النظر عن
   // مرحلة تجهيز الطلب (قد يُسنَد المندوب من لحظة وصول الطلب للمطبخ)
   // فلترة واحدة فقط في Firestore (driverId) والباقي في Dart لتجنب Composite Index

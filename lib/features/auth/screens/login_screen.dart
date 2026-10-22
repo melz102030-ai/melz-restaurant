@@ -8,6 +8,7 @@ import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../shared/utils/kitchen_redirect.dart';
 import '../../../shared/widgets/animated_photo_collage.dart';
 import '../widgets/phone_password_form.dart';
 
@@ -26,7 +27,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context.go('/admin');
         break;
       case UserRole.kitchen:
-        context.go('/kitchen');
+        redirectToKitchenLite();
         break;
       case UserRole.driver:
         context.go('/driver');
@@ -260,7 +261,7 @@ class _DevLoginButtonsState extends ConsumerState<_DevLoginButtons> {
           context.go('/admin');
           break;
         case UserRole.kitchen:
-          context.go('/kitchen');
+          redirectToKitchenLite();
           break;
         case UserRole.driver:
           context.go('/driver');
