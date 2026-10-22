@@ -5,19 +5,34 @@ class OrderService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _colOrders = 'orders';
 
-  // عدّاد ذري لتوليد رقم طلب تسلسلي رقمي بحت (بدل معرّف Firestore العشوائي)
-  // — معاملة Firestore تضمن عدم تكرار الرقم حتى مع طلبات متزامنة من عملاء
-  // مختلفين في نفس اللحظة
+  // رقم طلب عشوائي من 4 خانات (1000-9999) لكن بلا أي تكرار إطلاقاً — بدل
+  // عدّاد تسلسلي بسيط، نولّد مرة واحدة مجموعة كل الأرقام الممكنة (9000 رقماً)
+  // مخلوطة عشوائياً (Fisher-Yates عبر shuffle) ونسحب منها رقماً واحداً فقط
+  // في كل طلب جديد (ثم نتقدّم بمؤشر القراءة)؛ معاملة Firestore ذرية تمنع
+  // سحب نفس الرقم مرتين حتى مع طلبات متزامنة. عند استنفاد المجموعة كاملة
+  // (بعد 9000 طلب) تُخلط مجموعة جديدة تلقائياً ويُعاد الدوران من جديد.
   static Future<int> _nextOrderNumber() {
-    final counterRef = _db.collection('counters').doc('orders');
+    final poolRef = _db.collection('counters').doc('orderNumberPool');
     return _db.runTransaction<int>((tx) async {
-      final snap = await tx.get(counterRef);
-      // يبدأ من 1000 (لا من 1) حتى تكون كل أرقام الطلبات الحقيقية 4 خانات
-      // دائماً، وتبقى مميَّزة بوضوح عن 0000 (قيمة الطلبات القديمة قبل هذا
-      // الحقل، التي لا تملك رقماً فعلياً)
-      final next = ((snap.data()?['value'] as num?)?.toInt() ?? 999) + 1;
-      tx.set(counterRef, {'value': next}, SetOptions(merge: true));
-      return next;
+      final snap = await tx.get(poolRef);
+      List<int> sequence;
+      int index;
+      if (snap.exists) {
+        sequence = (snap.data()!['sequence'] as List)
+            .map((e) => (e as num).toInt())
+            .toList();
+        index = (snap.data()!['index'] as num).toInt();
+      } else {
+        sequence = [];
+        index = 0;
+      }
+      if (index >= sequence.length) {
+        sequence = List<int>.generate(9000, (i) => 1000 + i)..shuffle();
+        index = 0;
+      }
+      final number = sequence[index];
+      tx.set(poolRef, {'sequence': sequence, 'index': index + 1});
+      return number;
     });
   }
 
