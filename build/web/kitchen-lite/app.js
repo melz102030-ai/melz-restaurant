@@ -49,6 +49,7 @@ function el(tag, attrs, children) {
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+function pad4(n) { return String(n).padStart(4, '0'); }
 // أيقونة خطّية أحادية اللون (currentColor) بدل الإيموجي الملوّن — الإيموجي
 // يحمل ألوانه الثابتة الخاصة (مثلاً 📞 وردي/أخضر) فيكسر أي نظام ألوان مهما
 // كانت الخلفية، وهذا كان سبب رئيسي في مظهر "العفاشة" اللي اشتكى منه المستخدم
@@ -382,7 +383,7 @@ function buildOrderCard(order, index) {
   }
 
   var head = el('div', { class: 'order-head' }, [
-    el('div', { class: 'order-id' }, ['#' + order.orderNumber]),
+    el('div', { class: 'order-id' }, ['#' + pad4(order.orderNumber)]),
     el('div', { class: 'order-info' }, [
       el('div', { class: 'order-name' }, [order.customerName]),
       el('div', { class: 'order-phone' }, [order.customerPhone]),
@@ -690,7 +691,7 @@ function printOrder(order) {
     var html = '' +
       '<div class="slip">' +
       '<h1>' + esc(state.settings.restaurantName) + '</h1>' +
-      '<div class="center hint">طلب رقم ' + order.orderNumber + '</div>' +
+      '<div class="center hint">طلب رقم ' + pad4(order.orderNumber) + '</div>' +
       '<div class="center hint">' + df.format(order.createdAt) + '</div>' +
       '<div class="line"></div>' +
       '<div>العميل: ' + esc(order.customerName) + '</div>' +
