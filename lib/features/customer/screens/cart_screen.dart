@@ -23,9 +23,11 @@ import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/order_service.dart';
 import '../../../core/services/delivery_zone_service.dart';
 import '../../../core/services/lean_payment_service.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../../auth/widgets/guest_checkout_sheet.dart';
 import '../../auth/widgets/login_bottom_sheet.dart';
 import 'delivery_location_picker_screen.dart';
 
@@ -301,8 +303,16 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
       var user = ref.read(authProvider);
       if (user == null) {
-        final loggedIn = await showLoginBottomSheet(context);
-        if (!loggedIn || !mounted) return;
+        if (settings.isGuestCheckoutMode) {
+          final guestInfo = await showGuestCheckoutSheet(context);
+          if (guestInfo == null || !mounted) return;
+          final guestUser =
+              await AuthService.guestLogin(name: guestInfo.name, phone: guestInfo.phone);
+          await ref.read(authProvider.notifier).login(guestUser);
+        } else {
+          final loggedIn = await showLoginBottomSheet(context);
+          if (!loggedIn || !mounted) return;
+        }
         user = ref.read(authProvider);
         if (user == null) return;
       }

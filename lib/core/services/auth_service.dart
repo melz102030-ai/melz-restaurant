@@ -233,6 +233,30 @@ class AuthService {
     return user;
   }
 
+  // ─── طلب بلا تسجيل دخول (وضع "ضيف") ────────────────────────────────────────
+  // حساب مجهول من فايربيس (نفس آلية "الدخول السريع للمعاينة") بالاسم ورقم
+  // الجوال الحقيقيين اللذين أدخلهما العميل بنفسه لحظة الطلب، بدل حساب دائم
+  // برقم جوال+كلمة مرور. يبقى بإمكان العميل متابعة طلباته لاحقاً من نفس
+  // الجهاز/المتصفح طالما لم يُسجِّل خروجه (نفس الجلسة المجهولة محفوظة محلياً)
+  static Future<UserModel> guestLogin({
+    required String name,
+    required String phone,
+  }) async {
+    final cred = await _auth.signInAnonymously();
+    final uid = cred.user!.uid;
+
+    final user = UserModel(
+      id: uid,
+      phone: phone,
+      name: name,
+      role: UserRole.customer,
+      createdAt: DateTime.now(),
+    );
+
+    await _db.collection(_colUsers).doc(uid).set(user.toMap(), SetOptions(merge: true));
+    return user;
+  }
+
   // إنشاء موظف مباشرة من الأدمن — يُنشئ حساب Firebase Auth حقيقياً (بنفس نمط
   // البريد الوهمي المستخدم لعملاء الجوال/كلمة المرور) عبر تطبيق Firebase مؤقت
   // منفصل، حتى لا تُستبدل جلسة الأدمن الحالي بجلسة الموظف الجديد فور إنشائه.

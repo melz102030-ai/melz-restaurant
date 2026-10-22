@@ -68,6 +68,11 @@ class RestaurantSettings {
   // الأدمن (supportWhatsappNumber)، بدل whatsappNumber العام للتواصل
   final String supportMode;
   final String? supportWhatsappNumber;
+  // تسجيل دخول العميل: 'required' = النظام الحالي (حساب برقم جوال+كلمة
+  // مرور قبل الطلب)، 'guest' = بلا أي تسجيل دخول إطلاقاً — يكتفي العميل
+  // باسمه ورقم جواله فقط لحظة إتمام الطلب (حساب مجهول من جهة فايربيس
+  // يُنشأ تلقائياً خلف الكواليس، نفس آلية "الدخول السريع للمعاينة" الحالية)
+  final String customerLoginMode;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -99,10 +104,12 @@ class RestaurantSettings {
     this.driverSystemMode = 'full',
     this.supportMode = 'app',
     this.supportWhatsappNumber,
+    this.customerLoginMode = 'required',
   });
 
   bool get isWhatsappDriverMode => driverSystemMode == 'whatsapp';
   bool get isWhatsappSupportMode => supportMode == 'whatsapp';
+  bool get isGuestCheckoutMode => customerLoginMode == 'guest';
   // الرقم الفعلي لواتساب الدعم — يسقط على رقم التواصل العام إن لم يُحدَّد
   // رقم مخصَّص للدعم تحديداً
   String get effectiveSupportWhatsapp =>
@@ -238,6 +245,7 @@ class RestaurantSettings {
       driverSystemMode: map['driverSystemMode'] ?? 'full',
       supportMode: map['supportMode'] ?? 'app',
       supportWhatsappNumber: map['supportWhatsappNumber'],
+      customerLoginMode: map['customerLoginMode'] ?? 'required',
     );
   }
 
@@ -272,6 +280,7 @@ class RestaurantSettings {
       'driverSystemMode': driverSystemMode,
       'supportMode': supportMode,
       'supportWhatsappNumber': supportWhatsappNumber,
+      'customerLoginMode': customerLoginMode,
     };
   }
 
@@ -305,6 +314,7 @@ class RestaurantSettings {
     String? driverSystemMode,
     String? supportMode,
     String? supportWhatsappNumber,
+    String? customerLoginMode,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -336,6 +346,7 @@ class RestaurantSettings {
       driverSystemMode: driverSystemMode ?? this.driverSystemMode,
       supportMode: supportMode ?? this.supportMode,
       supportWhatsappNumber: supportWhatsappNumber ?? this.supportWhatsappNumber,
+      customerLoginMode: customerLoginMode ?? this.customerLoginMode,
     );
   }
 }

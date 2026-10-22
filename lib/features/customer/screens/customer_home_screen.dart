@@ -207,6 +207,12 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       setState(() => _loginPromptResolved = true);
       return;
     }
+    // وضع "ضيف": لا داعي لأي دعوة تسجيل دخول مبكرة — يكتفي العميل باسمه
+    // ورقم جواله لحظة الطلب فقط، لا قبلها بأي خطوة
+    if (ref.read(settingsProvider).isGuestCheckoutMode) {
+      setState(() => _loginPromptResolved = true);
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_guestLoginPromptDismissedKey) == true) {
       if (mounted) setState(() => _loginPromptResolved = true);
