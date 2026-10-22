@@ -191,6 +191,7 @@ function orderFromDoc(doc) {
     estimatedSetAt: m.estimatedSetAt ? tsToDate(m.estimatedSetAt) : null,
     kitchenNotes: m.kitchenNotes || null,
     orderType: m.orderType || 'delivery',
+    paymentMethod: m.paymentMethod || 'cash',
     deliveryAddress: m.deliveryAddress || null,
     driverId: m.driverId || null,
     driverName: m.driverName || null,
@@ -260,6 +261,10 @@ document.addEventListener('pointerdown', primeAudio);
 var STATUS_LABEL = {
   pending: 'قيد الانتظار', confirmed: 'تم التأكيد', preparing: 'قيد التحضير',
   ready: 'جاهز', outForDelivery: 'في الطريق إليك', delivered: 'تم التسليم', cancelled: 'ملغى',
+};
+var PAYMENT_LABEL = {
+  cash: 'نقداً عند الاستلام', card: 'بطاقة بنكية', applePay: 'Apple Pay', mada: 'مدى',
+  leanBankTransfer: 'دفع مباشر من حسابك البنكي', manualBankTransfer: 'تحويل بنكي',
 };
 var STATUS_COLOR = {
   pending: 'var(--st-pending)', confirmed: 'var(--st-confirmed)', preparing: 'var(--st-preparing)',
@@ -488,8 +493,60 @@ function countdownPill(order) {
   }, [(isLate ? '⚠ ' : '⏳ ') + txt]);
 }
 
+// نظام مناديب واتساب: لا تعيين/تتبع داخل الصفحة إطلاقاً — زر نسخ بيانات
+// الطلب فقط ليُرسله الموظف يدوياً لمندوب خارج التطبيق
+function buildDriverCopyText(order) {
+  var lines = ['طلب توصيل جديد'];
+  lines.push('العميل: ' + order.customerName);
+  lines.push('الجوال: ' + order.customerPhone);
+  if (order.deliveryAddress) lines.push('العنوان: ' + order.deliveryAddress);
+  lines.push('طريقة الدفع: ' + (PAYMENT_LABEL[order.paymentMethod] || order.paymentMethod));
+  lines.push('---');
+  order.items.forEach(function (item) {
+    lines.push('×' + item.quantity + ' ' + item.name);
+    var opts = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
+      .map(function (o) {
+        var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
+        return o.groupName + ': ' + o.selectedNames.join('، ') + extra;
+      }).join(' | ');
+    if (opts) lines.push('   ' + opts);
+  });
+  lines.push('---');
+  lines.push('الإجمالي: ' + order.total.toFixed(2) + ' ر.س');
+  if (order.notes) lines.push('ملاحظات: ' + order.notes);
+  return lines.join('\n');
+}
+
+function copyToClipboard(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text);
+  }
+  // دعم المتصفحات القديمة (مثل WebView أندرويد 7 القديم) بلا Clipboard API
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+  return Promise.resolve();
+}
+
 function buildDriverPanel(order) {
   var wrap = el('div', { class: 'driver-panel' });
+  if (state.settings.driverSystemMode === 'whatsapp') {
+    var copyBtn = el('button', { class: 'driver-assign-btn', style: 'border-color:rgba(76,175,80,.4);color:var(--success)' }, ['📋 نسخ بيانات الطلب']);
+    copyBtn.addEventListener('click', function () {
+      copyToClipboard(buildDriverCopyText(order)).then(function () {
+        toast('تم نسخ بيانات الطلب — الصقها لمندوب واتساب');
+      });
+    });
+    wrap.appendChild(copyBtn);
+    wrap.appendChild(el('div', { style: 'clear:both' }));
+    return wrap;
+  }
   if (!order.driverId) {
     var btn = el('button', { class: 'driver-assign-btn' }, ['🛵 تعيين مندوب']);
     btn.addEventListener('click', function () { openAssignDriverModal(order); });
