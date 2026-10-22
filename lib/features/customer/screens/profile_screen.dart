@@ -295,7 +295,7 @@ class _OrderHistoryTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '#${order.orderNumber}',
+                    '#${order.orderNumberLabel}',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,

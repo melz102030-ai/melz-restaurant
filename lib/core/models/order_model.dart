@@ -286,6 +286,10 @@ class OrderModel {
 
   bool get hasDeliveryLocation => deliveryLat != null && deliveryLng != null;
 
+  // تنسيق 4 خانات على الأقل (0001، 0042، 1234...) — أوضح بصرياً من رقم
+  // مفرد صغير، ويكبر تلقائياً بلا مشاكل إن تجاوز 9999
+  String get orderNumberLabel => orderNumber.toString().padLeft(4, '0');
+
   // هل المندوب مُسنَد لكن لم يوافق بعد على استلام الطلب؟
   bool get isAwaitingDriverAcceptance => driverId != null && driverAcceptedAt == null;
 

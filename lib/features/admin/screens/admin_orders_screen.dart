@@ -145,7 +145,7 @@ class _AdminOrderCardState extends State<_AdminOrderCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${order.customerName} · #${order.orderNumber}',
+                          '${order.customerName} · #${order.orderNumberLabel}',
                           style: TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.bold,

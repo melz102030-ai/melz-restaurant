@@ -111,7 +111,7 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
     try {
       js.context.callMethod('showOrderReadyNotification', [
         'طلبك جاهز!',
-        'يمكنك الآن استلام طلبك #${widget.order.orderNumber}',
+        'يمكنك الآن استلام طلبك #${widget.order.orderNumberLabel}',
       ]);
     } catch (_) {}
   }
@@ -286,7 +286,7 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
                 ],
                 const SizedBox(height: 8),
                 Text(
-                  'رقم الطلب: #${order.orderNumber}',
+                  'رقم الطلب: #${order.orderNumberLabel}',
                   style: TextStyle(color: AppColors.textHint, fontSize: 12),
                 ),
               ],

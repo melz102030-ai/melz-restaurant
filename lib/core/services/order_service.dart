@@ -12,7 +12,10 @@ class OrderService {
     final counterRef = _db.collection('counters').doc('orders');
     return _db.runTransaction<int>((tx) async {
       final snap = await tx.get(counterRef);
-      final next = ((snap.data()?['value'] as num?)?.toInt() ?? 0) + 1;
+      // يبدأ من 1000 (لا من 1) حتى تكون كل أرقام الطلبات الحقيقية 4 خانات
+      // دائماً، وتبقى مميَّزة بوضوح عن 0000 (قيمة الطلبات القديمة قبل هذا
+      // الحقل، التي لا تملك رقماً فعلياً)
+      final next = ((snap.data()?['value'] as num?)?.toInt() ?? 999) + 1;
       tx.set(counterRef, {'value': next}, SetOptions(merge: true));
       return next;
     });

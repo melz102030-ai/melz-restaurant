@@ -30,7 +30,7 @@ class ReceiptPrintService {
     const sep = '--------------------------------';
     final b = StringBuffer();
     b.writeln(settings.restaurantName);
-    b.writeln('طلب رقم ${order.orderNumber}');
+    b.writeln('طلب رقم ${order.orderNumberLabel}');
     b.writeln(df.format(order.createdAt));
     b.writeln(sep);
     b.writeln('العميل: ${order.customerName}');
@@ -104,7 +104,7 @@ class ReceiptPrintService {
 </style>
 <div class="slip">
   <h1>${_esc(settings.restaurantName)}</h1>
-  <div class="center hint">طلب رقم ${order.orderNumber}</div>
+  <div class="center hint">طلب رقم ${order.orderNumberLabel}</div>
   <div class="center hint">${df.format(order.createdAt)}</div>
   <div class="line"></div>
   <div>العميل: ${_esc(order.customerName)}</div>

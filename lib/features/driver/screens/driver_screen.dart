@@ -455,7 +455,7 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
               ),
               const Spacer(),
               Text(
-                '#${order.orderNumber}',
+                '#${order.orderNumberLabel}',
                 style: TextStyle(color: AppColors.textHint, fontSize: 12),
               ),
             ],
