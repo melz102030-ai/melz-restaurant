@@ -201,6 +201,10 @@ class OrderItem {
 
 class OrderModel {
   final String id;
+  // رقم تسلسلي رقمي بحت يُعرض للعميل/المطبخ/المندوب بدل معرّف Firestore
+  // العشوائي (حروف+أرقام) — يُخصَّص مرة واحدة عند الإنشاء عبر عدّاد ذري
+  // (راجع OrderService.placeOrder). الطلبات القديمة قبل هذا التعديل تحمل 0
+  final int orderNumber;
   final String customerId;
   final String customerName;
   final String customerPhone;
@@ -243,6 +247,7 @@ class OrderModel {
 
   const OrderModel({
     required this.id,
+    this.orderNumber = 0,
     required this.customerId,
     required this.customerName,
     required this.customerPhone,
@@ -296,6 +301,7 @@ class OrderModel {
   factory OrderModel.fromMap(Map<String, dynamic> map, String id) {
     return OrderModel(
       id: id,
+      orderNumber: (map['orderNumber'] as num?)?.toInt() ?? 0,
       customerId: map['customerId'] ?? '',
       customerName: map['customerName'] ?? '',
       customerPhone: map['customerPhone'] ?? '',
@@ -363,6 +369,7 @@ class OrderModel {
 
   Map<String, dynamic> toMap() {
     return {
+      'orderNumber': orderNumber,
       'customerId': customerId,
       'customerName': customerName,
       'customerPhone': customerPhone,

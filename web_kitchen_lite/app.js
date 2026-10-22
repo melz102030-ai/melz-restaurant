@@ -201,6 +201,7 @@ function orderFromDoc(doc) {
   var m = doc.data();
   return {
     id: doc.id,
+    orderNumber: m.orderNumber || 0,
     customerName: m.customerName || '',
     customerPhone: m.customerPhone || '',
     items: m.items || [],
@@ -381,7 +382,7 @@ function buildOrderCard(order, index) {
   }
 
   var head = el('div', { class: 'order-head' }, [
-    el('div', { class: 'order-id' }, ['#' + order.id.slice(0, 6).toUpperCase()]),
+    el('div', { class: 'order-id' }, ['#' + order.orderNumber]),
     el('div', { class: 'order-info' }, [
       el('div', { class: 'order-name' }, [order.customerName]),
       el('div', { class: 'order-phone' }, [order.customerPhone]),
@@ -674,7 +675,6 @@ function closeModal() {
 function printOrder(order) {
   try {
     var df = new Intl.DateTimeFormat('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-    var shortId = order.id.slice(0, 6).toUpperCase();
     var itemsRows = order.items.map(function (item) {
       var optsLine = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
         .map(function (o) {
@@ -690,7 +690,7 @@ function printOrder(order) {
     var html = '' +
       '<div class="slip">' +
       '<h1>' + esc(state.settings.restaurantName) + '</h1>' +
-      '<div class="center hint">طلب رقم ' + shortId + '</div>' +
+      '<div class="center hint">طلب رقم ' + order.orderNumber + '</div>' +
       '<div class="center hint">' + df.format(order.createdAt) + '</div>' +
       '<div class="line"></div>' +
       '<div>العميل: ' + esc(order.customerName) + '</div>' +

@@ -5,11 +5,26 @@ class OrderService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _colOrders = 'orders';
 
+  // عدّاد ذري لتوليد رقم طلب تسلسلي رقمي بحت (بدل معرّف Firestore العشوائي)
+  // — معاملة Firestore تضمن عدم تكرار الرقم حتى مع طلبات متزامنة من عملاء
+  // مختلفين في نفس اللحظة
+  static Future<int> _nextOrderNumber() {
+    final counterRef = _db.collection('counters').doc('orders');
+    return _db.runTransaction<int>((tx) async {
+      final snap = await tx.get(counterRef);
+      final next = ((snap.data()?['value'] as num?)?.toInt() ?? 0) + 1;
+      tx.set(counterRef, {'value': next}, SetOptions(merge: true));
+      return next;
+    });
+  }
+
   // Place new order
   static Future<String> placeOrder(OrderModel order) async {
     final ref = _db.collection(_colOrders).doc();
+    final orderNumber = await _nextOrderNumber();
     final newOrder = OrderModel(
       id: ref.id,
+      orderNumber: orderNumber,
       customerId: order.customerId,
       customerName: order.customerName,
       customerPhone: order.customerPhone,

@@ -455,7 +455,7 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
               ),
               const Spacer(),
               Text(
-                '#${order.id.substring(0, 6).toUpperCase()}',
+                '#${order.orderNumber}',
                 style: TextStyle(color: AppColors.textHint, fontSize: 12),
               ),
             ],

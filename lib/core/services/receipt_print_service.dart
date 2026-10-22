@@ -27,11 +27,10 @@ class ReceiptPrintService {
   /// حرارية صغيرة (48 ملم) تُطبع عبر SDK مباشر بدل محرك عرض متصفح
   static String _buildReceiptPlainText(OrderModel order, RestaurantSettings settings) {
     final df = DateFormat('dd/MM/yyyy - hh:mm a');
-    final shortId = order.id.length > 6 ? order.id.substring(0, 6).toUpperCase() : order.id;
     const sep = '--------------------------------';
     final b = StringBuffer();
     b.writeln(settings.restaurantName);
-    b.writeln('طلب رقم $shortId');
+    b.writeln('طلب رقم ${order.orderNumber}');
     b.writeln(df.format(order.createdAt));
     b.writeln(sep);
     b.writeln('العميل: ${order.customerName}');
@@ -65,7 +64,6 @@ class ReceiptPrintService {
 
   static String _buildReceiptHtml(OrderModel order, RestaurantSettings settings) {
     final df = DateFormat('dd/MM/yyyy - hh:mm a');
-    final shortId = order.id.length > 6 ? order.id.substring(0, 6).toUpperCase() : order.id;
 
     final itemsRows = order.items.map((item) {
       final optsLine = _optionsReceiptLine(item);
@@ -106,7 +104,7 @@ class ReceiptPrintService {
 </style>
 <div class="slip">
   <h1>${_esc(settings.restaurantName)}</h1>
-  <div class="center hint">طلب رقم $shortId</div>
+  <div class="center hint">طلب رقم ${order.orderNumber}</div>
   <div class="center hint">${df.format(order.createdAt)}</div>
   <div class="line"></div>
   <div>العميل: ${_esc(order.customerName)}</div>

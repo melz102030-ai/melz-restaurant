@@ -295,7 +295,7 @@ class _OrderHistoryTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '#${order.id.substring(0, 8).toUpperCase()}',
+                    '#${order.orderNumber}',
                     style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.bold,
