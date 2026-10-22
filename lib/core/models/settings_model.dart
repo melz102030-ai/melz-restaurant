@@ -59,6 +59,10 @@ class RestaurantSettings {
   final String? bankIban;
   final String? bankAccountHolderName;
   final String? bankName;
+  // نظام المناديب: 'full' = النظام الكامل داخل التطبيق (تعيين/قبول/تتبع حي)،
+  // 'whatsapp' = المطعم يرسل بيانات الطلب يدوياً لمندوب عبر واتساب خارج
+  // التطبيق — شاشة المطبخ تستبدل زر "تعيين مندوب" بزر "نسخ بيانات الطلب"
+  final String driverSystemMode;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -87,7 +91,10 @@ class RestaurantSettings {
     this.bankIban,
     this.bankAccountHolderName,
     this.bankName,
+    this.driverSystemMode = 'full',
   });
+
+  bool get isWhatsappDriverMode => driverSystemMode == 'whatsapp';
 
   // هل الدفع نقداً مسموح لنوع استلام معيّن (توصيل/استلام من المطعم)؟
   bool cashAllowedFor({required bool isDelivery}) {
@@ -214,6 +221,7 @@ class RestaurantSettings {
       bankIban: map['bankIban'],
       bankAccountHolderName: map['bankAccountHolderName'],
       bankName: map['bankName'],
+      driverSystemMode: map['driverSystemMode'] ?? 'full',
     );
   }
 
@@ -245,6 +253,7 @@ class RestaurantSettings {
       'bankIban': bankIban,
       'bankAccountHolderName': bankAccountHolderName,
       'bankName': bankName,
+      'driverSystemMode': driverSystemMode,
     };
   }
 
@@ -275,6 +284,7 @@ class RestaurantSettings {
     String? bankIban,
     String? bankAccountHolderName,
     String? bankName,
+    String? driverSystemMode,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -303,6 +313,7 @@ class RestaurantSettings {
       bankIban: bankIban ?? this.bankIban,
       bankAccountHolderName: bankAccountHolderName ?? this.bankAccountHolderName,
       bankName: bankName ?? this.bankName,
+      driverSystemMode: driverSystemMode ?? this.driverSystemMode,
     );
   }
 }

@@ -31,6 +31,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _bankHolderCtrl = TextEditingController();
   final _bankNameCtrl = TextEditingController();
   CashPaymentPolicy _cashPolicy = CashPaymentPolicy.both;
+  String _driverSystemMode = 'full';
   bool _isSaving = false;
   bool _isLoaded = false;
 
@@ -56,6 +57,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _bankHolderCtrl.text = settings.bankAccountHolderName ?? '';
         _bankNameCtrl.text = settings.bankName ?? '';
         _cashPolicy = settings.cashPaymentPolicy;
+        _driverSystemMode = settings.driverSystemMode;
         _isLoaded = true;
       });
     }
@@ -119,6 +121,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             _bankHolderCtrl.text.trim().isEmpty ? null : _bankHolderCtrl.text.trim(),
         bankName: _bankNameCtrl.text.trim().isEmpty ? null : _bankNameCtrl.text.trim(),
         cashPaymentPolicy: _cashPolicy,
+        driverSystemMode: _driverSystemMode,
       );
 
       await SettingsService.updateSettings(settings);
@@ -303,6 +306,35 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
               label: 'اسم البنك (اختياري)',
               icon: Icons.business_outlined,
               hint: 'مصرف الراجحي',
+            ),
+
+            const SizedBox(height: 24),
+
+            _SectionTitle(title: 'نظام المناديب', icon: Icons.delivery_dining_outlined),
+            Text(
+              'النظام الكامل: تعيين/قبول/تتبع المندوب من داخل التطبيق كما هو الآن.'
+              ' نظام واتساب: شاشة المطبخ تستبدل تعيين المندوب بزر "نسخ بيانات'
+              ' الطلب" ليُرسله الموظف يدوياً عبر واتساب لمندوب خارج التطبيق.',
+              style: TextStyle(color: AppColors.textHint, fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TypeChip(
+                  label: 'النظام الكامل',
+                  icon: Icons.phonelink_setup_outlined,
+                  selected: _driverSystemMode == 'full',
+                  onTap: () => setState(() => _driverSystemMode = 'full'),
+                ),
+                TypeChip(
+                  label: 'مناديب عبر واتساب',
+                  icon: Icons.chat_outlined,
+                  selected: _driverSystemMode == 'whatsapp',
+                  onTap: () => setState(() => _driverSystemMode = 'whatsapp'),
+                ),
+              ],
             ),
 
             const SizedBox(height: 32),

@@ -21,6 +21,34 @@ import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/kitchen_provider.dart';
 
+// نص جاهز للصق في واتساب لمندوب خارج التطبيق — يشمل كل ما يحتاجه لتنفيذ
+// التوصيل (عميل/موقع/دفع/أصناف) دون أي رجوع لتطبيق Meals. مستخدَم من نظام
+// مناديب واتساب هنا ومن نسخة kitchen-lite الخفيفة (راجع web_kitchen_lite/app.js)
+String buildDriverCopyText(OrderModel order) {
+  final b = StringBuffer();
+  b.writeln('طلب توصيل جديد');
+  b.writeln('العميل: ${order.customerName}');
+  b.writeln('الجوال: ${order.customerPhone}');
+  if (order.deliveryAddress != null && order.deliveryAddress!.isNotEmpty) {
+    b.writeln('العنوان: ${order.deliveryAddress}');
+  }
+  if (order.hasDeliveryLocation) {
+    b.writeln('الموقع: https://maps.google.com/?q=${order.deliveryLat},${order.deliveryLng}');
+  }
+  b.writeln('طريقة الدفع: ${order.paymentMethod.label}');
+  b.writeln('---');
+  for (final item in order.items) {
+    b.writeln('×${item.quantity} ${item.name}');
+    if (item.optionsSummary.isNotEmpty) b.writeln('   ${item.optionsSummary}');
+  }
+  b.writeln('---');
+  b.writeln('الإجمالي: ${order.total.toStringAsFixed(2)} ر.س');
+  if (order.notes != null && order.notes!.isNotEmpty) {
+    b.writeln('ملاحظات: ${order.notes}');
+  }
+  return b.toString();
+}
+
 class KitchenScreen extends ConsumerStatefulWidget {
   const KitchenScreen({super.key});
 
@@ -996,7 +1024,7 @@ class _ActionBtn extends StatelessWidget {
 
 // لوحة إسناد المندوب — تظهر منذ لحظة وصول الطلب (لا تنتظر الجاهزية)، وتوضح
 // هل المندوب وافق على الاستلام بعد أم لا زال بانتظار ردّه
-class _DriverPanel extends StatelessWidget {
+class _DriverPanel extends ConsumerWidget {
   final OrderModel order;
   final bool isUpdating;
   final VoidCallback onAssign;
@@ -1010,7 +1038,33 @@ class _DriverPanel extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // نظام مناديب واتساب: لا تعيين/تتبع داخل التطبيق إطلاقاً — زر نسخ
+    // بيانات الطلب فقط ليُرسله الموظف يدوياً لمندوب خارج التطبيق
+    if (ref.watch(settingsProvider).isWhatsappDriverMode) {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: OutlinedButton.icon(
+          onPressed: () {
+            Clipboard.setData(ClipboardData(text: buildDriverCopyText(order)));
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: const Text('تم نسخ بيانات الطلب — الصقها لمندوب واتساب'),
+              backgroundColor: AppColors.success,
+            ));
+          },
+          icon: Icon(Icons.copy_all, size: 16),
+          label: const Text('نسخ بيانات الطلب', style: TextStyle(fontSize: 12)),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.success,
+            side: BorderSide(color: AppColors.success.withValues(alpha: 0.4)),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+      );
+    }
+
     if (order.driverId == null) {
       return Align(
         alignment: Alignment.centerRight,
