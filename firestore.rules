@@ -145,5 +145,22 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSignedIn();
     }
+
+    // ───────────────────────── تذاكر الدعم الفني ────────────────────────────
+    match /support_tickets/{id} {
+      allow read: if isSignedIn() &&
+        (isAdmin() || resource.data.customerId == request.auth.uid);
+
+      // الإنشاء: العميل فقط، لنفسه، تذكرة مفتوحة برسالة واحدة أولية
+      allow create: if isSignedIn() &&
+        request.resource.data.customerId == request.auth.uid &&
+        request.resource.data.status == 'open';
+
+      // الردّ/تغيير الحالة: الأدمن على أي تذكرة، أو العميل على تذكرته هو
+      // فقط — في الحالتين لا يجوز تغيير صاحب التذكرة نفسه
+      allow update: if isSignedIn() &&
+        request.resource.data.customerId == resource.data.customerId &&
+        (isAdmin() || resource.data.customerId == request.auth.uid);
+    }
   }
 }

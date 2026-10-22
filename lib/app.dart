@@ -15,6 +15,8 @@ import 'features/customer/screens/item_detail_screen.dart';
 import 'features/customer/screens/order_tracking_screen.dart';
 import 'features/customer/screens/order_history_screen.dart';
 import 'features/customer/screens/profile_screen.dart';
+import 'features/customer/screens/support_screen.dart';
+import 'features/customer/screens/support_ticket_screen.dart';
 import 'features/admin/screens/admin_shell.dart';
 import 'features/admin/screens/admin_dashboard.dart';
 import 'features/admin/screens/menu_management_screen.dart';
@@ -29,6 +31,8 @@ import 'features/admin/screens/admin_appearance_screen.dart';
 import 'features/admin/screens/admin_popup_ads_screen.dart';
 import 'features/admin/screens/admin_banners_screen.dart';
 import 'features/admin/screens/admin_splash_screen.dart';
+import 'features/admin/screens/admin_support_screen.dart';
+import 'features/admin/screens/admin_support_ticket_screen.dart';
 import 'features/driver/screens/driver_screen.dart';
 import 'shared/utils/kitchen_redirect.dart';
 import 'features/game/heart_dodge_game_screen.dart';
@@ -71,6 +75,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
           loc.startsWith('/track') ||
           loc.startsWith('/profile') ||
           loc.startsWith('/orders') ||
+          loc.startsWith('/support') ||
           loc.startsWith('/game');
 
       // زوار بلا تسجيل دخول: يدخلون القائمة والسلة مباشرة للمعاينة والطلب
@@ -141,6 +146,15 @@ final _routerProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const ProfileScreen(),
       ),
       GoRoute(
+        path: '/support',
+        builder: (_, __) => const SupportScreen(),
+      ),
+      GoRoute(
+        path: '/support/:ticketId',
+        builder: (_, state) =>
+            SupportTicketScreen(ticketId: state.pathParameters['ticketId']!),
+      ),
+      GoRoute(
         path: '/game/:orderId',
         builder: (_, state) =>
             HeartDodgeGameScreen(orderId: state.pathParameters['orderId']!),
@@ -202,6 +216,15 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/splash',
             builder: (_, __) => const AdminSplashScreen(),
+          ),
+          GoRoute(
+            path: '/admin/support',
+            builder: (_, __) => const AdminSupportScreen(),
+          ),
+          GoRoute(
+            path: '/admin/support/:ticketId',
+            builder: (_, state) =>
+                AdminSupportTicketScreen(ticketId: state.pathParameters['ticketId']!),
           ),
         ],
       ),

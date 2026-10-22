@@ -63,6 +63,11 @@ class RestaurantSettings {
   // 'whatsapp' = المطعم يرسل بيانات الطلب يدوياً لمندوب عبر واتساب خارج
   // التطبيق — شاشة المطبخ تستبدل زر "تعيين مندوب" بزر "نسخ بيانات الطلب"
   final String driverSystemMode;
+  // الدعم الفني: 'app' = تذاكر دعم داخل التطبيق يراجعها الأدمن من لوحة
+  // التحكم، 'whatsapp' = يفتح العميل محادثة واتساب مباشرة لرقم يحدّده
+  // الأدمن (supportWhatsappNumber)، بدل whatsappNumber العام للتواصل
+  final String supportMode;
+  final String? supportWhatsappNumber;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -92,9 +97,18 @@ class RestaurantSettings {
     this.bankAccountHolderName,
     this.bankName,
     this.driverSystemMode = 'full',
+    this.supportMode = 'app',
+    this.supportWhatsappNumber,
   });
 
   bool get isWhatsappDriverMode => driverSystemMode == 'whatsapp';
+  bool get isWhatsappSupportMode => supportMode == 'whatsapp';
+  // الرقم الفعلي لواتساب الدعم — يسقط على رقم التواصل العام إن لم يُحدَّد
+  // رقم مخصَّص للدعم تحديداً
+  String get effectiveSupportWhatsapp =>
+      (supportWhatsappNumber ?? '').trim().isNotEmpty
+          ? supportWhatsappNumber!.trim()
+          : whatsappNumber;
 
   // هل الدفع نقداً مسموح لنوع استلام معيّن (توصيل/استلام من المطعم)؟
   bool cashAllowedFor({required bool isDelivery}) {
@@ -222,6 +236,8 @@ class RestaurantSettings {
       bankAccountHolderName: map['bankAccountHolderName'],
       bankName: map['bankName'],
       driverSystemMode: map['driverSystemMode'] ?? 'full',
+      supportMode: map['supportMode'] ?? 'app',
+      supportWhatsappNumber: map['supportWhatsappNumber'],
     );
   }
 
@@ -254,6 +270,8 @@ class RestaurantSettings {
       'bankAccountHolderName': bankAccountHolderName,
       'bankName': bankName,
       'driverSystemMode': driverSystemMode,
+      'supportMode': supportMode,
+      'supportWhatsappNumber': supportWhatsappNumber,
     };
   }
 
@@ -285,6 +303,8 @@ class RestaurantSettings {
     String? bankAccountHolderName,
     String? bankName,
     String? driverSystemMode,
+    String? supportMode,
+    String? supportWhatsappNumber,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -314,6 +334,8 @@ class RestaurantSettings {
       bankAccountHolderName: bankAccountHolderName ?? this.bankAccountHolderName,
       bankName: bankName ?? this.bankName,
       driverSystemMode: driverSystemMode ?? this.driverSystemMode,
+      supportMode: supportMode ?? this.supportMode,
+      supportWhatsappNumber: supportWhatsappNumber ?? this.supportWhatsappNumber,
     );
   }
 }

@@ -80,6 +80,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     ]),
     (title: 'عام', items: [
       (icon: Icons.bar_chart_outlined, label: 'التقارير', route: '/admin/reports'),
+      (icon: Icons.support_agent_outlined, label: 'الدعم الفني', route: '/admin/support'),
       (icon: Icons.settings_outlined, label: 'الإعدادات', route: '/admin/settings'),
     ]),
   ];

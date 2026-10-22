@@ -200,6 +200,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             const SizedBox(height: 24),
 
+            // Support
+            AppButton(
+              label: 'الدعم الفني',
+              onPressed: () => context.push('/support'),
+              isOutlined: true,
+              icon: Icons.support_agent_outlined,
+              width: double.infinity,
+            ),
+            const SizedBox(height: 12),
+
             // Logout
             AppButton(
               label: AppStrings.logout,

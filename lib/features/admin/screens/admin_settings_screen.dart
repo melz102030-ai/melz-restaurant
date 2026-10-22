@@ -30,8 +30,10 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _bankIbanCtrl = TextEditingController();
   final _bankHolderCtrl = TextEditingController();
   final _bankNameCtrl = TextEditingController();
+  final _supportWhatsappCtrl = TextEditingController();
   CashPaymentPolicy _cashPolicy = CashPaymentPolicy.both;
   String _driverSystemMode = 'full';
+  String _supportMode = 'app';
   bool _isSaving = false;
   bool _isLoaded = false;
 
@@ -58,6 +60,8 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _bankNameCtrl.text = settings.bankName ?? '';
         _cashPolicy = settings.cashPaymentPolicy;
         _driverSystemMode = settings.driverSystemMode;
+        _supportMode = settings.supportMode;
+        _supportWhatsappCtrl.text = settings.supportWhatsappNumber ?? '';
         _isLoaded = true;
       });
     }
@@ -76,6 +80,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
     _bankIbanCtrl.dispose();
     _bankHolderCtrl.dispose();
     _bankNameCtrl.dispose();
+    _supportWhatsappCtrl.dispose();
     super.dispose();
   }
 
@@ -122,6 +127,9 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         bankName: _bankNameCtrl.text.trim().isEmpty ? null : _bankNameCtrl.text.trim(),
         cashPaymentPolicy: _cashPolicy,
         driverSystemMode: _driverSystemMode,
+        supportMode: _supportMode,
+        supportWhatsappNumber:
+            _supportWhatsappCtrl.text.trim().isEmpty ? null : _supportWhatsappCtrl.text.trim(),
       );
 
       await SettingsService.updateSettings(settings);
@@ -336,6 +344,44 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
                 ),
               ],
             ),
+
+            const SizedBox(height: 24),
+
+            _SectionTitle(title: 'الدعم الفني', icon: Icons.support_agent_outlined),
+            Text(
+              'داخل التطبيق: تذاكر دعم يراجعها الأدمن من لوحة التحكم (الدعم الفني).'
+              ' واتساب: يفتح العميل محادثة واتساب مباشرة لرقم تحدّده أدناه.',
+              style: TextStyle(color: AppColors.textHint, fontSize: 12.5),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                TypeChip(
+                  label: 'داخل التطبيق',
+                  icon: Icons.forum_outlined,
+                  selected: _supportMode == 'app',
+                  onTap: () => setState(() => _supportMode = 'app'),
+                ),
+                TypeChip(
+                  label: 'عبر واتساب',
+                  icon: Icons.chat_outlined,
+                  selected: _supportMode == 'whatsapp',
+                  onTap: () => setState(() => _supportMode = 'whatsapp'),
+                ),
+              ],
+            ),
+            if (_supportMode == 'whatsapp') ...[
+              const SizedBox(height: 12),
+              _Field(
+                controller: _supportWhatsappCtrl,
+                label: 'رقم واتساب الدعم',
+                icon: Icons.phone_outlined,
+                hint: '9665XXXXXXXX (فارغ = يُستخدم رقم واتساب المطعم العام)',
+                keyboardType: TextInputType.phone,
+              ),
+            ],
 
             const SizedBox(height: 32),
 
