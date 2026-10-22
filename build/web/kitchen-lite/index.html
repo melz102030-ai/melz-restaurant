@@ -110,40 +110,62 @@
   .chev { margin-right: auto; color: var(--text-hint); }
 
   /* ── Order card ──────────────────────────────────────────── */
+  /* لوحة ألوان مقيَّدة عمداً: لون الحالة (statusColor) يظهر فقط كخط
+     رفيع على حافة البطاقة + رقم الطلب — كل شيء آخر محايد (رمادي/أبيض)
+     ما عدا إشارات دلالية حقيقية (تأخير أحمر، زر أساسي واحد بنفسجي) */
   .order-card {
-    background: var(--surface); border-radius: 20px; margin: 10px 0; overflow: hidden;
-    border: 1px solid rgba(0,0,0,.06); animation: fadeSlide .35s ease both;
+    background: var(--surface); border-radius: 18px; margin: 10px 0; overflow: hidden;
+    border: 1px solid rgba(0,0,0,.05); border-inline-start: 4px solid var(--card-accent, var(--surface-light));
+    box-shadow: 0 1px 4px rgba(0,0,0,.04); animation: fadeSlide .35s ease both;
   }
-  .order-card.urgent { border: 2px solid var(--error); box-shadow: 0 4px 16px rgba(244,67,54,.18); }
+  .order-card.urgent { border-inline-start-color: var(--error); box-shadow: 0 2px 10px rgba(244,67,54,.12); }
   @keyframes fadeSlide { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
   .order-head {
     padding: 14px; display: flex; gap: 10px; align-items: flex-start;
   }
   .order-id {
-    font-weight: bold; font-size: 13px; padding: 5px 9px; border-radius: 9px; white-space: nowrap;
+    font-weight: bold; font-size: 12.5px; padding: 4px 8px; border-radius: 8px; white-space: nowrap;
+    background: var(--surface-light); color: var(--text-secondary);
   }
   .order-info { flex: 1; min-width: 0; }
   .order-name { font-weight: bold; font-size: 14.5px; }
   .order-phone { font-size: 11.5px; color: var(--text-hint); }
   .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
-  .badge { font-size: 9.5px; font-weight: bold; padding: 2px 6px; border-radius: 6px; }
+  .badge {
+    font-size: 9.5px; font-weight: bold; padding: 2px 7px; border-radius: 6px;
+    background: var(--surface-light); color: var(--text-secondary);
+  }
+  .badge.accent { background: var(--card-accent-soft, var(--purple-soft)); color: var(--card-accent, var(--purple)); }
   .order-side { text-align: left; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
-  .call-btn { border: none; background: rgba(76,175,80,.12); color: var(--success); width: 32px; height: 32px; border-radius: 9px; font-size: 14px; cursor: pointer; }
-  .pill { font-size: 11px; font-weight: bold; padding: 4px 8px; border-radius: 8px; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+  .call-btn {
+    border: 1.5px solid var(--surface-light); background: transparent; color: var(--text-secondary);
+    width: 30px; height: 30px; border-radius: 9px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .call-btn svg { width: 15px; height: 15px; }
+  .pill {
+    font-size: 11px; font-weight: bold; padding: 3px 8px; border-radius: 8px;
+    color: var(--text-hint); white-space: nowrap;
+  }
+  .pill.loud { color: var(--error); }
+  .pill.warn { color: var(--warning); }
+  .pill.ok { color: var(--success); }
 
   .order-items { padding: 2px 14px 6px; }
   .order-item-row { display: flex; align-items: center; gap: 9px; padding: 4px 0; font-size: 13.5px; }
-  .qty-box { background: var(--purple-soft); color: var(--purple); font-weight: bold; font-size: 12px; border-radius: 8px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .item-opts { font-size: 10.5px; color: var(--text-secondary); padding-right: 2px; }
+  .qty-box {
+    background: var(--surface-light); color: var(--text-secondary); font-weight: bold; font-size: 12px;
+    border-radius: 8px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .item-opts { font-size: 10.5px; color: var(--text-hint); padding-right: 2px; }
 
   .order-notes {
-    margin: 4px 14px; padding: 9px 10px; background: rgba(255,152,0,.08); border: 1px solid rgba(255,152,0,.2);
-    border-radius: 10px; font-size: 12.5px; color: var(--warning);
+    margin: 4px 14px; padding: 9px 10px; background: var(--bg);
+    border-inline-start: 3px solid var(--warning); border-radius: 8px; font-size: 12.5px; color: var(--text-secondary);
   }
 
   .driver-panel { margin: 4px 14px 0; }
   .driver-assign-btn {
-    border: 1.5px solid rgba(106,13,173,.4); background: transparent; color: var(--purple);
+    border: 1.5px solid var(--surface-light); background: transparent; color: var(--text-secondary);
     font-size: 12px; font-weight: bold; padding: 7px 12px; border-radius: 10px; cursor: pointer; float: left;
   }
   .driver-status { padding: 7px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; display: flex; align-items: center; gap: 7px; }
@@ -155,13 +177,23 @@
     background: var(--bg); color: var(--text-primary); font-size: 13.5px; margin-bottom: 8px; font-family: inherit;
   }
 
-  .order-actions { padding: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .text-btn { border: none; background: transparent; color: var(--text-hint); font-size: 12.5px; font-weight: bold; cursor: pointer; padding: 6px 4px; }
-  .action-btns { display: flex; flex-wrap: wrap; gap: 7px; justify-content: flex-end; flex: 1; }
-  .action-btn {
-    border: none; color: #fff; font-size: 12px; font-weight: bold; padding: 9px 13px; border-radius: 10px;
-    cursor: pointer; display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  .order-actions {
+    padding: 10px 12px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    border-top: 1px solid var(--bg);
   }
+  .text-btn {
+    border: none; background: transparent; color: var(--text-hint); font-size: 12px; font-weight: bold;
+    cursor: pointer; padding: 6px 4px; flex-shrink: 0;
+  }
+  .action-btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; flex: 1; min-width: 0; }
+  .action-btn {
+    border: 1.5px solid transparent; background: transparent; color: var(--text-secondary);
+    font-size: 12px; font-weight: bold; padding: 8px 12px; border-radius: 9px;
+    cursor: pointer; white-space: nowrap;
+  }
+  .action-btn.ghost { border-color: var(--surface-light); color: var(--text-secondary); }
+  .action-btn.danger { color: var(--error); border-color: rgba(244,67,54,.3); }
+  .action-btn.primary { background: var(--purple); color: #fff; border-color: var(--purple); }
   .action-btn.loading { opacity: .6; pointer-events: none; }
 
   /* ── Modal ───────────────────────────────────────────────── */
