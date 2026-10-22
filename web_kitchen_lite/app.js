@@ -49,6 +49,30 @@ function el(tag, attrs, children) {
 function esc(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+// أيقونة خطّية أحادية اللون (currentColor) بدل الإيموجي الملوّن — الإيموجي
+// يحمل ألوانه الثابتة الخاصة (مثلاً 📞 وردي/أخضر) فيكسر أي نظام ألوان مهما
+// كانت الخلفية، وهذا كان سبب رئيسي في مظهر "العفاشة" اللي اشتكى منه المستخدم
+var ICONS = {
+  phone: 'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z',
+  x: 'M18 6 6 18M6 6l12 12',
+  copy: 'M9 9h11v11H9zM5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1',
+};
+function svgIcon(name, size) {
+  size = size || 15;
+  var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('width', size);
+  svg.setAttribute('height', size);
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', ICONS[name] || '');
+  svg.appendChild(path);
+  return svg;
+}
 function toast(msg) {
   var t = el('div', { class: 'toast' }, [msg]);
   $('#toastRoot').appendChild(t);
@@ -331,32 +355,33 @@ function buildOrderCard(order, index) {
 
   var card = el('div', { class: 'order-card' + (isUrgent ? ' urgent' : ''), 'data-id': order.id });
   card.style.animationDelay = (index * 40) + 'ms';
+  card.style.setProperty('--card-accent', color);
+  card.style.setProperty('--card-accent-soft', color + '1f');
 
-  // Header
+  // Header — لون الحالة يظهر فقط على حافة البطاقة + رقم الطلب، الباقي محايد
   var badges = [
-    el('span', { class: 'badge', style: 'background:' + (order.orderType === 'delivery' ? 'rgba(106,13,173,.12);color:var(--purple)' : 'rgba(128,0,64,.12);color:#800040') },
-      [order.orderType === 'delivery' ? 'توصيل' : 'استلام من المطعم']),
+    el('span', { class: 'badge' }, [order.orderType === 'delivery' ? 'توصيل' : 'استلام من المطعم']),
   ];
   if (order.status === 'confirmed' || order.status === 'preparing') {
-    badges.push(el('span', { class: 'badge', style: 'background:' + color + '26;color:' + color }, [STATUS_LABEL[order.status]]));
+    badges.push(el('span', { class: 'badge accent' }, [STATUS_LABEL[order.status]]));
   }
 
+  var callBtn = el('button', { class: 'call-btn', title: 'اتصل بالعميل' });
+  callBtn.appendChild(svgIcon('phone'));
+  callBtn.addEventListener('click', function () { window.location.href = 'tel:' + order.customerPhone; });
+
   var side = el('div', { class: 'order-side' }, [
-    el('button', {
-      class: 'call-btn', title: 'اتصل بالعميل',
-      onclick: function () { window.location.href = 'tel:' + order.customerPhone; },
-    }, ['📞']),
+    callBtn,
     el('div', {
-      class: 'pill elapsed-pill', 'data-created': order.createdAt.getTime(),
-      style: 'background:' + (isUrgent ? 'rgba(244,67,54,.15);color:var(--error)' : 'var(--surface-light);color:var(--text-hint)'),
-    }, ['⏱ ' + elapsedMin + ' د']),
+      class: 'pill elapsed-pill' + (isUrgent ? ' loud' : ''), 'data-created': order.createdAt.getTime(),
+    }, [elapsedMin + ' د']),
   ]);
   if (order.estimatedMinutes != null && order.estimatedSetAt && !isTerminal) {
     side.appendChild(countdownPill(order));
   }
 
   var head = el('div', { class: 'order-head' }, [
-    el('div', { class: 'order-id', style: 'background:' + color + '26;color:' + color }, ['#' + order.id.slice(0, 6).toUpperCase()]),
+    el('div', { class: 'order-id' }, ['#' + order.id.slice(0, 6).toUpperCase()]),
     el('div', { class: 'order-info' }, [
       el('div', { class: 'order-name' }, [order.customerName]),
       el('div', { class: 'order-phone' }, [order.customerPhone]),
@@ -384,7 +409,7 @@ function buildOrderCard(order, index) {
   card.appendChild(itemsWrap);
 
   if (order.notes) {
-    card.appendChild(el('div', { class: 'order-notes' }, ['📝 ' + order.notes]));
+    card.appendChild(el('div', { class: 'order-notes' }, [order.notes]));
   }
 
   // Driver panel (delivery only, not terminal)
@@ -404,9 +429,10 @@ function buildOrderCard(order, index) {
   ]);
   card.appendChild(expandWrap);
 
-  // Actions
+  // Actions — زر أساسي واحد فقط (الخطوة التالية) بلون بنفسجي موحّد؛ الباقي
+  // أزرار محايدة (ghost) ما عدا الإلغاء (نص أحمر بلا تعبئة)
   var actionsRow = el('div', { class: 'action-btns' });
-  actionsRow.appendChild(actionBtn('طباعة', 'var(--purple)', function () { printOrder(order); }));
+  actionsRow.appendChild(actionBtn('طباعة', 'ghost', function () { printOrder(order); }));
 
   function doUpdate(newStatus, btnEl) {
     btnEl.classList.add('loading');
@@ -425,7 +451,7 @@ function buildOrderCard(order, index) {
   }
 
   if (order.status === 'pending') {
-    actionsRow.appendChild(actionBtn('تأكيد', '#2196F3', function (btnEl) {
+    actionsRow.appendChild(actionBtn('تأكيد', 'primary', function (btnEl) {
       if (order.driverId && !order.driverAcceptedAt) {
         openConfirmModal(
           'المندوب لم يوافق بعد',
@@ -438,19 +464,19 @@ function buildOrderCard(order, index) {
     }));
   }
   if (order.status === 'confirmed') {
-    actionsRow.appendChild(actionBtn('بدء التحضير', 'var(--st-preparing)', function (btnEl) { doUpdate('preparing', btnEl); }));
+    actionsRow.appendChild(actionBtn('بدء التحضير', 'primary', function (btnEl) { doUpdate('preparing', btnEl); }));
   }
   if (order.status === 'preparing') {
-    actionsRow.appendChild(actionBtn('جاهز', 'var(--st-ready)', function (btnEl) { doUpdate('ready', btnEl); }));
+    actionsRow.appendChild(actionBtn('جاهز', 'primary', function (btnEl) { doUpdate('ready', btnEl); }));
   }
   if (order.status === 'ready' && order.orderType === 'pickup') {
-    actionsRow.appendChild(actionBtn('تم التسليم', 'var(--st-delivered)', function (btnEl) { doUpdate('delivered', btnEl); }));
+    actionsRow.appendChild(actionBtn('تم التسليم', 'primary', function (btnEl) { doUpdate('delivered', btnEl); }));
   }
   if (order.status === 'outForDelivery') {
-    actionsRow.appendChild(actionBtn('تم التسليم', 'var(--st-delivered)', function (btnEl) { doUpdate('delivered', btnEl); }));
+    actionsRow.appendChild(actionBtn('تم التسليم', 'primary', function (btnEl) { doUpdate('delivered', btnEl); }));
   }
   if (order.status !== 'ready' && order.status !== 'outForDelivery' && !isTerminal) {
-    actionsRow.appendChild(actionBtn('إلغاء', 'var(--error)', function (btnEl) {
+    actionsRow.appendChild(actionBtn('إلغاء', 'danger', function (btnEl) {
       openConfirmModal('إلغاء الطلب', 'هل تريد إلغاء طلب "' + order.customerName + '"؟ لا يمكن التراجع عن هذا.',
         'إلغاء الطلب', function () { doUpdate('cancelled', btnEl); }, true);
     }));
@@ -471,8 +497,8 @@ function buildOrderCard(order, index) {
   return card;
 }
 
-function actionBtn(label, color, onclick) {
-  var btn = el('button', { class: 'action-btn', style: 'background:' + color }, [label]);
+function actionBtn(label, variant, onclick) {
+  var btn = el('button', { class: 'action-btn ' + variant }, [label]);
   btn.addEventListener('click', function () { onclick(btn); });
   return btn;
 }
@@ -486,11 +512,8 @@ function countdownPill(order) {
   var ss = Math.floor((absMs % 60000) / 1000);
   var txt = (isLate ? '-' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
   var isNear = !isLate && mm < 3;
-  var color = isLate ? 'var(--error)' : isNear ? 'var(--warning)' : 'var(--success)';
-  return el('div', {
-    class: 'pill countdown-pill', 'data-end': endTime,
-    style: 'background:' + color + '26;color:' + color + ';border:1px solid ' + color + '66',
-  }, [(isLate ? '⚠ ' : '⏳ ') + txt]);
+  var cls = isLate ? 'loud' : isNear ? 'warn' : 'ok';
+  return el('div', { class: 'pill countdown-pill ' + cls, 'data-end': endTime }, [txt]);
 }
 
 // نظام مناديب واتساب: لا تعيين/تتبع داخل الصفحة إطلاقاً — زر نسخ بيانات
@@ -537,7 +560,7 @@ function copyToClipboard(text) {
 function buildDriverPanel(order) {
   var wrap = el('div', { class: 'driver-panel' });
   if (state.settings.driverSystemMode === 'whatsapp') {
-    var copyBtn = el('button', { class: 'driver-assign-btn', style: 'border-color:rgba(76,175,80,.4);color:var(--success)' }, ['📋 نسخ بيانات الطلب']);
+    var copyBtn = el('button', { class: 'driver-assign-btn' }, ['نسخ بيانات الطلب']);
     copyBtn.addEventListener('click', function () {
       copyToClipboard(buildDriverCopyText(order)).then(function () {
         toast('تم نسخ بيانات الطلب — الصقها لمندوب واتساب');
@@ -548,7 +571,7 @@ function buildDriverPanel(order) {
     return wrap;
   }
   if (!order.driverId) {
-    var btn = el('button', { class: 'driver-assign-btn' }, ['🛵 تعيين مندوب']);
+    var btn = el('button', { class: 'driver-assign-btn' }, ['تعيين مندوب']);
     btn.addEventListener('click', function () { openAssignDriverModal(order); });
     wrap.appendChild(btn);
     wrap.appendChild(el('div', { style: 'clear:both' }));
@@ -789,7 +812,8 @@ setInterval(function () {
   document.querySelectorAll('.elapsed-pill').forEach(function (p) {
     var created = parseInt(p.getAttribute('data-created'), 10);
     var mins = Math.floor((Date.now() - created) / 60000);
-    p.textContent = '⏱ ' + mins + ' د';
+    p.textContent = mins + ' د';
+    p.classList.toggle('loud', mins > 15);
   });
   document.querySelectorAll('.countdown-pill').forEach(function (p) {
     var end = parseInt(p.getAttribute('data-end'), 10);
@@ -798,6 +822,8 @@ setInterval(function () {
     var absMs = Math.abs(remainingMs);
     var mm = Math.floor(absMs / 60000);
     var ss = Math.floor((absMs % 60000) / 1000);
-    p.textContent = (isLate ? '⚠ -' : '⏳ ') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+    p.textContent = (isLate ? '-' : '') + mm + ':' + (ss < 10 ? '0' : '') + ss;
+    p.classList.remove('loud', 'warn', 'ok');
+    p.classList.add(isLate ? 'loud' : (!isLate && mm < 3) ? 'warn' : 'ok');
   });
 }, 1000);
