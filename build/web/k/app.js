@@ -717,10 +717,10 @@ function buildReceiptPlainText(order) {
   if (order.orderType === 'delivery' && order.deliveryAddress) lines.push('العنوان: ' + order.deliveryAddress);
   lines.push(sep);
   order.items.forEach(function (item) {
-    // سطران منفصلان دائماً بدل سطر واحد طويل — يمنع التفاف غير متوقّع
-    // يخلط ترتيب الكمية/الاسم/السعر بصرياً عند الطباعة الفعلية
-    lines.push('×' + item.quantity + ' ' + item.name);
-    lines.push((item.price * item.quantity).toFixed(2) + ' ر.س');
+    // سطر أعمدة واحد: السعر في اليسار والصنف (مع الكمية) في اليمين،
+    // بمحاذاة فعلية عبر printColumnsText في تطبيق الجسر (راجع
+    // MainActivity.kt) بدل سطرين منفصلين
+    lines.push('COL\t×' + item.quantity + ' ' + item.name + '\t' + (item.price * item.quantity).toFixed(2) + ' ر.س');
     var optsLine = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
       .map(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
