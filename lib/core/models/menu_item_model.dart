@@ -46,6 +46,9 @@ class MenuItemModel {
   // حتى يستطيع الأدمن تجهيزها مسبقاً بلا إظهارها قبل اكتمالها/مراجعتها.
   // افتراضياً معطّل فلا يظهر قسم فارغ للأصناف التي لم تُعبَّأ بياناتها بعد.
   final bool showNutritionInfo;
+  // معرّفات القوالب المرتبطة بهذا الصنف — يُستخدَم للاستعلام عنه في Firestore
+  // عند تعديل قالب لتحديث مجموعات خياراته في الصنف تلقائياً
+  final List<String> linkedTemplateIds;
 
   const MenuItemModel({
     required this.id,
@@ -67,6 +70,7 @@ class MenuItemModel {
     this.calories,
     this.allergens = const [],
     this.showNutritionInfo = false,
+    this.linkedTemplateIds = const [],
   });
 
   double get finalPrice {
@@ -109,6 +113,7 @@ class MenuItemModel {
       calories: (map['calories'] as num?)?.toInt(),
       allergens: List<String>.from(map['allergens'] ?? []),
       showNutritionInfo: map['showNutritionInfo'] ?? false,
+      linkedTemplateIds: List<String>.from(map['linkedTemplateIds'] ?? []),
     );
   }
 
@@ -132,6 +137,7 @@ class MenuItemModel {
       'calories': calories,
       'allergens': allergens,
       'showNutritionInfo': showNutritionInfo,
+      'linkedTemplateIds': linkedTemplateIds,
     };
   }
 
@@ -155,6 +161,7 @@ class MenuItemModel {
     int? calories,
     List<String>? allergens,
     bool? showNutritionInfo,
+    List<String>? linkedTemplateIds,
   }) {
     return MenuItemModel(
       id: id ?? this.id,
@@ -176,6 +183,7 @@ class MenuItemModel {
       calories: calories ?? this.calories,
       allergens: allergens ?? this.allergens,
       showNutritionInfo: showNutritionInfo ?? this.showNutritionInfo,
+      linkedTemplateIds: linkedTemplateIds ?? this.linkedTemplateIds,
     );
   }
 }

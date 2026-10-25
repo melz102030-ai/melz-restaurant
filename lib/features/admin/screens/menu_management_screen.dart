@@ -691,6 +691,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   List<OptionGroup> _optionGroups = [];
   List<ItemPreset> _presets = [];
   List<String> _suggestedItemIds = [];
+  List<String> _linkedTemplateIds = [];
   String? _saveError;
 
   late TabController _tabCtrl;
@@ -717,6 +718,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       _caloriesCtrl.text = item.calories?.toString() ?? '';
       _allergens = List.from(item.allergens);
       _showNutritionInfo = item.showNutritionInfo;
+      _linkedTemplateIds = List.from(item.linkedTemplateIds);
     }
   }
 
@@ -790,6 +792,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         calories: calories,
         allergens: _allergens,
         showNutritionInfo: _showNutritionInfo,
+        linkedTemplateIds: _linkedTemplateIds,
       );
       if (widget.item != null && !widget.isDuplicate) {
         await MenuService.updateMenuItem(newItem);
@@ -1175,9 +1178,25 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
     if (selected != null) {
       setState(() {
         for (final g in selected.groups) {
-          if (_optionGroups.every((e) => e.id != g.id)) {
-            _optionGroups.add(g);
+          // أضف مجموعات القالب مع تسجيل معرّف القالب فيها (sourceTemplateId)
+          // حتى يمكن تحديثها لاحقاً عند تعديل القالب بدل إعادة التطبيق يدوياً
+          final linked = OptionGroup(
+            id: g.id,
+            name: g.name,
+            type: g.type,
+            required: g.required,
+            options: g.options,
+            sourceTemplateId: selected.id,
+          );
+          final existing = _optionGroups.indexWhere((e) => e.id == g.id);
+          if (existing == -1) {
+            _optionGroups.add(linked);
+          } else {
+            _optionGroups[existing] = linked;
           }
+        }
+        if (!_linkedTemplateIds.contains(selected.id)) {
+          _linkedTemplateIds.add(selected.id);
         }
       });
     }

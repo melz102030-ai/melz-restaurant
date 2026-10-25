@@ -44,6 +44,9 @@ class OptionGroup {
   final OptionGroupType type;
   final bool required;
   final List<ItemOption> options;
+  // معرّف القالب الذي جاءت منه هذه المجموعة — يُستخدَم لتحديث الصنف تلقائياً
+  // عند تعديل القالب بدل الاكتفاء بنسخه مرة واحدة عند التطبيق
+  final String? sourceTemplateId;
 
   const OptionGroup({
     required this.id,
@@ -51,6 +54,7 @@ class OptionGroup {
     required this.type,
     required this.required,
     required this.options,
+    this.sourceTemplateId,
   });
 
   Map<String, dynamic> toMap() => {
@@ -59,6 +63,7 @@ class OptionGroup {
         'type': type.name,
         'required': required,
         'options': options.map((o) => o.toMap()).toList(),
+        if (sourceTemplateId != null) 'sourceTemplateId': sourceTemplateId,
       };
 
   factory OptionGroup.fromMap(Map<String, dynamic> m) => OptionGroup(
@@ -76,6 +81,7 @@ class OptionGroup {
         options: (m['options'] as List? ?? [])
             .map((o) => ItemOption.fromMap(Map<String, dynamic>.from(o as Map)))
             .toList(),
+        sourceTemplateId: m['sourceTemplateId'] as String?,
       );
 
   // الخيارات المفعَّلة فقط — تُستخدَم في واجهة العميل حتى لا يرى/يختار
@@ -88,6 +94,7 @@ class OptionGroup {
     OptionGroupType? type,
     bool? required,
     List<ItemOption>? options,
+    Object? sourceTemplateId = _sentinel,
   }) =>
       OptionGroup(
         id: id,
@@ -95,8 +102,14 @@ class OptionGroup {
         type: type ?? this.type,
         required: required ?? this.required,
         options: options ?? this.options,
+        sourceTemplateId: sourceTemplateId == _sentinel
+            ? this.sourceTemplateId
+            : sourceTemplateId as String?,
       );
 }
+
+// sentinel لتمييز "لم يُمرَّر" عن "مُمرَّر null" صراحةً في copyWith
+const Object _sentinel = Object();
 
 // تركيبة اختيار جاهزة يحدّدها الأدمن لصنف معيّن (مثال: "الأشهر")، تملأ كل
 // مجموعات الخيارات دفعة واحدة بدل اختيارها يدوياً واحدة تلو الأخرى

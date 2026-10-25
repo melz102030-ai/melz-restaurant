@@ -134,6 +134,36 @@ class MenuService {
 
   static Future<void> updateOptionTemplate(OptionTemplateModel t) async {
     await _db.collection(_colTemplates).doc(t.id).update(t.toMap());
+    await _propagateTemplateToItems(t);
+  }
+
+  // عند تعديل قالب — يُحدِّث مجموعات خياراته في كل الأصناف المرتبطة به
+  // (تلك التي حُفظ فيها linkedTemplateIds يحتوي على معرّف هذا القالب)
+  static Future<void> _propagateTemplateToItems(OptionTemplateModel t) async {
+    final snap = await _db
+        .collection(_colItems)
+        .where('linkedTemplateIds', arrayContains: t.id)
+        .get();
+    if (snap.docs.isEmpty) return;
+
+    // مجموعات القالب الجديدة مع تعيين sourceTemplateId عليها
+    final newGroupMaps = t.groups
+        .map((g) => {...g.toMap(), 'sourceTemplateId': t.id})
+        .toList();
+
+    final batch = _db.batch();
+    for (final doc in snap.docs) {
+      final item = MenuItemModel.fromMap(doc.data(), doc.id);
+      // احتفظ بالمجموعات التي ليست من هذا القالب، واستبدل تلك التي منه
+      final kept = item.optionGroups
+          .where((g) => g.sourceTemplateId != t.id)
+          .map((g) => g.toMap())
+          .toList();
+      batch.update(doc.reference, {
+        'optionGroups': [...kept, ...newGroupMaps],
+      });
+    }
+    await batch.commit();
   }
 
   static Future<void> deleteOptionTemplate(String id) async {
