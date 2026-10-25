@@ -131,7 +131,8 @@ class MainActivity : Activity() {
                         svc.printColumnsText(
                             arrayOf(parts[2], parts[1]),
                             intArrayOf(10, 22),
-                            intArrayOf(0, 2) // 0=يسار (السعر)، 2=يمين (الصنف)
+                            intArrayOf(0, 2), // 0=يسار (السعر)، 2=يمين (الصنف)
+                            null
                         )
                         svc.sendRAWData(boldOff, null)
                         continue
