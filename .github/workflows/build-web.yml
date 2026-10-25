@@ -84,6 +84,10 @@ jobs:
           for i in 1 2 3 4 5; do
             if git push; then break; fi
             echo "Push rejected, retrying after rebase ($i)..."
+            # flutter build يترك ملفات متتبَّعة أخرى (مثل pubspec.lock)
+            # معدَّلة بدون أن نضيفها — تمنع git pull --rebase لأنها تحتاج
+            # شجرة عمل نظيفة تماماً، لا فقط فهرساً نظيفاً
+            git checkout -- . || true
             git pull --rebase origin main
             sleep 3
           done
