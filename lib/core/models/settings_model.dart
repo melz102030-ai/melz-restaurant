@@ -68,6 +68,9 @@ class RestaurantSettings {
   // الأدمن (supportWhatsappNumber)، بدل whatsappNumber العام للتواصل
   final String supportMode;
   final String? supportWhatsappNumber;
+  // تفعيل/إيقاف كولاج الصور المتحركة في شاشة التحميل الأولى — يُقرأ مباشرة
+  // من web/index.html (جافاسكربت عادي، قبل تحميل فلاتر) لا من كود Dart
+  final bool splashCollageEnabled;
 
   const RestaurantSettings({
     this.restaurantName = 'Meals',
@@ -99,6 +102,7 @@ class RestaurantSettings {
     this.driverSystemMode = 'full',
     this.supportMode = 'app',
     this.supportWhatsappNumber,
+    this.splashCollageEnabled = true,
   });
 
   bool get isWhatsappDriverMode => driverSystemMode == 'whatsapp';
@@ -185,9 +189,83 @@ class RestaurantSettings {
     return '$h12:${m.toString().padLeft(2, '0')} ${isPm ? 'م' : 'ص'}';
   }
 
-  String get openTimeLabel => fmtHHMM(openTime);
-  String get closeTimeLabel => fmtHHMM(closeTime);
-  String get scheduleLabel => '${fmtHHMM(openTime)} - ${fmtHHMM(closeTime)}';
+  // الفترة المفتوحة فعلياً الآن من الجدول التفصيلي — تشمل فترة بدأت أمس
+  // وتمتد لبعد منتصف الليل (مثال: 4 م - 4 ص) ولا تزال سارية؛ null إن كان
+  // المطعم مغلقاً حالياً حسب الجدول
+  WorkShift? get _currentOpenShift {
+    if (!hasDetailedHours) return null;
+    final now = DateTime.now();
+    final todayShifts = workingHours[dayKeyForWeekday(now.weekday)] ?? const [];
+    for (final s in todayShifts) {
+      final open = _parseHHMM(s.open, now);
+      final close = _parseHHMM(s.close, now);
+      if (open == null || close == null) continue;
+      if (close.isBefore(open) || close.isAtSameMomentAs(open)) {
+        if (now.isAfter(open)) return s;
+      } else if (now.isAfter(open) && now.isBefore(close)) {
+        return s;
+      }
+    }
+    // فترة بدأت أمس وتمتد لبعد منتصف الليل ولا تزال سارية الآن
+    final yesterday = now.subtract(const Duration(days: 1));
+    final yesterdayShifts = workingHours[dayKeyForWeekday(yesterday.weekday)] ?? const [];
+    for (final s in yesterdayShifts) {
+      final open = _parseHHMM(s.open, yesterday);
+      final closeYesterday = _parseHHMM(s.close, yesterday);
+      if (open == null || closeYesterday == null) continue;
+      if (closeYesterday.isBefore(open) || closeYesterday.isAtSameMomentAs(open)) {
+        final closeToday =
+            DateTime(now.year, now.month, now.day, closeYesterday.hour, closeYesterday.minute);
+        if (now.isBefore(closeToday)) return s;
+      }
+    }
+    return null;
+  }
+
+  // أقرب فترة قادمة سيُفتح فيها المطعم (يبحث حتى 7 أيام قدماً) — لعرض وقت
+  // الفتح الصحيح للعميل عندما يكون مغلقاً حالياً
+  WorkShift? get _nextOpeningShift {
+    if (!hasDetailedHours) return null;
+    final now = DateTime.now();
+    for (var dayOffset = 0; dayOffset < 8; dayOffset++) {
+      final day = now.add(Duration(days: dayOffset));
+      final shifts = workingHours[dayKeyForWeekday(day.weekday)] ?? const [];
+      WorkShift? best;
+      DateTime? bestOpen;
+      for (final s in shifts) {
+        final open = _parseHHMM(s.open, day);
+        if (open == null) continue;
+        if (dayOffset == 0 && !open.isAfter(now)) continue; // فات وقتها اليوم
+        if (bestOpen == null || open.isBefore(bestOpen)) {
+          bestOpen = open;
+          best = s;
+        }
+      }
+      if (best != null) return best;
+    }
+    return null;
+  }
+
+  // عند تفعيل الجدول التفصيلي، تُحسب هذه التسميات من الفترة الفعلية
+  // الحالية/القادمة (تفهم الفترات الليلية الممتدة لما بعد منتصف الليل)
+  // بدل openTime/closeTime القديمين اللذين لا علاقة لهما بالجدول التفصيلي
+  String get openTimeLabel {
+    if (hasDetailedHours) {
+      final shift = _nextOpeningShift;
+      if (shift != null) return fmtHHMM(shift.open);
+    }
+    return fmtHHMM(openTime);
+  }
+
+  String get closeTimeLabel {
+    if (hasDetailedHours) {
+      final shift = _currentOpenShift;
+      if (shift != null) return fmtHHMM(shift.close);
+    }
+    return fmtHHMM(closeTime);
+  }
+
+  String get scheduleLabel => '$openTimeLabel - $closeTimeLabel';
 
   static Map<String, List<WorkShift>> _workingHoursFromMap(dynamic raw) {
     if (raw is! Map) return const {};
@@ -238,6 +316,7 @@ class RestaurantSettings {
       driverSystemMode: map['driverSystemMode'] ?? 'full',
       supportMode: map['supportMode'] ?? 'app',
       supportWhatsappNumber: map['supportWhatsappNumber'],
+      splashCollageEnabled: map['splashCollageEnabled'] ?? true,
     );
   }
 
@@ -272,6 +351,7 @@ class RestaurantSettings {
       'driverSystemMode': driverSystemMode,
       'supportMode': supportMode,
       'supportWhatsappNumber': supportWhatsappNumber,
+      'splashCollageEnabled': splashCollageEnabled,
     };
   }
 
@@ -305,6 +385,7 @@ class RestaurantSettings {
     String? driverSystemMode,
     String? supportMode,
     String? supportWhatsappNumber,
+    bool? splashCollageEnabled,
   }) {
     return RestaurantSettings(
       restaurantName: restaurantName ?? this.restaurantName,
@@ -336,6 +417,7 @@ class RestaurantSettings {
       driverSystemMode: driverSystemMode ?? this.driverSystemMode,
       supportMode: supportMode ?? this.supportMode,
       supportWhatsappNumber: supportWhatsappNumber ?? this.supportWhatsappNumber,
+      splashCollageEnabled: splashCollageEnabled ?? this.splashCollageEnabled,
     );
   }
 }

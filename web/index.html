@@ -172,33 +172,7 @@
       margin: 0 auto 28px;
       box-shadow: 0 8px 40px rgba(106,13,173,0.32);
       overflow: hidden;
-      animation: popIn 0.75s ease-out forwards,
-                 glowPulse 2.6s ease-in-out 0.75s infinite;
-    }
-
-    /* نبضة توهّج هادئة حول المربع بعد ظهوره — الحيوية المطلوبة بدون تغيير الشكل */
-    @keyframes glowPulse {
-      0%, 100% { box-shadow: 0 8px 40px rgba(106,13,173,0.32); }
-      50%      { box-shadow: 0 10px 56px rgba(106,13,173,0.5), 0 0 0 5px rgba(255,255,255,0.05); }
-    }
-
-    /* شعاع لمعان يمرّ فوق المربع دورياً */
-    .logo-banner::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(115deg,
-        transparent 40%, rgba(255,255,255,0.32) 50%, transparent 60%);
-      background-size: 300% 300%;
-      background-position: 130% 130%;
-      animation: shimmer 3.4s ease-in-out 1.2s infinite;
-      pointer-events: none;
-    }
-
-    @keyframes shimmer {
-      0%   { background-position: 130% 130%; }
-      35%  { background-position: -30% -30%; }
-      100% { background-position: -30% -30%; }
+      animation: popIn 0.75s ease-out forwards;
     }
 
     .logo-banner img {
@@ -396,38 +370,49 @@
         });
       }
 
-      var cached = localStorage.getItem(CACHE_KEY);
-      var shownFromCache = false;
-      if (cached) {
-        try {
-          var parsed = JSON.parse(cached);
-          if (parsed && parsed.length) {
-            shownFromCache = true;
-            buildCollage(parsed);
-          }
-        } catch (e) {}
-      }
-
-      fetch('https://firestore.googleapis.com/v1/projects/melz-restaurant/databases/(default)/documents/splash_images?orderBy=sortOrder&pageSize=40&key=AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0')
+      // يتحقق أولاً من مفتاح تفعيل الكولاج في إعدادات المطعم قبل أي عرض —
+      // حتى نسخة مخزَّنة مسبقاً بالكاش لا تظهر إن أوقفه الأدمن لاحقاً
+      fetch('https://firestore.googleapis.com/v1/projects/melz-restaurant/databases/(default)/documents/settings/restaurant?key=AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0')
         .then(function (r) { return r.json(); })
-        .then(function (data) {
-          var docs = (data && data.documents) || [];
-          var urls = docs
-            .filter(function (d) {
-              var active = d.fields && d.fields.isActive;
-              return !active || active.booleanValue !== false;
-            })
-            .map(function (d) {
-              return d.fields && d.fields.imageUrl && d.fields.imageUrl.stringValue;
-            })
-            .filter(Boolean);
+        .catch(function () { return null; })
+        .then(function (settingsData) {
+          var enabledField = settingsData && settingsData.fields && settingsData.fields.splashCollageEnabled;
+          var enabled = !enabledField || enabledField.booleanValue !== false;
+          if (!enabled) return;
 
-          if (urls.length) {
-            localStorage.setItem(CACHE_KEY, JSON.stringify(urls));
-            if (!shownFromCache) buildCollage(urls);
+          var cached = localStorage.getItem(CACHE_KEY);
+          var shownFromCache = false;
+          if (cached) {
+            try {
+              var parsed = JSON.parse(cached);
+              if (parsed && parsed.length) {
+                shownFromCache = true;
+                buildCollage(parsed);
+              }
+            } catch (e) {}
           }
-        })
-        .catch(function () {});
+
+          fetch('https://firestore.googleapis.com/v1/projects/melz-restaurant/databases/(default)/documents/splash_images?orderBy=sortOrder&pageSize=40&key=AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              var docs = (data && data.documents) || [];
+              var urls = docs
+                .filter(function (d) {
+                  var active = d.fields && d.fields.isActive;
+                  return !active || active.booleanValue !== false;
+                })
+                .map(function (d) {
+                  return d.fields && d.fields.imageUrl && d.fields.imageUrl.stringValue;
+                })
+                .filter(Boolean);
+
+              if (urls.length) {
+                localStorage.setItem(CACHE_KEY, JSON.stringify(urls));
+                if (!shownFromCache) buildCollage(urls);
+              }
+            })
+            .catch(function () {});
+        });
     })();
 
     window.addEventListener('flutter-first-frame', function () {

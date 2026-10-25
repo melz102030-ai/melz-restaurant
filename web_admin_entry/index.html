@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>إدارة Meals</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/Icon-192.png">
+<link rel="apple-touch-icon" href="icons/Icon-192.png">
+<meta name="theme-color" content="#6A0DAD">
+<style>
+  html, body {
+    margin: 0; min-height: 100vh; background: #F5EEDC;
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+  }
+  .box {
+    width: 72px; height: 72px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #6A0DAD, #9C4DCA); color: #fff; font-weight: bold; font-size: 30px;
+    box-shadow: 0 8px 30px rgba(106,13,173,.3);
+  }
+  p { color: #5B4A75; font-size: 13.5px; margin: 0; }
+</style>
+</head>
+<body>
+  <div class="box">M</div>
+  <p>جارٍ التحويل لتسجيل الدخول...</p>
+  <!-- صفحة وسيطة فقط — غرضها الوحيد منح هذا الرابط هوية تطبيق مستقلة
+       (اسم وأيقونة خاصة عند التثبيت) قابلة للتمييز عن رابط العميل ورابط
+       المطبخ، رغم أن لوحة الإدارة الفعلية جزء من نفس حزمة فلاتر الرئيسية.
+       بعد التثبيت، فتح الأيقونة يذهب مباشرة لـ /#/staff-login عبر
+       start_url في manifest.json، بلا المرور بهذه الصفحة الوسيطة مرة ثانية -->
+  <script>window.location.replace('/#/staff-login');</script>
+</body>
+</html>

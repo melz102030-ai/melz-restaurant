@@ -19,15 +19,22 @@ class AdminReportsScreen extends ConsumerStatefulWidget {
 class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   _ReportRange _range = _ReportRange.week;
 
+  // "to" دائماً null (بلا سقف علوي) عمداً، بدل DateTime.now() — استخدام وقت
+  // اللحظة الحالية كجزء من مفتاح مزوّد FutureProvider.family كان يُنشئ نسخة
+  // جديدة من المزوّد مع كل إعادة بناء (حتى بفارق ميكروثانية واحدة)، فتبقى
+  // الصفحة عالقة على "جارٍ التحميل" للأبد لأن النتيجة السابقة تُستبدَل قبل
+  // ظهورها. بلا سقف علوي، المفتاح يعتمد فقط على "from" (تاريخ فقط، ثابت
+  // طوال اليوم)، وهذا يكافئ "حتى الآن" تماماً لأنه لا طلبات مستقبلية أصلاً
   ({DateTime? from, DateTime? to}) get _dateRange {
-    final now = DateTime.now();
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
     switch (_range) {
       case _ReportRange.today:
-        return (from: DateTime(now.year, now.month, now.day), to: now);
+        return (from: todayStart, to: null);
       case _ReportRange.week:
-        return (from: now.subtract(const Duration(days: 7)), to: now);
+        return (from: todayStart.subtract(const Duration(days: 7)), to: null);
       case _ReportRange.month:
-        return (from: now.subtract(const Duration(days: 30)), to: now);
+        return (from: todayStart.subtract(const Duration(days: 30)), to: null);
       case _ReportRange.allTime:
         return (from: null, to: null);
     }

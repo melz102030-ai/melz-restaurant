@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/splash_image_model.dart';
+import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/cloudinary_service.dart';
+import '../../../core/services/settings_service.dart';
 import '../../../core/services/splash_image_service.dart';
 
 final _adminSplashImagesProvider = StreamProvider<List<SplashImageModel>>((ref) {
@@ -18,6 +20,7 @@ class AdminSplashScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('كولاج شاشة البداية'),
@@ -28,9 +31,35 @@ class AdminSplashScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.purple.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'عرض الكولاج في شاشة البداية',
+                      style: TextStyle(
+                          color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 13.5),
+                    ),
+                  ),
+                  Switch(
+                    value: settings.splashCollageEnabled,
+                    onChanged: (v) => SettingsService.updateSettings(
+                        settings.copyWith(splashCollageEnabled: v)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
             Text(
               'صور تُعرض ككولاج متحرك خلف الشعار عند فتح التطبيق لأول مرة — يتمرر '
-              'تلقائياً وبلا توقف. أضف عدة صور بأحجام مختلفة لأفضل نتيجة.',
+              'تلقائياً وبلا توقف. أضف عدة صور بأحجام مختلفة لأفضل نتيجة. إيقاف '
+              'المفتاح أعلاه يُخفي الكولاج فوراً دون حذف الصور نفسها.',
               style: TextStyle(color: AppColors.textHint, fontSize: 12.5),
             ),
             const SizedBox(height: 16),

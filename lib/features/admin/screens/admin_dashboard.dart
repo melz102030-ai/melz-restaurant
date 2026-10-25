@@ -23,8 +23,14 @@ class AdminDashboard extends ConsumerWidget {
     // تُقرأ خطأً كملخص يومي رغم كونها إجمالياً منذ البداية)
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
+    // to: null (بلا سقف علوي) بدل DateTime.now() — تمرير "الآن" بدقة الميكروثانية
+    // كمفتاح لمزوّد FutureProvider.family كان يُنشئ نسخة جديدة تماماً من
+    // المزوّد في كل إعادة بناء (أي تغيّر طفيف بالطلبات)، فيُعاد التحميل من
+    // الصفر باستمرار ولا يستقر على نتيجة أبداً — بلا سقف، المفتاح يعتمد فقط
+    // على بداية اليوم (ثابتة طوال اليوم)، ولا طلبات مستقبلية موجودة أصلاً
+    // لتُستبعد بسقف علوي حقيقي
     final statsAsync =
-        ref.watch(adminOrderStatsProvider((from: todayStart, to: now)));
+        ref.watch(adminOrderStatsProvider((from: todayStart, to: null)));
     final dailyAsync = ref.watch(dailyStatsProvider);
     final settings = ref.watch(settingsProvider);
     final activeOrdersAsync = ref.watch(allOrdersProvider(null));

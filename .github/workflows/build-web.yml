@@ -47,6 +47,15 @@ jobs:
           mkdir -p build/web/kitchen-lite
           cp -r web_kitchen_lite/* build/web/kitchen-lite/
 
+      # صفحة وسيطة صغيرة فقط (راجع web_admin_entry/) — manifest.json مستقل
+      # يمنح رابط الإدارة هوية تطبيق قابل للتثبيت خاصة به (اسم وأيقونة)،
+      # بدل مشاركة نفس هوية تطبيق العميل عند التثبيت على الشاشة الرئيسية
+      - name: Publish admin-entry web
+        run: |
+          rm -rf build/web/admin
+          mkdir -p build/web/admin
+          cp -r web_admin_entry/* build/web/admin/
+
       # يُنشر مباشرة بعد البناء (قبل الالتزام بالمخرجات) بدل الاعتماد على
       # تشغيل منفصل يُحفَّز بتعديل build/web — التزام البناء يحمل [skip ci]
       # فيُعطَّل أي تشغيل جديد لأي workflow أصلاً على ذلك الالتزام
