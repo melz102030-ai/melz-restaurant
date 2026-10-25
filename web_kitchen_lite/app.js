@@ -46,9 +46,6 @@ function el(tag, attrs, children) {
   });
   return e;
 }
-function esc(s) {
-  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 function pad4(n) { return String(n).padStart(4, '0'); }
 // أيقونة خطّية أحادية اللون (currentColor) بدل الإيموجي الملوّن — الإيموجي
 // يحمل ألوانه الثابتة الخاصة (مثلاً 📞 وردي/أخضر) فيكسر أي نظام ألوان مهما
@@ -706,7 +703,9 @@ function closeModal() {
 // الداخلية غير مرئية لنافذة طباعة أندرويد القياسية (window.print)
 function buildReceiptPlainText(order) {
   var df = new Intl.DateTimeFormat('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-  var sep = '--------------------------------';
+  // أقصر من قبل (كان 32) — لأن الطباعة عبر تطبيق الجسر تستخدم خطاً أكبر
+  // بالبولد، فيتّسع عدد أحرف أقل بكل سطر قبل أن يلتف تلقائياً بشكل عشوائي
+  var sep = '--------------------';
   var lines = [];
   lines.push(state.settings.restaurantName);
   lines.push('طلب رقم ' + pad4(order.orderNumber));
@@ -718,13 +717,16 @@ function buildReceiptPlainText(order) {
   if (order.orderType === 'delivery' && order.deliveryAddress) lines.push('العنوان: ' + order.deliveryAddress);
   lines.push(sep);
   order.items.forEach(function (item) {
-    lines.push('×' + item.quantity + '  ' + item.name + '  ' + (item.price * item.quantity).toFixed(2));
+    // سطران منفصلان دائماً بدل سطر واحد طويل — يمنع التفاف غير متوقّع
+    // يخلط ترتيب الكمية/الاسم/السعر بصرياً عند الطباعة الفعلية
+    lines.push('×' + item.quantity + ' ' + item.name);
+    lines.push((item.price * item.quantity).toFixed(2) + ' ر.س');
     var optsLine = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
       .map(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
         return o.groupName + ': ' + o.selectedNames.join('، ') + extra;
       }).join(' | ');
-    if (optsLine) lines.push('   ' + optsLine);
+    if (optsLine) lines.push(optsLine);
   });
   lines.push(sep);
   lines.push('الإجمالي الفرعي: ' + order.subtotal.toFixed(2));
@@ -748,69 +750,13 @@ function printViaSunmiBridge(order) {
   }
 }
 
+// هذه الصفحة مخصَّصة لأجهزة Sunmi التي عليها تطبيق الجسر دائماً (راجع
+// sunmi_print_bridge/) — تستدعيه مباشرة بلا أي خطة بديلة تلقائية.
+// جرّبنا سابقاً خطة بديلة تعتمد على فقدان الصفحة للتركيز (visibilitychange)
+// للتمييز بين نجاح/فشل الجسر، لكنها كانت تُطبع نسختين أحياناً (الجسر
+// ينجح لكن إشارة فقدان التركيز تتأخر أو لا تصل)، فأُزيلت كمصدر نسخ مكرَّرة
 function printOrder(order) {
-  // جرّب تطبيق الجسر المرافق أولاً — إن كان مثبَّتاً فسيستقبل الرابط فعلياً
-  // فتفقد هذه الصفحة التركيز للحظة (ينتقل أندرويد لتطبيق الجسر) ثم يعود
-  // تلقائياً بعد الطباعة؛ نستخدم هذا كمؤشر لإلغاء الخطة البديلة (نافذة
-  // الطباعة القياسية) بدل تشغيلها دائماً فوق الجسر الناجح أصلاً. إن لم
-  // يكن الجسر مثبَّتاً، تبقى الصفحة ظاهرة فتُشغَّل الخطة البديلة بعد مهلة قصيرة
-  var usedBridge = false;
-  function onVisibilityChange() {
-    if (document.hidden) {
-      usedBridge = true;
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-    }
-  }
-  document.addEventListener('visibilitychange', onVisibilityChange);
   printViaSunmiBridge(order);
-  setTimeout(function () {
-    document.removeEventListener('visibilitychange', onVisibilityChange);
-    if (!usedBridge) printViaWindowPrint(order);
-  }, 800);
-}
-
-function printViaWindowPrint(order) {
-  try {
-    var df = new Intl.DateTimeFormat('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
-    var itemsRows = order.items.map(function (item) {
-      var optsLine = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
-        .map(function (o) {
-          var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
-          return o.groupName + ': ' + o.selectedNames.join('، ') + extra;
-        }).join(' | ');
-      return '<tr><td style="width:28px;font-weight:bold">×' + item.quantity + '</td><td>' + esc(item.name) +
-        (optsLine ? '<div style="font-size:14px;font-weight:bold;color:#000;padding-right:14px">' + esc(optsLine) + '</div>' : '') +
-        '</td><td style="text-align:left;white-space:nowrap">' + (item.price * item.quantity).toFixed(2) + '</td></tr>';
-    }).join('');
-    var addressLine = order.orderType === 'delivery' && order.deliveryAddress ? '<div>العنوان: ' + esc(order.deliveryAddress) + '</div>' : '';
-    var notesSection = order.notes ? '<div class="line"></div><div>ملاحظات: ' + esc(order.notes) + '</div>' : '';
-    var html = '' +
-      '<div class="slip">' +
-      '<h1>' + esc(state.settings.restaurantName) + '</h1>' +
-      '<div class="center hint">طلب رقم ' + pad4(order.orderNumber) + '</div>' +
-      '<div class="center hint">' + df.format(order.createdAt) + '</div>' +
-      '<div class="line"></div>' +
-      '<div>العميل: ' + esc(order.customerName) + '</div>' +
-      '<div>الجوال: ' + esc(order.customerPhone) + '</div>' +
-      '<div>النوع: ' + (order.orderType === 'delivery' ? 'توصيل' : 'استلام من المطعم') + '</div>' +
-      addressLine +
-      '<div class="line"></div>' +
-      '<table>' + itemsRows + '</table>' +
-      '<div class="line"></div>' +
-      '<table>' +
-      '<tr><td>الإجمالي الفرعي</td><td style="text-align:left">' + order.subtotal.toFixed(2) + '</td></tr>' +
-      (order.deliveryFee > 0 ? '<tr><td>التوصيل</td><td style="text-align:left">' + order.deliveryFee.toFixed(2) + '</td></tr>' : '') +
-      '<tr class="total"><td>الإجمالي</td><td style="text-align:left">' + order.total.toFixed(2) + '</td></tr>' +
-      '</table>' +
-      notesSection +
-      '<div class="line"></div>' +
-      '<div class="center hint">شكراً لطلبك من ' + esc(state.settings.restaurantName) + '</div>' +
-      '</div>';
-    $('#receiptArea').innerHTML = html;
-    setTimeout(function () { try { window.print(); } catch (e) { console.warn('print failed', e); } }, 80);
-  } catch (e) {
-    console.warn('printOrder failed', e);
-  }
 }
 
 // ─── إدارة توفر الأصناف ───────────────────────────────────────────────────────

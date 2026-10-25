@@ -54,18 +54,37 @@ class _BridgeAppState extends State<BridgeApp> {
     } catch (e) {
       setState(() => _status = 'فشلت الطباعة: $e');
     }
-    await Future.delayed(const Duration(milliseconds: 900));
+    await Future.delayed(const Duration(milliseconds: 400));
     if (mounted) SystemNavigator.pop();
   }
 
+  // السطر الأول يصل دائماً اسم المطعم (راجع buildReceiptPlainText في
+  // web_kitchen_lite/app.js) — يُطبع بولد وحجم أكبر ووسط الصفحة، وبقية
+  // الإيصال بولد بحجم مقروء ومحاذاة يمين (الاتجاه الطبيعي للنص العربي)
   Future<void> _print(String text) async {
     if (!_bound) {
       await SunmiPrinter.bindingPrinter();
       _bound = true;
     }
     await SunmiPrinter.startTransactionPrint(true);
+    var isFirstLine = true;
     for (final line in text.split('\n')) {
-      await SunmiPrinter.printText(line);
+      if (line.trim().isEmpty) {
+        await SunmiPrinter.lineWrap(1);
+        continue;
+      }
+      if (isFirstLine) {
+        await SunmiPrinter.printText(
+          line,
+          style: SunmiTextStyle(bold: true, fontSize: 38, align: SunmiPrintAlign.CENTER),
+        );
+        isFirstLine = false;
+      } else {
+        await SunmiPrinter.printText(
+          line,
+          style: SunmiTextStyle(bold: true, fontSize: 28, align: SunmiPrintAlign.RIGHT),
+        );
+      }
     }
     await SunmiPrinter.lineWrap(3);
     await SunmiPrinter.cutPaper();

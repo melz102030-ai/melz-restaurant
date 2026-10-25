@@ -246,21 +246,6 @@
   .switch input:checked + .slider { background: var(--success); }
   .switch input:checked + .slider:before { transform: translateX(-19px); }
 
-  /* ── Receipt (print only) ───────────────────────────────── */
-  #receiptArea { display: none; }
-  @media print {
-    body > *:not(#receiptArea) { display: none !important; }
-    #receiptArea { display: block !important; position: absolute; top: 0; right: 0; }
-  }
-  #receiptArea .slip { width: 76mm; margin: 0 auto; padding: 3mm; font-size: 17px; font-weight: bold; font-family: 'Courier New', monospace; color: #000; }
-  #receiptArea h1 { font-size: 22px; font-weight: bold; text-align: center; margin: 0 0 3px; }
-  #receiptArea .center { text-align: center; }
-  #receiptArea .hint { font-size: 15px; font-weight: bold; color: #000; }
-  #receiptArea .line { border-top: 2px dashed #000; margin: 8px 0; }
-  #receiptArea table { width: 100%; border-collapse: collapse; font-size: 17px; font-weight: bold; }
-  #receiptArea td { padding: 3px 0; vertical-align: top; }
-  #receiptArea .total td { font-weight: bold; font-size: 20px; padding-top: 5px; }
-
   .toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 200;
     background: var(--text-primary); color: #fff; padding: 11px 18px; border-radius: 10px; font-size: 13px;
@@ -319,7 +304,6 @@
     <div id="availRoot"></div>
   </div>
 
-  <div id="receiptArea"></div>
   <div id="modalRoot"></div>
   <div id="toastRoot"></div>
 
