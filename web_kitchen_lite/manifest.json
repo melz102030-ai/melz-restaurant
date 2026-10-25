@@ -1,6 +1,7 @@
 {
     "name": "مطبخ Meals",
     "short_name": "مطبخ Meals",
+    "id": "/k/",
     "start_url": ".",
     "scope": ".",
     "display": "standalone",
