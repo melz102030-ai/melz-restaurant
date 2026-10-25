@@ -4,6 +4,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/gradient_container.dart';
@@ -23,6 +24,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   @override
   Widget build(BuildContext context) {
     final usersAsync = ref.watch(allUsersProvider);
+    final currentUserId = ref.watch(authProvider)?.id;
 
     return Scaffold(
       appBar: AppBar(
@@ -75,15 +77,18 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                   children: [
                     if (admins.isNotEmpty) ...[
                       _RoleHeader(role: UserRole.admin, count: admins.length),
-                      ...admins.asMap().entries.map((e) => _UserTile(user: e.value, index: e.key)),
+                      ...admins.asMap().entries.map((e) => _UserTile(
+                          user: e.value, index: e.key, isSelf: e.value.id == currentUserId)),
                     ],
                     if (kitchen.isNotEmpty) ...[
                       _RoleHeader(role: UserRole.kitchen, count: kitchen.length),
-                      ...kitchen.asMap().entries.map((e) => _UserTile(user: e.value, index: e.key)),
+                      ...kitchen.asMap().entries.map((e) => _UserTile(
+                          user: e.value, index: e.key, isSelf: e.value.id == currentUserId)),
                     ],
                     if (customers.isNotEmpty) ...[
                       _RoleHeader(role: UserRole.customer, count: customers.length),
-                      ...customers.asMap().entries.map((e) => _UserTile(user: e.value, index: e.key)),
+                      ...customers.asMap().entries.map((e) => _UserTile(
+                          user: e.value, index: e.key, isSelf: e.value.id == currentUserId)),
                     ],
                     const SizedBox(height: 32),
                   ],
@@ -149,7 +154,8 @@ class _RoleHeader extends StatelessWidget {
 class _UserTile extends StatelessWidget {
   final UserModel user;
   final int index;
-  const _UserTile({required this.user, required this.index});
+  final bool isSelf;
+  const _UserTile({required this.user, required this.index, required this.isSelf});
 
   @override
   Widget build(BuildContext context) {
@@ -246,9 +252,80 @@ class _UserTile extends StatelessWidget {
               );
             }).toList(),
           ),
+          const SizedBox(width: 4),
+          PopupMenuButton<String>(
+            color: AppColors.surface,
+            icon: Icon(Icons.more_vert, color: AppColors.textHint, size: 20),
+            onSelected: (action) {
+              if (action == 'edit') _showEditNameDialog(context);
+              if (action == 'delete') _confirmDelete(context);
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'edit', child: Text('تعديل الاسم')),
+              PopupMenuItem(
+                value: 'delete',
+                enabled: !isSelf,
+                child: Text(
+                  isSelf ? 'حذف (لا يمكن حذف حسابك)' : 'حذف',
+                  style: TextStyle(color: isSelf ? AppColors.textHint : AppColors.error),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     ).animate(delay: Duration(milliseconds: index * 30)).fadeIn();
+  }
+
+  void _showEditNameDialog(BuildContext context) {
+    final nameCtrl = TextEditingController(text: user.name);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تعديل الاسم'),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          style: TextStyle(color: AppColors.textPrimary),
+          decoration: const InputDecoration(labelText: 'الاسم'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              final newName = nameCtrl.text.trim();
+              if (newName.isEmpty) return;
+              Navigator.pop(ctx);
+              runOrShowError(context, () => AuthService.updateUserName(user.id, newName));
+            },
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // حذف المستخدم لا رجعة فيه — يفقد الوصول للدخول فوراً (راجع ملاحظة
+  // AuthService.deleteUserProfile حول نطاق الحذف الفعلي)
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('حذف المستخدم'),
+        content: Text('هل تريد حذف "${user.name}"؟ سيفقد القدرة على تسجيل الدخول فوراً، ولا يمكن التراجع عن هذا.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              runOrShowError(context, () => AuthService.deleteUserProfile(user.id));
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
   }
 
   // ضغطة واحدة على تصعيد/تخفيض صلاحية مستخدم (خاصة الأدمن) لا رجعة سهلة فيها

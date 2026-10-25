@@ -126,6 +126,18 @@ class AuthService {
     await _db.collection(_colUsers).doc(userId).update({'role': role.name});
   }
 
+  static Future<void> updateUserName(String userId, String name) async {
+    await _db.collection(_colUsers).doc(userId).update({'name': name});
+  }
+
+  // يحذف ملف المستخدم في Firestore فقط (لا صلاحية لدى كود العميل لحذف حساب
+  // Firebase Auth نفسه لمستخدم آخر — يحتاج ذلك صلاحيات خادم/Admin SDK غير
+  // متوفرة في هذا المشروع). عملياً يكفي لإبطال الوصول: تسجيل الدخول اللاحق
+  // (loginStaff) يتحقق من وجود هذا المستند ويرفض الدخول إن كان مفقوداً.
+  static Future<void> deleteUserProfile(String userId) async {
+    await _db.collection(_colUsers).doc(userId).delete();
+  }
+
   // ─── طلب بلا تسجيل دخول (وضع "ضيف") ────────────────────────────────────────
   // حساب مجهول من فايربيس (نفس آلية "الدخول السريع للمعاينة") بالاسم ورقم
   // الجوال الحقيقيين اللذين أدخلهما العميل بنفسه لحظة الطلب، بدل حساب دائم
