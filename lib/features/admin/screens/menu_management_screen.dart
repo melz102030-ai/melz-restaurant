@@ -332,8 +332,8 @@ class _MenuItemTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
@@ -344,15 +344,19 @@ class _MenuItemTile extends ConsumerWidget {
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // مقبض السحب الفعلي — في RTL يضع Flutter مقبضه الافتراضي فوق
           // منطقة المفتاح/الأزرار على الطرف الآخر، لذا نربطه يدوياً بهذه
           // الأيقونة الظاهرة عبر buildDefaultDragHandles: false أعلاه
-          ReorderableDragStartListener(
-            index: index,
-            child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: ReorderableDragStartListener(
+              index: index,
+              child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+            ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: item.imageUrl != null
@@ -366,31 +370,37 @@ class _MenuItemTile extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.name,
-                        style: TextStyle(
-                          color: AppColors.textPrimary, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    if (item.hasOptions)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.purple.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                        child: Text(
-                          '${item.optionGroups.length} خيارات',
-                          style: TextStyle(color: AppColors.purple, fontSize: 10),
-                        ),
-                      ),
-                    if (!item.isAvailable)
-                      Icon(Icons.block, color: AppColors.error, size: 16),
-                  ],
+                Text(
+                  item.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: AppColors.textPrimary, fontWeight: FontWeight.bold),
                 ),
+                if (item.hasOptions || !item.isAvailable) ...[
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      if (item.hasOptions)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.purple.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            '${item.optionGroups.length} خيارات',
+                            style: TextStyle(color: AppColors.purple, fontSize: 10),
+                          ),
+                        ),
+                      if (!item.isAvailable)
+                        Icon(Icons.block, color: AppColors.error, size: 16),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 4),
                 Text(item.categoryName,
                     style: TextStyle(color: AppColors.textHint, fontSize: 12)),
                 Text('${item.price.toStringAsFixed(2)} ${AppStrings.sar}',
@@ -399,6 +409,7 @@ class _MenuItemTile extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(width: 6),
           Column(
             children: [
               Switch(
@@ -407,6 +418,7 @@ class _MenuItemTile extends ConsumerWidget {
                     runOrShowError(context, () => MenuService.toggleItemAvailability(item.id, v)),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
+              const SizedBox(height: 8),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -419,7 +431,7 @@ class _MenuItemTile extends ConsumerWidget {
                       builder: (_) => _MenuItemDialog(item: item),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 10),
                   ActionIcon(
                     icon: Icons.copy,
                     color: AppColors.purple,
@@ -452,7 +464,7 @@ class _MenuItemTile extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: 10),
                   ActionIcon(
                     icon: Icons.delete,
                     color: AppColors.error,
