@@ -724,10 +724,13 @@ function buildReceiptPlainText(order) {
     // لسطرين منفصلين لأنها الطريقة الوحيدة المؤكَّد عملها فعلياً
     lines.push('×' + item.quantity + ' ' + item.name);
     lines.push((item.price * item.quantity).toFixed(2) + ' ر.س');
+    // كل قيمة مختارة بسطر مستقل (لا نجمعها بفاصلة) — كانت تُطبَع كتلة
+    // نصية واحدة طويلة تلتف على عدة أسطر فتبدو متلاصقة بلا فواصل واضحة
     (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
       .forEach(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
-        lines.push(o.groupName + ': ' + o.selectedNames.join('، ') + extra);
+        lines.push(o.groupName + ':' + extra);
+        o.selectedNames.forEach(function (name) { lines.push('- ' + name); });
       });
   });
   lines.push(sep);
