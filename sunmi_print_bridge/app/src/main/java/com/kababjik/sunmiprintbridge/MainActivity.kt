@@ -119,6 +119,24 @@ class MainActivity : Activity() {
                     svc.lineWrap(1, null)
                     continue
                 }
+                // سطر صنف بعمودين: "COL\t<الاسم والكمية>\t<السعر>" —
+                // يُطبَع عبر printColumnsText حتى يتحاذى الصنف يميناً
+                // والسعر يساراً فعلياً على نفس السطر بدل سطرين منفصلين
+                if (line.startsWith("COL\t")) {
+                    val parts = line.split("\t")
+                    if (parts.size == 3) {
+                        svc.setAlignment(0, null)
+                        svc.setFontSize(28f, null)
+                        svc.sendRAWData(boldOn, null)
+                        svc.printColumnsText(
+                            arrayOf(parts[2], parts[1]),
+                            intArrayOf(10, 22),
+                            intArrayOf(0, 2) // 0=يسار (السعر)، 2=يمين (الصنف)
+                        )
+                        svc.sendRAWData(boldOff, null)
+                        continue
+                    }
+                }
                 if (isFirstLine) {
                     svc.setAlignment(1, null) // 1 = وسط
                     svc.setFontSize(38f, null)
