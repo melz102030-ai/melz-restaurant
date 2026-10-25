@@ -607,7 +607,15 @@ function buildOrderCard(order, index) {
     var update = { status: newStatus, updatedAt: firebase.firestore.Timestamp.now() };
     var notesVal = notesInput.value.trim();
     if (notesVal) update.kitchenNotes = notesVal;
-    if (mins != null) { update.estimatedMinutes = mins; update.estimatedTime = mins + ' دقيقة'; update.estimatedSetAt = firebase.firestore.Timestamp.now(); }
+    if (mins != null) {
+      update.estimatedMinutes = mins;
+      update.estimatedTime = mins + ' دقيقة';
+      // لا نُعيد ضبط estimatedSetAt إلا إذا تغير الوقت فعلاً أو لم يُضبط قط
+      // — بخلاف ذلك يعيد المؤقت الحساب من الصفر عند كل انتقال حالة
+      if (mins !== order.estimatedMinutes || order.estimatedSetAt == null) {
+        update.estimatedSetAt = firebase.firestore.Timestamp.now();
+      }
+    }
     db.collection('orders').doc(order.id).update(update)
       .then(function () {
         if (newStatus === 'confirmed') printOrder(order);
