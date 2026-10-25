@@ -19,10 +19,24 @@ android {
         versionName "2.0"
     }
 
+    // مفتاح توقيع ثابت ومُلتزَم به في المستودع (keystore/bridge-release.keystore)
+    // بدل مفتاح debug الافتراضي العشوائي — كل عامل CI جديد على GitHub Actions
+    // يولِّد مفتاح debug مختلفاً من الصفر، فكان كل بناء يُوقَّع بمفتاح مختلف
+    // عن سابقه، ما يجعل أندرويد يرفض أي تثبيت فوق النسخة السابقة بصمت
+    // (يبدو وكأن التطبيق "اختفى" رغم تحميله بنجاح)
+    signingConfigs {
+        release {
+            storeFile rootProject.file("keystore/bridge-release.keystore")
+            storePassword "kababjik2026"
+            keyAlias "bridge"
+            keyPassword "kababjik2026"
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
 

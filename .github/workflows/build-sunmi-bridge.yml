@@ -29,6 +29,31 @@ jobs:
       # لا حاجة لملف gradlew مرفوع في المستودع، هذا الإجراء يوفّر Gradle نفسه
       - uses: gradle/actions/setup-gradle@v4
 
+      # مفتاح توقيع ثابت يُلتزَم به مرة واحدة في المستودع — بدونه، كل عامل
+      # CI جديد يولِّد مفتاح debug عشوائياً مختلفاً، فيرفض أندرويد تثبيت أي
+      # بناء جديد فوق السابق بصمت (راجع التعليق في app/build.gradle)
+      - name: Ensure stable signing keystore exists
+        working-directory: sunmi_print_bridge
+        run: |
+          mkdir -p keystore
+          if [ ! -f keystore/bridge-release.keystore ]; then
+            keytool -genkeypair -v -keystore keystore/bridge-release.keystore \
+              -alias bridge -keyalg RSA -keysize 2048 -validity 36500 \
+              -storepass kababjik2026 -keypass kababjik2026 \
+              -dname "CN=Meals Print Bridge, OU=Kababjik, O=Kababjik, C=SA"
+            git config user.email "melz102030@gmail.com"
+            git config user.name "melz-bot"
+            git add keystore/bridge-release.keystore -f
+            git commit -m "chore: إضافة مفتاح توقيع ثابت لتطبيق جسر الطباعة [skip ci]"
+            for i in 1 2 3 4 5; do
+              if git push; then break; fi
+              echo "Push rejected, retrying after rebase ($i)..."
+              git checkout -- . || true
+              git pull --rebase origin main
+              sleep 3
+            done
+          fi
+
       - name: Build release APK
         working-directory: sunmi_print_bridge
         run: gradle assembleRelease --no-daemon
