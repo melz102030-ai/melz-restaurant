@@ -718,11 +718,12 @@ function buildReceiptPlainText(order) {
   if (order.orderType === 'delivery' && order.deliveryAddress) lines.push('العنوان: ' + order.deliveryAddress);
   lines.push(sep);
   order.items.forEach(function (item) {
-    // سطر أعمدة واحد: السعر في اليسار والصنف (مع الكمية) في اليمين،
-    // بمحاذاة فعلية عبر printColumnsText في تطبيق الجسر (راجع
-    // MainActivity.kt) — السعر بلا "ر.س" لتوفير مساحة للاسم (العمود
-    // الأول كان يبتلع الاسم بالكامل عند هذا الحجم الكبير من الخط)
-    lines.push('COL\t×' + item.quantity + ' ' + item.name + '\t' + (item.price * item.quantity).toFixed(2));
+    // جرَّبنا printColumnsText (عمودين بسطر واحد) مرتين وبعرضين مختلفين —
+    // في الحالتين اختفى اسم الصنف بالكامل من الطباعة الفعلية (يبدو أن
+    // الدالة لا تحسب عرض النص العربي بشكل صحيح على هذه الطابعة). رجعنا
+    // لسطرين منفصلين لأنها الطريقة الوحيدة المؤكَّد عملها فعلياً
+    lines.push('×' + item.quantity + ' ' + item.name);
+    lines.push((item.price * item.quantity).toFixed(2) + ' ر.س');
     (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
       .forEach(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';

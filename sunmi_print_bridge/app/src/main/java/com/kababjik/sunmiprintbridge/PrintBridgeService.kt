@@ -181,20 +181,13 @@ class PrintBridgeService : Service() {
         lastPrintedData = text
         lastPrintedAt = now
         return try {
+            // جرَّبنا printColumnsText لمحاذاة الصنف والسعر بسطر واحد — في كل
+            // محاولة اختفى اسم الصنف بالكامل من الطباعة الفعلية (لا تحسب
+            // الدالة عرض النص العربي بشكل صحيح على هذه الطابعة)، فرجعنا
+            // لطباعة كل سطر نصاً عادياً فقط — الطريقة الوحيدة المؤكَّدة
             var isFirstLine = true
             for (line in text.split("\n")) {
                 if (line.isBlank()) { svc.lineWrap(1, null); continue }
-                if (line.startsWith("COL\t")) {
-                    val parts = line.split("\t")
-                    if (parts.size == 3) {
-                        svc.setAlignment(0, null)
-                        svc.setFontSize(28f, null)
-                        svc.sendRAWData(boldOn, null)
-                        svc.printColumnsText(arrayOf(parts[2], parts[1]), intArrayOf(7, 13), intArrayOf(0, 2), null)
-                        svc.sendRAWData(boldOff, null)
-                        continue
-                    }
-                }
                 if (isFirstLine) {
                     svc.setAlignment(1, null)
                     svc.setFontSize(38f, null)
