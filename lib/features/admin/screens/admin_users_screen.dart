@@ -296,7 +296,7 @@ class _UserTile extends StatelessWidget {
               final newName = nameCtrl.text.trim();
               if (newName.isEmpty) return;
               Navigator.pop(ctx);
-              runOrShowError(context, () => AuthService.updateUserName(user.id, newName));
+              runOrShowError(context, () => AuthService.adminUpdateUserName(user.id, newName));
             },
             child: const Text('حفظ'),
           ),

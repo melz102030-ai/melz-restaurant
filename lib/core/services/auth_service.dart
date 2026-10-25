@@ -126,7 +126,10 @@ class AuthService {
     await _db.collection(_colUsers).doc(userId).update({'role': role.name});
   }
 
-  static Future<void> updateUserName(String userId, String name) async {
+  // يعدّل اسم مستخدم آخر من لوحة الأدمن — عمداً لا يلمس SharedPreferences
+  // المحلي (بخلاف updateUserName أعلاه المخصَّصة لتعديل العميل اسمه هو)، وإلا
+  // لاستبدلت جلسة الأدمن المحلية نفسها باسم المستخدم الآخر الذي يعدّله
+  static Future<void> adminUpdateUserName(String userId, String name) async {
     await _db.collection(_colUsers).doc(userId).update({'name': name});
   }
 
