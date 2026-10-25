@@ -42,7 +42,8 @@ android {
 }
 
 dependencies {
-    // لا حاجة لأي مكتبة خارجية — الواجهة (interface) المطلوبة معرَّفة
-    // محلياً في src/main/aidl/ (نفس واجهة SDK الرسمية لخدمة الطابعة
-    // المثبَّتة مسبقاً على الجهاز)، وAGP يولِّد صنف الاتصال بها تلقائياً
+    // الواجهة (interface) المطلوبة للطابعة معرَّفة محلياً في src/main/aidl/
+    // (نفس واجهة SDK الرسمية)، وAGP يولِّد صنف الاتصال بها تلقائياً.
+    // androidx.core فقط من أجل NotificationCompat (إشعار الخدمة الدائمة)
+    implementation 'androidx.core:core-ktx:1.13.1'
 }
