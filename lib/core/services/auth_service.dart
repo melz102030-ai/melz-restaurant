@@ -126,41 +126,6 @@ class AuthService {
     await _db.collection(_colUsers).doc(userId).update({'role': role.name});
   }
 
-  // ─── دخول مباشر بدون كلمة مرور (لمرحلة المعاينة فقط) ─────────────────────
-  static const Map<UserRole, String> _quickLoginNames = {
-    UserRole.customer: 'عميل تجريبي',
-    UserRole.admin: 'مدير النظام',
-    UserRole.kitchen: 'موظف مطبخ',
-    UserRole.driver: 'مندوب توصيل',
-  };
-
-  static Future<UserModel> quickPreviewLogin(UserRole role) async {
-    String uid = 'dev_${role.name}';
-    try {
-      final anonResult = await _auth.signInAnonymously();
-      if (anonResult.user != null) uid = anonResult.user!.uid;
-    } catch (_) {
-      // Anonymous Auth غير مفعّل — نكمل بـ uid ثابت
-    }
-
-    final user = UserModel(
-      id: uid,
-      phone: 'dev_${role.name}',
-      name: _quickLoginNames[role]!,
-      role: role,
-      createdAt: DateTime.now(),
-    );
-
-    try {
-      await _db
-          .collection(_colUsers)
-          .doc(uid)
-          .set(user.toMap(), SetOptions(merge: true));
-    } catch (_) {}
-
-    return user;
-  }
-
   // ─── طلب بلا تسجيل دخول (وضع "ضيف") ────────────────────────────────────────
   // حساب مجهول من فايربيس (نفس آلية "الدخول السريع للمعاينة") بالاسم ورقم
   // الجوال الحقيقيين اللذين أدخلهما العميل بنفسه لحظة الطلب، بدل حساب دائم

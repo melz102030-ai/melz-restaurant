@@ -15,7 +15,6 @@ import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/models/popup_ad_model.dart';
 import '../../../core/models/promo_banner_model.dart';
-import '../../../core/models/user_model.dart';
 import '../../../core/models/app_theme_settings.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
@@ -24,8 +23,6 @@ import '../../../core/providers/order_type_provider.dart';
 import '../../../core/providers/popup_ad_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/app_theme_provider.dart';
-import '../../../core/services/auth_service.dart';
-import '../../../shared/utils/kitchen_redirect.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/menu_item_card.dart';
@@ -49,7 +46,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   bool _showInstallBanner = false;
   bool _isIosInstallable = false;
   bool _installBannerDismissed = false;
-  UserRole? _quickLoginRole;
   bool _popupAdChecked = false;
 
   // إعلان الأدمن المنبثق — يظهر مرة واحدة فقط لكل حملة إعلانية لكل عميل
@@ -90,97 +86,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     }
   }
 
-  Future<void> _quickLogin(UserRole role) async {
-    if (_quickLoginRole != null) return;
-    setState(() => _quickLoginRole = role);
-    try {
-      final user = await AuthService.quickPreviewLogin(role);
-      await ref.read(authProvider.notifier).login(user);
-      if (!mounted) return;
-      switch (role) {
-        case UserRole.kitchen:
-          redirectToKitchenLite();
-          break;
-        case UserRole.driver:
-          context.go('/driver');
-          break;
-        case UserRole.admin:
-        case UserRole.customer:
-          context.go('/admin');
-          break;
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('خطأ في الدخول: $e'),
-          backgroundColor: AppColors.error,
-        ));
-      }
-    } finally {
-      if (mounted) setState(() => _quickLoginRole = null);
-    }
-  }
-
-  void _showQuickLoginSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text(
-              'دخول تجريبي لفريق العمل',
-              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 12),
-            _QuickLoginTile(
-              icon: Icons.restaurant,
-              label: 'المطبخ',
-              onTap: () {
-                Navigator.pop(context);
-                _quickLogin(UserRole.kitchen);
-              },
-            ),
-            _QuickLoginTile(
-              icon: Icons.delivery_dining,
-              label: 'المندوب',
-              onTap: () {
-                Navigator.pop(context);
-                _quickLogin(UserRole.driver);
-              },
-            ),
-            _QuickLoginTile(
-              icon: Icons.admin_panel_settings_outlined,
-              label: 'الإدارة',
-              onTap: () {
-                Navigator.pop(context);
-                _quickLogin(UserRole.admin);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   void initState() {
@@ -459,14 +364,6 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               if (t == OrderType.delivery) _maybeRequestDeliveryLocation();
             },
           ),
-        ),
-        // دخول مباشر سريع لفريق العمل (مطبخ/مندوب/إدارة) — لمرحلة المعاينة فقط
-        // أيقونة واحدة تفتح قائمة، بدل ثلاث أيقونات ثابتة قد تتجاوز عرض الشاشات الضيقة
-        leading: _StaffQuickIcon(
-          icon: Icons.people_alt_outlined,
-          tooltip: 'دخول تجريبي لفريق العمل',
-          isLoading: _quickLoginRole != null,
-          onTap: () => _showQuickLoginSheet(context),
         ),
         title: Row(
           children: [
@@ -941,59 +838,6 @@ class _NavIcon extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ── أيقونة دخول سريع لفريق العمل (معاينة) ─────────────────────────────────────
-
-class _StaffQuickIcon extends StatelessWidget {
-  final IconData icon;
-  final String tooltip;
-  final bool isLoading;
-  final VoidCallback onTap;
-
-  const _StaffQuickIcon({
-    required this.icon,
-    required this.tooltip,
-    required this.isLoading,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: isLoading ? null : onTap,
-      tooltip: tooltip,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-      icon: isLoading
-          ? SizedBox(
-              width: 16,
-              height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.textHint.withOpacity(0.5),
-              ),
-            )
-          : Icon(icon, size: 20, color: AppColors.textHint.withOpacity(0.45)),
-    );
-  }
-}
-
-class _QuickLoginTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _QuickLoginTile({required this.icon, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      leading: Icon(icon, color: AppColors.purple),
-      title: Text(label, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     );
   }
 }
