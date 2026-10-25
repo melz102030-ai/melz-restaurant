@@ -59,11 +59,6 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
         ),
         actions: [
           IconButton(
-            onPressed: () => _showAddItemDialog(context),
-            icon: Icon(Icons.add_circle_outline),
-            tooltip: 'إضافة عنصر',
-          ),
-          IconButton(
             onPressed: () => ExcelImportService.downloadTemplate(),
             icon: Icon(Icons.download),
             tooltip: 'تنزيل قالب Excel',
@@ -189,7 +184,8 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
     final itemsAsync = ref.watch(adminMenuItemsProvider);
     final categories = ref.watch(adminCategoriesProvider).valueOrNull ?? [];
 
-    return Column(
+    return Scaffold(
+      body: Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -320,6 +316,17 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
           ),
         ),
       ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => const _MenuItemDialog(),
+        ),
+        backgroundColor: AppColors.purple,
+        tooltip: 'إضافة صنف',
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
   }
 }
