@@ -20,6 +20,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/orders_provider.dart';
+import '../../../core/services/order_service.dart';
 
 class OrderTrackingScreen extends ConsumerWidget {
   final String orderId;
@@ -92,6 +93,13 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
       _notifyOrderReady();
     }
 
+    if (widget.order.unavailableItemIds.isNotEmpty &&
+        old.order.unavailableItemIds.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showUnavailableDialog(widget.order);
+      });
+    }
+
     if (_isTerminal) {
       _ticker?.cancel();
       _ticker = null;
@@ -105,6 +113,81 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
         if (mounted) setState(() {});
       });
     }
+  }
+
+  void _showUnavailableDialog(OrderModel order) {
+    final removedIds = order.unavailableItemIds.toSet();
+    final removedNames = order.items
+        .where((i) => removedIds.contains(i.menuItemId))
+        .map((i) => i.name)
+        .toList();
+    final remaining = order.items
+        .where((i) => !removedIds.contains(i.menuItemId))
+        .length;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
+            const SizedBox(width: 8),
+            const Text('أصناف غير متوفرة'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('المطبخ أفادنا بأن الأصناف التالية غير متوفرة حالياً:'),
+            const SizedBox(height: 10),
+            ...removedNames.map((name) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(children: [
+                    Icon(Icons.cancel, color: Colors.red, size: 16),
+                    const SizedBox(width: 6),
+                    Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold))),
+                  ]),
+                )),
+            const SizedBox(height: 12),
+            if (remaining > 0)
+              Text('سيُكمَل طلبك بدونها (${remaining} صنف متبقٍّ).',
+                  style: TextStyle(color: Colors.grey[700]))
+            else
+              Text('لا تتبقى أصناف في طلبك. بإمكانك إلغاء الطلب.',
+                  style: TextStyle(color: Colors.red)),
+          ],
+        ),
+        actions: [
+          if (remaining == 0)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                OrderService.cancelOrder(order.id);
+              },
+              child: const Text('إلغاء الطلب', style: TextStyle(color: Colors.red)),
+            ),
+          if (remaining > 0)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                context.go('/home');
+              },
+              child: const Text('إضافة أصناف بديلة'),
+            ),
+          ElevatedButton(
+            onPressed: remaining > 0
+                ? () {
+                    Navigator.pop(ctx);
+                    OrderService.acknowledgeUnavailableItems(order);
+                  }
+                : null,
+            child: const Text('موافق، أكمل طلبي'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _notifyOrderReady() {

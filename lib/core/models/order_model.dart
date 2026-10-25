@@ -244,6 +244,10 @@ class OrderModel {
   // رابط إيصال التحويل البنكي اليدوي الذي يرفعه العميل (صورة أو PDF) —
   // يراجعه الأدمن يدوياً قبل تأكيد الدفع، لا تحقّق تلقائي
   final String? paymentReceiptUrl;
+  // معرّفات أصناف القائمة (menuItemId) التي أبلغ المطبخ بعدم توفرها —
+  // تُكتَب من المطبخ، يقرأها تطبيق العميل ليعرض تنبيهاً ويحذف الأصناف
+  // المعنية من الطلب ثم يُصفّرها بعد أن يوافق العميل
+  final List<String> unavailableItemIds;
 
   const OrderModel({
     required this.id,
@@ -282,6 +286,7 @@ class OrderModel {
     this.paymentStatus = PaymentStatus.pending,
     this.leanPaymentIntentId,
     this.paymentReceiptUrl,
+    this.unavailableItemIds = const [],
   });
 
   bool get hasDeliveryLocation => deliveryLat != null && deliveryLng != null;
@@ -368,6 +373,7 @@ class OrderModel {
       ),
       leanPaymentIntentId: map['leanPaymentIntentId'],
       paymentReceiptUrl: map['paymentReceiptUrl'],
+      unavailableItemIds: List<String>.from(map['unavailableItemIds'] ?? []),
     );
   }
 
@@ -413,6 +419,7 @@ class OrderModel {
       'paymentStatus': paymentStatus.name,
       'leanPaymentIntentId': leanPaymentIntentId,
       'paymentReceiptUrl': paymentReceiptUrl,
+      'unavailableItemIds': unavailableItemIds,
     };
   }
 

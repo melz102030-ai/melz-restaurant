@@ -271,6 +271,23 @@ class OrderService {
     await _db.collection(_colOrders).doc(orderId).update(update);
   }
 
+  // العميل يوافق على إزالة الأصناف غير المتوفرة — يحذفها من الطلب ويصفّر القائمة
+  static Future<void> acknowledgeUnavailableItems(OrderModel order) async {
+    final removedIds = order.unavailableItemIds.toSet();
+    final remaining = order.items
+        .where((i) => !removedIds.contains(i.menuItemId))
+        .toList();
+    final newSubtotal = remaining.fold<double>(0, (s, i) => s + i.total);
+    final newTotal = newSubtotal + order.deliveryFee;
+    await _db.collection(_colOrders).doc(order.id).update({
+      'items': remaining.map((i) => i.toMap()).toList(),
+      'subtotal': newSubtotal,
+      'total': newTotal,
+      'unavailableItemIds': [],
+      'updatedAt': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
   // Cancel order (customer)
   static Future<void> cancelOrder(String orderId) async {
     await _db.collection(_colOrders).doc(orderId).update({

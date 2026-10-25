@@ -451,6 +451,57 @@ function buildSection(label, orders, color, emptyMsg, collapsible) {
   return wrap;
 }
 
+function openUnavailableItemsModal(order) {
+  var selected = {};
+  var uniqueItems = [];
+  var seen = {};
+  order.items.forEach(function (item) {
+    if (!seen[item.menuItemId]) {
+      seen[item.menuItemId] = true;
+      uniqueItems.push(item);
+    }
+  });
+
+  var checkboxRows = uniqueItems.map(function (item) {
+    var cb = el('input', { type: 'checkbox', style: 'width:18px;height:18px;cursor:pointer;accent-color:var(--error)' });
+    cb.addEventListener('change', function () {
+      selected[item.menuItemId] = cb.checked ? item.name : null;
+    });
+    return el('label', { style: 'display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer;font-size:14px;border-bottom:1px solid var(--border)' }, [cb, item.name]);
+  });
+
+  var body = el('div', { class: 'modal-body' }, [
+    el('p', { style: 'font-size:13px;color:var(--text-secondary);margin-bottom:8px' }, ['اختر الأصناف غير المتوفرة في هذا الطلب:']),
+    el('div', { style: 'max-height:260px;overflow-y:auto' }, checkboxRows),
+    el('p', { style: 'font-size:11.5px;color:var(--text-hint);margin-top:10px' }, ['• سيُوقَف توفر الصنف في القائمة\n• يُبلَّغ العميل ليختار بديلاً بدل إلغاء طلبه كاملاً']),
+  ]);
+
+  var actions = el('div', { class: 'modal-actions' }, [
+    el('button', { class: 'btn-ghost', onclick: closeModal }, ['تراجع']),
+    el('button', {
+      style: 'background:var(--error);color:#fff;border:none;padding:10px 18px;border-radius:10px;font-size:14px;cursor:pointer',
+      onclick: function () {
+        var ids = Object.keys(selected).filter(function (k) { return !!selected[k]; });
+        if (!ids.length) { toast('اختر صنفاً واحداً على الأقل'); return; }
+        closeModal();
+        var batch = db.batch();
+        ids.forEach(function (menuItemId) {
+          batch.update(db.collection('menu_items').doc(menuItemId), { isAvailable: false });
+        });
+        batch.update(db.collection('orders').doc(order.id), {
+          unavailableItemIds: ids,
+          updatedAt: firebase.firestore.Timestamp.now(),
+        });
+        batch.commit()
+          .then(function () { toast('تم إبلاغ العميل وإيقاف الأصناف'); })
+          .catch(function (e) { toast('خطأ: ' + e.message); });
+      },
+    }, ['تأكيد وإبلاغ العميل']),
+  ]);
+
+  openModal('أصناف غير متوفرة', body, [actions]);
+}
+
 function buildOrderCard(order, index) {
   var isTerminal = order.status === 'delivered' || order.status === 'cancelled';
   var elapsedMin = Math.floor((Date.now() - order.createdAt.getTime()) / 60000);
@@ -540,6 +591,14 @@ function buildOrderCard(order, index) {
   // أزرار محايدة (ghost) ما عدا الإلغاء (نص أحمر بلا تعبئة)
   var actionsRow = el('div', { class: 'action-btns' });
   actionsRow.appendChild(actionBtn('طباعة', 'ghost', function () { printOrder(order); }));
+
+  if (!isTerminal) {
+    var unavailBtn = actionBtn('غير متوفر', 'ghost', function () {
+      openUnavailableItemsModal(order);
+    });
+    unavailBtn.style.color = 'var(--error)';
+    actionsRow.appendChild(unavailBtn);
+  }
 
   function doUpdate(newStatus, btnEl, minutesOverride) {
     btnEl.classList.add('loading');
