@@ -92,8 +92,10 @@ class MenuItemModel {
       sortOrder: map['sortOrder'] ?? 0,
       tags: List<String>.from(map['tags'] ?? []),
       discountPercent: map['discountPercent']?.toDouble(),
+      // Map<String, dynamic>.from(...) بدل (as Map<String, dynamic>) مباشرة
+      // — راجع التعليق في OptionGroup.fromMap لسبب أهمية هذا على الويب
       optionGroups: (map['optionGroups'] as List? ?? [])
-          .map((g) => OptionGroup.fromMap(g as Map<String, dynamic>))
+          .map((g) => OptionGroup.fromMap(Map<String, dynamic>.from(g as Map)))
           .toList(),
       isBestSeller: map['isBestSeller'] ?? false,
       isNew: map['isNew'] ?? false,

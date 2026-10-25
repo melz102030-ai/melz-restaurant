@@ -69,8 +69,12 @@ class OptionGroup {
           orElse: () => OptionGroupType.single,
         ),
         required: m['required'] ?? false,
+        // Map<String, dynamic>.from(...) بدل (as Map<String, dynamic>)
+        // مباشرة — فايربيس على الويب يعيد خرائط متداخلة داخل القوائم بنوع
+        // لا يُقبَل بالتحويل المباشر (JSLinkedHashMap)، فيفشل التحويل
+        // بصمت ويختفي الخيار المحفوظ فعلياً فور إعادة فتح الصنف
         options: (m['options'] as List? ?? [])
-            .map((o) => ItemOption.fromMap(o as Map<String, dynamic>))
+            .map((o) => ItemOption.fromMap(Map<String, dynamic>.from(o as Map)))
             .toList(),
       );
 
