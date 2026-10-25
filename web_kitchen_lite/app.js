@@ -701,7 +701,75 @@ function closeModal() {
 }
 
 // ─── الطباعة ──────────────────────────────────────────────────────────────────
+// نسخة نصية بسيطة بلا HTML — تُرسَل لتطبيق الجسر المرافق المثبَّت على جهاز
+// Sunmi (sunmi_print_bridge/) عبر رابط sunmiprint://، لأن طابعة Sunmi
+// الداخلية غير مرئية لنافذة طباعة أندرويد القياسية (window.print)
+function buildReceiptPlainText(order) {
+  var df = new Intl.DateTimeFormat('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
+  var sep = '--------------------------------';
+  var lines = [];
+  lines.push(state.settings.restaurantName);
+  lines.push('طلب رقم ' + pad4(order.orderNumber));
+  lines.push(df.format(order.createdAt));
+  lines.push(sep);
+  lines.push('العميل: ' + order.customerName);
+  lines.push('الجوال: ' + order.customerPhone);
+  lines.push('النوع: ' + (order.orderType === 'delivery' ? 'توصيل' : 'استلام من المطعم'));
+  if (order.orderType === 'delivery' && order.deliveryAddress) lines.push('العنوان: ' + order.deliveryAddress);
+  lines.push(sep);
+  order.items.forEach(function (item) {
+    lines.push('×' + item.quantity + '  ' + item.name + '  ' + (item.price * item.quantity).toFixed(2));
+    var optsLine = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
+      .map(function (o) {
+        var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
+        return o.groupName + ': ' + o.selectedNames.join('، ') + extra;
+      }).join(' | ');
+    if (optsLine) lines.push('   ' + optsLine);
+  });
+  lines.push(sep);
+  lines.push('الإجمالي الفرعي: ' + order.subtotal.toFixed(2));
+  if (order.deliveryFee > 0) lines.push('التوصيل: ' + order.deliveryFee.toFixed(2));
+  lines.push('الإجمالي: ' + order.total.toFixed(2));
+  if (order.notes) { lines.push(sep); lines.push('ملاحظات: ' + order.notes); }
+  lines.push(sep);
+  lines.push('شكراً لطلبك من ' + state.settings.restaurantName);
+  return lines.join('\n');
+}
+
+function printViaSunmiBridge(order) {
+  try {
+    var text = buildReceiptPlainText(order);
+    var b64 = btoa(unescape(encodeURIComponent(text)));
+    window.location.href = 'sunmiprint://print?data=' + encodeURIComponent(b64);
+    return true;
+  } catch (e) {
+    console.warn('Sunmi bridge print failed', e);
+    return false;
+  }
+}
+
 function printOrder(order) {
+  // جرّب تطبيق الجسر المرافق أولاً — إن كان مثبَّتاً فسيستقبل الرابط فعلياً
+  // فتفقد هذه الصفحة التركيز للحظة (ينتقل أندرويد لتطبيق الجسر) ثم يعود
+  // تلقائياً بعد الطباعة؛ نستخدم هذا كمؤشر لإلغاء الخطة البديلة (نافذة
+  // الطباعة القياسية) بدل تشغيلها دائماً فوق الجسر الناجح أصلاً. إن لم
+  // يكن الجسر مثبَّتاً، تبقى الصفحة ظاهرة فتُشغَّل الخطة البديلة بعد مهلة قصيرة
+  var usedBridge = false;
+  function onVisibilityChange() {
+    if (document.hidden) {
+      usedBridge = true;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    }
+  }
+  document.addEventListener('visibilitychange', onVisibilityChange);
+  printViaSunmiBridge(order);
+  setTimeout(function () {
+    document.removeEventListener('visibilitychange', onVisibilityChange);
+    if (!usedBridge) printViaWindowPrint(order);
+  }, 800);
+}
+
+function printViaWindowPrint(order) {
   try {
     var df = new Intl.DateTimeFormat('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
     var itemsRows = order.items.map(function (item) {
