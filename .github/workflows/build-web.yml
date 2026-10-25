@@ -78,16 +78,28 @@ jobs:
         run: |
           git config user.email "melz102030@gmail.com"
           git config user.name "melz-bot"
+          # احتفظ بمخرجات البناء الجديدة جانباً قبل أي مزامنة مع origin
+          cp -r build/web /tmp/web-build-output
+          # زامن مع آخر حالة لـ origin/main بدل محاولة دمج ملفات JS المولَّدة
+          # نصياً — الدمج النصي على ملفات مثل main.dart.js يُفضي إلى
+          # تعارضات حقيقية غير قابلة للحل تلياً لأن كل بناءَين مستقلَّين
+          # ينتجان محتوى مختلفاً كلياً حتى لو كان مصدرهما متطابقاً
+          git fetch origin main
+          git reset --hard origin/main
+          # استعد مخرجات البناء فوق الحالة المزامَنة
+          rm -rf build/web
+          cp -r /tmp/web-build-output build/web
           git add build/web -f
           git diff --staged --quiet && echo "No changes" && exit 0
           git commit -m "build: update web [skip ci]"
           for i in 1 2 3 4 5; do
             if git push; then break; fi
-            echo "Push rejected, retrying after rebase ($i)..."
-            # flutter build يترك ملفات متتبَّعة أخرى (مثل pubspec.lock)
-            # معدَّلة بدون أن نضيفها — تمنع git pull --rebase لأنها تحتاج
-            # شجرة عمل نظيفة تماماً، لا فقط فهرساً نظيفاً
-            git checkout -- . || true
-            git pull --rebase origin main
+            echo "Push rejected, retrying ($i)..."
+            git fetch origin main
+            git reset --hard origin/main
+            rm -rf build/web
+            cp -r /tmp/web-build-output build/web
+            git add build/web -f
+            git commit -m "build: update web [skip ci]"
             sleep 3
           done
