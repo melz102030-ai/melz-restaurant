@@ -1,0 +1,48 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+// تطبيق أندرويد أصلي خفيف جداً (بلا فلاتر إطلاقاً، بلا أي محرك واجهة) —
+// استبدل نسخة فلاتر السابقة التي كانت تستهلك ذاكرة كافية لتضطر أندرويد
+// لإغلاق تبويب كروم (صفحة المطبخ) من الذاكرة على هذا الجهاز الضعيف
+// (890 ميغا فقط)، فتُعاد الصفحة من الصفر عند الرجوع إليها.
+android {
+    namespace 'com.kababjik.sunmiprintbridge'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.kababjik.sunmiprintbridge"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    // يولِّد Android Gradle Plugin تلقائياً أصناف الواجهة (Stub) من ملفات
+    // .aidl الموجودة في src/main/aidl/ — معطَّل افتراضياً منذ AGP 7، يحتاج
+    // تفعيلاً صريحاً هنا
+    buildFeatures {
+        aidl true
+    }
+}
+
+dependencies {
+    // لا حاجة لأي مكتبة خارجية — الواجهة (interface) المطلوبة معرَّفة
+    // محلياً في src/main/aidl/ (نفس واجهة SDK الرسمية لخدمة الطابعة
+    // المثبَّتة مسبقاً على الجهاز)، وAGP يولِّد صنف الاتصال بها تلقائياً
+}
