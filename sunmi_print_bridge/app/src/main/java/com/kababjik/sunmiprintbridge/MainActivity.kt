@@ -30,13 +30,26 @@ import woyou.aidlservice.jiuiv5.IWoyouService
  */
 class MainActivity : Activity() {
 
+    companion object {
+        // حراسة ضد الطباعة المكرّرة — لاحظنا أحياناً وصول نفس رابط الطباعة
+        // مرتين خلال أجزاء من الثانية (كروم يعيد محاولة التنقّل لمخطط رابط
+        // مخصَّص أحياناً)، فتُطبع نسختان من نفس الفاتورة. نتجاهل أي طلب
+        // طباعة مطابق تماماً لآخر طلب خلال 5 ثوانٍ، بغض النظر عن السبب
+        // الدقيق لوصوله مرتين.
+        private var lastPrintedData: String? = null
+        private var lastPrintedAt: Long = 0
+    }
+
     private var printerService: IWoyouService? = null
     private val handler = Handler(Looper.getMainLooper())
     private lateinit var statusView: TextView
     private var finished = false
 
-    private val boldOn = byteArrayOf(0x1B, 0x45, 0x01)
-    private val boldOff = byteArrayOf(0x1B, 0x45, 0x00)
+    // نرسل صيغتي "بولد" الشائعتين معاً (ESC E وESC G) لأن بعض أدوات
+    // تحويل فريموير الطابعات الصينية تدعم واحدة فقط دون الأخرى — إرسال
+    // أمر غير مدعوم لا يسبّب أي ضرر، يُتجاهَل بصمت
+    private val boldOn = byteArrayOf(0x1B, 0x45, 0x01, 0x1B, 0x47, 0x01)
+    private val boldOff = byteArrayOf(0x1B, 0x45, 0x00, 0x1B, 0x47, 0x00)
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
@@ -85,25 +98,37 @@ class MainActivity : Activity() {
                 finishWith("لا توجد بيانات طباعة في الرابط")
                 return
             }
+            // تجاهل أي طلب طباعة مطابق تماماً وصل خلال آخر 5 ثوانٍ — يمنع
+            // الطباعة المكرّرة لنفس الفاتورة بغض النظر عن سبب وصولها مرتين
+            val now = System.currentTimeMillis()
+            if (raw == lastPrintedData && now - lastPrintedAt < 5000) {
+                finishWith("طُبعت هذه الفاتورة للتو — تم تجاهل الطلب المكرَّر")
+                return
+            }
+            lastPrintedData = raw
+            lastPrintedAt = now
+
             val text = String(Base64.decode(raw, Base64.DEFAULT), Charsets.UTF_8)
 
+            // "البولد" يُرسَل دائماً كآخر أمر تنسيق مباشرة قبل النص — إذا
+            // أُرسل قبل setAlignment/setFontSize فبعض الفريموير يصفّر وضع
+            // النمط (bold) عند تطبيق أمر المحاذاة/الحجم اللاحق فيختفي أثره
             var isFirstLine = true
             for (line in text.split("\n")) {
                 if (line.isBlank()) {
                     svc.lineWrap(1, null)
                     continue
                 }
-                svc.sendRAWData(boldOn, null)
                 if (isFirstLine) {
                     svc.setAlignment(1, null) // 1 = وسط
                     svc.setFontSize(38f, null)
-                    svc.printText(line + "\n", null)
                     isFirstLine = false
                 } else {
                     svc.setAlignment(2, null) // 2 = يمين
                     svc.setFontSize(28f, null)
-                    svc.printText(line + "\n", null)
                 }
+                svc.sendRAWData(boldOn, null)
+                svc.printText(line + "\n", null)
                 svc.sendRAWData(boldOff, null)
             }
             svc.lineWrap(4, null)
