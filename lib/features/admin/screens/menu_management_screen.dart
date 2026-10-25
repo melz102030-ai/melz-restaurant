@@ -1397,21 +1397,32 @@ class _OptionGroupTile extends StatelessWidget {
         border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: ExpansionTile(
-        title: Row(
+        // الاسم والشارتان كانتا بصف أفقي واحد مع أزرار تعديل/حذف/سحب على
+        // الطرف الآخر — في نافذة ضيقة (مثل حوار إضافة الصنف) كان هذا يضغط
+        // عرض الاسم المتاح لدرجة التفافه بعد حرفين فقط. الاسم الآن سطر
+        // كامل والشارتان تحته بدل مزاحمته
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(group.name,
-                  style: TextStyle(
-                      color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-            ),
-            _badge(
-              group.required ? 'إجباري' : 'اختياري',
-              group.required ? AppColors.manjawi : AppColors.textHint,
-            ),
-            const SizedBox(width: 6),
-            _badge(
-              group.type == OptionGroupType.single ? 'واحد' : 'متعدد',
-              AppColors.purple,
+            Text(group.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 5),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                _badge(
+                  group.required ? 'إجباري' : 'اختياري',
+                  group.required ? AppColors.manjawi : AppColors.textHint,
+                ),
+                _badge(
+                  group.type == OptionGroupType.single ? 'واحد' : 'متعدد',
+                  AppColors.purple,
+                ),
+              ],
             ),
           ],
         ),
@@ -1419,9 +1430,9 @@ class _OptionGroupTile extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ActionIcon(icon: Icons.edit, color: AppColors.textSecondary, tooltip: 'تعديل', onTap: onEdit),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             ActionIcon(icon: Icons.delete, color: AppColors.error, tooltip: 'حذف', onTap: onDelete),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             ReorderableDragStartListener(
               index: index,
               child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
