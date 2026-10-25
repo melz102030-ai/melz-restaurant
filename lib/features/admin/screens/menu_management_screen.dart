@@ -556,20 +556,24 @@ class _CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ReorderableDragStartListener(
-            index: index,
-            child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: ReorderableDragStartListener(
+              index: index,
+              child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
+            ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: cat.imageUrl != null
@@ -581,33 +585,50 @@ class _CategoryTile extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(cat.name,
-                style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16)),
-          ),
-          Switch(
-            value: cat.isActive,
-            onChanged: (v) => MenuService.updateCategory(cat.copyWith(isActive: v)),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          const SizedBox(width: 4),
-          ActionIcon(
-            icon: Icons.edit,
-            color: AppColors.textSecondary,
-            tooltip: 'تعديل',
-            onTap: () => showDialog(
-              context: context,
-              builder: (_) => _CategoryDialog(cat: cat),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(cat.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16)),
             ),
           ),
           const SizedBox(width: 6),
-          ActionIcon(
-            icon: Icons.delete,
-            color: AppColors.error,
-            tooltip: 'حذف',
-            onTap: () => _confirmDelete(context),
+          // مكدَّسة عمودياً (مفتاح فوق، أزرار تحته) بدل صف أفقي واحد —
+          // كانت تضغط عرض الاسم المتاح لدرجة التفافه بعد حرفين فقط
+          Column(
+            children: [
+              Switch(
+                value: cat.isActive,
+                onChanged: (v) => MenuService.updateCategory(cat.copyWith(isActive: v)),
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ActionIcon(
+                    icon: Icons.edit,
+                    color: AppColors.textSecondary,
+                    tooltip: 'تعديل',
+                    onTap: () => showDialog(
+                      context: context,
+                      builder: (_) => _CategoryDialog(cat: cat),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  ActionIcon(
+                    icon: Icons.delete,
+                    color: AppColors.error,
+                    tooltip: 'حذف',
+                    onTap: () => _confirmDelete(context),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
