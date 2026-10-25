@@ -1,6 +1,7 @@
 {
     "name": "Meals - برجر . ساندوتشات . كلوب",
     "short_name": "Meals",
+    "id": "/",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#6A0DAD",
