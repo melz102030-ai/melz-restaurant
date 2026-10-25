@@ -395,16 +395,17 @@ function buildOrderCard(order, index) {
   // Items
   var itemsWrap = el('div', { class: 'order-items' });
   order.items.forEach(function (item) {
-    var optsSummary = (item.selectedOptions || [])
+    var optLines = (item.selectedOptions || [])
       .filter(function (o) { return (o.selectedNames || []).length; })
       .map(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
         return o.groupName + ': ' + (o.selectedNames || []).join('، ') + extra;
-      })
-      .join(' | ');
+      });
     itemsWrap.appendChild(el('div', { class: 'order-item-row' }, [
       el('div', { class: 'qty-box' }, ['×' + item.quantity]),
-      el('div', {}, [item.name + (optsSummary ? '' : ''), optsSummary ? el('div', { class: 'item-opts' }, [optsSummary]) : null]),
+      el('div', {}, [
+        el('div', { class: 'item-name' }, [item.name]),
+      ].concat(optLines.map(function (line) { return el('div', { class: 'item-opts' }, [line]); }))),
     ]));
   });
   card.appendChild(itemsWrap);
