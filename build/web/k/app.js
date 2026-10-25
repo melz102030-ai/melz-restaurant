@@ -720,14 +720,14 @@ function buildReceiptPlainText(order) {
   order.items.forEach(function (item) {
     // سطر أعمدة واحد: السعر في اليسار والصنف (مع الكمية) في اليمين،
     // بمحاذاة فعلية عبر printColumnsText في تطبيق الجسر (راجع
-    // MainActivity.kt) بدل سطرين منفصلين
-    lines.push('COL\t×' + item.quantity + ' ' + item.name + '\t' + (item.price * item.quantity).toFixed(2) + ' ر.س');
-    var optsLine = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
-      .map(function (o) {
+    // MainActivity.kt) — السعر بلا "ر.س" لتوفير مساحة للاسم (العمود
+    // الأول كان يبتلع الاسم بالكامل عند هذا الحجم الكبير من الخط)
+    lines.push('COL\t×' + item.quantity + ' ' + item.name + '\t' + (item.price * item.quantity).toFixed(2));
+    (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
+      .forEach(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
-        return o.groupName + ': ' + o.selectedNames.join('، ') + extra;
-      }).join(' | ');
-    if (optsLine) lines.push(optsLine);
+        lines.push(o.groupName + ': ' + o.selectedNames.join('، ') + extra);
+      });
   });
   lines.push(sep);
   lines.push('الإجمالي الفرعي: ' + order.subtotal.toFixed(2));
@@ -739,11 +739,17 @@ function buildReceiptPlainText(order) {
   return lines.join('\n');
 }
 
+// تُرسَل عبر fetch عادي لخادم محلي صغير (127.0.0.1:9898) يديره تطبيق
+// الجسر (راجع sunmi_print_bridge/PrintBridgeService.kt) — بلا أي تنقّل أو
+// فتح تطبيق آخر، فلا يغادر كروم المقدّمة إطلاقاً ولا تُعاد صفحة المطبخ من
+// جديد بعد الطباعة (كانت هذه المشكلة الجذرية مع كل الطرق السابقة التي
+// تعتمد على فتح تطبيق منفصل عبر رابط sunmiprint://)
 function printViaSunmiBridge(order) {
   try {
     var text = buildReceiptPlainText(order);
-    var b64 = btoa(unescape(encodeURIComponent(text)));
-    window.location.href = 'sunmiprint://print?data=' + encodeURIComponent(b64);
+    fetch('http://127.0.0.1:9898/print', { method: 'POST', body: text }).catch(function (e) {
+      console.warn('Sunmi bridge print failed', e);
+    });
     return true;
   } catch (e) {
     console.warn('Sunmi bridge print failed', e);
@@ -753,9 +759,6 @@ function printViaSunmiBridge(order) {
 
 // هذه الصفحة مخصَّصة لأجهزة Sunmi التي عليها تطبيق الجسر دائماً (راجع
 // sunmi_print_bridge/) — تستدعيه مباشرة بلا أي خطة بديلة تلقائية.
-// جرّبنا سابقاً خطة بديلة تعتمد على فقدان الصفحة للتركيز (visibilitychange)
-// للتمييز بين نجاح/فشل الجسر، لكنها كانت تُطبع نسختين أحياناً (الجسر
-// ينجح لكن إشارة فقدان التركيز تتأخر أو لا تصل)، فأُزيلت كمصدر نسخ مكرَّرة
 function printOrder(order) {
   printViaSunmiBridge(order);
 }
