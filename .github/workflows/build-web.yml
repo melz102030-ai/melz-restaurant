@@ -40,21 +40,23 @@ jobs:
       # نسخة خفيفة جداً (شاشة المطبخ فقط) لأجهزة الكاشير ضعيفة الإمكانيات —
       # صفحة HTML/JS عادية بلا فلاتر إطلاقاً (راجع web_kitchen_lite/)، لأن
       # محرك فلاتر نفسه (CanvasKit, ~7 ميغا WASM) هو أكبر سبب للثقل على هذه
-      # الأجهزة، لا حجم كود التطبيق — تُنسخ كما هي بلا أي خطوة بناء
+      # الأجهزة، لا حجم كود التطبيق — تُنسخ كما هي بلا أي خطوة بناء.
+      # تُنشر على /k/ (رابط قصير مقصود — راجع lib/shared/utils/kitchen_redirect.dart)
       - name: Publish kitchen-lite web
         run: |
-          rm -rf build/web/kitchen-lite
-          mkdir -p build/web/kitchen-lite
-          cp -r web_kitchen_lite/* build/web/kitchen-lite/
+          rm -rf build/web/k
+          mkdir -p build/web/k
+          cp -r web_kitchen_lite/* build/web/k/
 
       # صفحة وسيطة صغيرة فقط (راجع web_admin_entry/) — manifest.json مستقل
       # يمنح رابط الإدارة هوية تطبيق قابل للتثبيت خاصة به (اسم وأيقونة)،
-      # بدل مشاركة نفس هوية تطبيق العميل عند التثبيت على الشاشة الرئيسية
+      # بدل مشاركة نفس هوية تطبيق العميل عند التثبيت على الشاشة الرئيسية.
+      # تُنشر على /a/ (رابط قصير مقصود)
       - name: Publish admin-entry web
         run: |
-          rm -rf build/web/admin
-          mkdir -p build/web/admin
-          cp -r web_admin_entry/* build/web/admin/
+          rm -rf build/web/a
+          mkdir -p build/web/a
+          cp -r web_admin_entry/* build/web/a/
 
       # يُنشر مباشرة بعد البناء (قبل الالتزام بالمخرجات) بدل الاعتماد على
       # تشغيل منفصل يُحفَّز بتعديل build/web — التزام البناء يحمل [skip ci]

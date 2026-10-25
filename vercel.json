@@ -31,25 +31,19 @@
       ]
     },
     {
-      "source": "/kitchen-lite/index.html",
+      "source": "/k/index.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     },
     {
-      "source": "/kitchen-lite/flutter_bootstrap.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-      ]
-    },
-    {
-      "source": "/kitchen-lite/main.dart.js",
+      "source": "/k/app.js",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache" }
       ]
     },
     {
-      "source": "/admin/index.html",
+      "source": "/a/index.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
