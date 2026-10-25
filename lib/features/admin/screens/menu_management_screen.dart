@@ -416,7 +416,7 @@ class _MenuItemTile extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 2),
           Transform.scale(
             scale: 0.78,
             alignment: Alignment.centerLeft,
@@ -427,48 +427,55 @@ class _MenuItemTile extends ConsumerWidget {
               materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
           ),
-          ActionIcon(
-            icon: Icons.edit,
-            color: AppColors.textSecondary,
-            tooltip: 'تعديل',
-            onTap: () => showDialog(
-              context: context,
-              builder: (_) => _MenuItemDialog(item: item),
-            ),
-          ),
-          const SizedBox(width: 4),
-          ActionIcon(
-            icon: Icons.copy,
-            color: AppColors.purple,
-            tooltip: 'نسخ',
-            onTap: () => showDialog(
-              context: context,
-              builder: (_) => _MenuItemDialog(
-                item: MenuItemModel(
-                  id: '',
-                  name: '${item.name} (نسخة)',
-                  description: item.description,
-                  categoryId: item.categoryId,
-                  categoryName: item.categoryName,
-                  price: item.price,
-                  isAvailable: item.isAvailable,
-                  sortOrder: item.sortOrder,
-                  tags: item.tags,
-                  discountPercent: item.discountPercent,
-                  optionGroups: item.optionGroups,
-                  isBestSeller: item.isBestSeller,
-                  isNew: item.isNew,
-                ),
-                isDuplicate: true,
-              ),
-            ),
-          ),
-          const SizedBox(width: 4),
-          ActionIcon(
-            icon: Icons.delete,
-            color: AppColors.error,
-            tooltip: 'حذف',
-            onTap: () => _confirmDelete(context, item),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, size: 18, color: AppColors.textHint),
+            padding: EdgeInsets.zero,
+            onSelected: (v) {
+              if (v == 'edit') {
+                showDialog(context: context, builder: (_) => _MenuItemDialog(item: item));
+              } else if (v == 'copy') {
+                showDialog(
+                  context: context,
+                  builder: (_) => _MenuItemDialog(
+                    item: MenuItemModel(
+                      id: '',
+                      name: '${item.name} (نسخة)',
+                      description: item.description,
+                      categoryId: item.categoryId,
+                      categoryName: item.categoryName,
+                      price: item.price,
+                      isAvailable: item.isAvailable,
+                      sortOrder: item.sortOrder,
+                      tags: item.tags,
+                      discountPercent: item.discountPercent,
+                      optionGroups: item.optionGroups,
+                      isBestSeller: item.isBestSeller,
+                      isNew: item.isNew,
+                    ),
+                    isDuplicate: true,
+                  ),
+                );
+              } else if (v == 'delete') {
+                _confirmDelete(context, item);
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'edit', child: ListTile(
+                dense: true, contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.edit_outlined, size: 18),
+                title: Text('تعديل'),
+              )),
+              const PopupMenuItem(value: 'copy', child: ListTile(
+                dense: true, contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.copy_outlined, size: 18),
+                title: Text('نسخ'),
+              )),
+              const PopupMenuItem(value: 'delete', child: ListTile(
+                dense: true, contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.delete_outline, size: 18, color: AppColors.error),
+                title: Text('حذف', style: TextStyle(color: AppColors.error)),
+              )),
+            ],
           ),
         ],
       ),
