@@ -23,6 +23,7 @@ import '../../../core/providers/order_type_provider.dart';
 import '../../../core/providers/popup_ad_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/app_theme_provider.dart';
+import '../../../core/services/cloudinary_service.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/menu_item_card.dart';
@@ -1080,7 +1081,7 @@ class _SearchCategoryBar extends StatelessWidget {
                         child: ClipOval(
                           child: imageUrl != null
                               ? Image.network(
-                                  imageUrl,
+                                  CloudinaryService.optimized(imageUrl, width: 150),
                                   fit: BoxFit.contain,
                                   alignment: Alignment.center,
                                   errorBuilder: (_, __, ___) =>
@@ -1236,7 +1237,7 @@ class _PromoCarouselState extends State<_PromoCarousel> {
     if (widget.banners.isEmpty) {
       if (widget.fallbackImageUrl == null) return const SizedBox.shrink();
       return Image.network(
-        widget.fallbackImageUrl!,
+        CloudinaryService.optimized(widget.fallbackImageUrl, width: 1200),
         width: widget.screenWidth,
         fit: BoxFit.fitWidth,
         errorBuilder: (_, __, ___) => _fallbackGradient(height),
@@ -1258,7 +1259,7 @@ class _PromoCarouselState extends State<_PromoCarousel> {
                 behavior: HitTestBehavior.opaque,
                 onTap: () => widget.onBannerTap(banner),
                 child: Image.network(
-                  banner.imageUrl,
+                  CloudinaryService.optimized(banner.imageUrl, width: 1200),
                   width: widget.screenWidth,
                   height: height,
                   fit: BoxFit.cover,

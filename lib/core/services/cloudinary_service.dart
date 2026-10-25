@@ -12,6 +12,22 @@ class CloudinaryService {
   static const String _deleteWorkerUrl =
       'https://melz-delete-image.melz102030.workers.dev';
 
+  // ضغط/تحسين تلقائي عبر تحويلات Cloudinary وقت العرض — لا يمسّ الملف
+  // الأصلي المخزَّن إطلاقاً (رابط مختلف فقط)، فيشمل تلقائياً كل الصور
+  // الموجودة حالياً وكل صورة تُرفع مستقبلاً بلا أي خطوة إضافية:
+  // f_auto يختار الصيغة الأخف حسب المتصفح (WebP/AVIF بدل JPEG/PNG الثقيلة)،
+  // q_auto يضغط الجودة تلقائياً بأقل فقدان ملحوظ، وwidth يمنع تنزيل صورة
+  // بدقة أكبر من حجم عرضها الفعلي على الشاشة (أكبر سبب تضخّم غير ملحوظ).
+  // نفس المنطق مطبَّق مسبقاً في web/index.html (دالة _cdnSmall) لشاشة
+  // التحميل الأولى تحديداً — هذه النسخة لبقية التطبيق (Dart).
+  static String optimized(String? url, {int? width}) {
+    if (url == null || !url.contains('res.cloudinary.com') || !url.contains('/upload/')) {
+      return url ?? '';
+    }
+    final transform = width != null ? 'f_auto,q_auto,w_$width' : 'f_auto,q_auto';
+    return url.replaceFirst('/upload/', '/upload/$transform/');
+  }
+
   static Future<String?> uploadImage(Uint8List imageBytes, String fileName) async {
     final url = Uri.parse(
       'https://api.cloudinary.com/v1_1/$cloudName/image/upload',

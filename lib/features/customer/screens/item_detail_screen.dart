@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/menu_item_model.dart';
+import '../../../core/services/cloudinary_service.dart';
 import '../providers/menu_provider.dart';
 import '../widgets/menu_item_card.dart';
 
@@ -72,7 +73,7 @@ class _ItemHeader extends StatelessWidget {
               child: ClipRect(
                 child: item.imageUrl != null
                     ? Image.network(
-                        item.imageUrl!,
+                        CloudinaryService.optimized(item.imageUrl, width: 1000),
                         width: double.infinity,
                         fit: BoxFit.fitWidth,
                         alignment: Alignment.center,

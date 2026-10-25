@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/popup_ad_model.dart';
+import '../../../core/services/cloudinary_service.dart';
 
 // إعلان منبثق يظهر مرة واحدة لكل حملة إعلانية — صورة واحدة أو أكثر بتمرير
 // تلقائي ويدوي، وصف اختياري أسفل الصور، وإمكانية الضغط للانتقال لوجهة الإعلان
@@ -98,7 +99,7 @@ class _PopupAdDialogState extends State<_PopupAdDialog> {
                             itemCount: ad.imageUrls.length,
                             onPageChanged: (i) => setState(() => _page = i),
                             itemBuilder: (_, i) => Image.network(
-                              ad.imageUrls[i],
+                              CloudinaryService.optimized(ad.imageUrls[i], width: 800),
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
                                 color: AppColors.surfaceLight,

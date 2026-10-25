@@ -832,7 +832,7 @@ class _CartItemTile extends ConsumerWidget {
             borderRadius: BorderRadius.circular(10),
             child: cartItem.item.imageUrl != null
                 ? Image.network(
-                    cartItem.item.imageUrl!,
+                    CloudinaryService.optimized(cartItem.item.imageUrl, width: 150),
                     width: 64,
                     height: 64,
                     fit: BoxFit.cover,

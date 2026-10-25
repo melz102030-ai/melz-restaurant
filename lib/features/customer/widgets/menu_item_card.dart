@@ -7,6 +7,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_group_model.dart';
 import '../../../core/providers/cart_provider.dart';
+import '../../../core/services/cloudinary_service.dart';
 import '../providers/menu_provider.dart';
 
 // إضافة سريعة (صنف بلا خيارات، أول قطعة) مع تغذية راجعة موحّدة — بنفس رسالة
@@ -86,7 +87,7 @@ class MenuItemListCard extends ConsumerWidget {
                               ]),
                         child: item.imageUrl != null
                             ? Image.network(
-                                item.imageUrl!,
+                                CloudinaryService.optimized(item.imageUrl, width: 500),
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => _placeholder(),
                               )
@@ -344,7 +345,7 @@ class MenuItemGridCard extends ConsumerWidget {
                             ]),
                       child: item.imageUrl != null
                           ? Image.network(
-                              item.imageUrl!,
+                              CloudinaryService.optimized(item.imageUrl, width: 500),
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => _placeholder(),
                             )
