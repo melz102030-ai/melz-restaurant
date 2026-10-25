@@ -84,6 +84,9 @@
   .topbar-title { flex: 1; }
   .topbar-title h1 { font-size: 16px; margin: 0; }
   .topbar-title p { font-size: 11.5px; color: var(--text-secondary); margin: 2px 0 0; }
+  .open-status { font-weight: bold; }
+  .open-status.open { color: var(--success); }
+  .open-status.closed { color: var(--error); }
   .icon-btn {
     width: 38px; height: 38px; border-radius: 10px; border: none; background: var(--surface-light);
     color: var(--purple); font-size: 17px; cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -247,6 +250,20 @@
   .switch input:checked + .slider { background: var(--success); }
   .switch input:checked + .slider:before { transform: translateX(-19px); }
 
+  .avail-item { cursor: pointer; }
+  .avail-expand-arrow { flex-shrink: 0; color: var(--text-hint); transition: transform .15s; }
+  .avail-expand-arrow.open { transform: rotate(180deg); }
+  .avail-options { margin: -4px 16px 10px; padding: 4px 13px 6px; background: var(--surface-light); border-radius: 0 0 12px 12px; }
+  .avail-opt-group { padding: 6px 0; }
+  .avail-opt-group-title { font-size: 11.5px; font-weight: bold; color: var(--text-secondary); margin-bottom: 4px; }
+  .avail-opt-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 5px 0; }
+  .avail-opt-row.off .avail-opt-name { color: var(--text-hint); text-decoration: line-through; }
+  .avail-opt-name { font-size: 12.5px; }
+  .switch.small { width: 36px; height: 20px; }
+  .switch.small .slider:before { width: 15px; height: 15px; right: 2.5px; top: 2.5px; }
+  .switch.small input:checked + .slider:before { transform: translateX(-16px); }
+  .avail-no-opts { font-size: 11.5px; color: var(--text-hint); padding: 6px 0; }
+
   .toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 200;
     background: var(--text-primary); color: #fff; padding: 11px 18px; border-radius: 10px; font-size: 13px;
@@ -283,6 +300,7 @@
       <div class="topbar-title">
         <h1>شاشة المطبخ</h1>
         <p id="activeCount">مجموع النشط: 0 طلب</p>
+        <p id="openStatus" class="open-status"></p>
       </div>
       <button id="stopAlarmBtn" class="stop-alarm-btn hidden">إيقاف 🔇</button>
       <button id="availBtn" class="icon-btn" title="إدارة توفر الأصناف">🍽️</button>
