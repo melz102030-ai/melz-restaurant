@@ -6,29 +6,35 @@ class ItemOption {
   final String id;
   final String name;
   final double priceAdjustment;
+  final bool isAvailable;
 
   const ItemOption({
     required this.id,
     required this.name,
     this.priceAdjustment = 0,
+    this.isAvailable = true,
   });
 
   Map<String, dynamic> toMap() => {
         'id': id,
         'name': name,
         'priceAdjustment': priceAdjustment,
+        'isAvailable': isAvailable,
       };
 
   factory ItemOption.fromMap(Map<String, dynamic> m) => ItemOption(
         id: m['id'] ?? const Uuid().v4(),
         name: m['name'] ?? '',
         priceAdjustment: (m['priceAdjustment'] ?? 0).toDouble(),
+        isAvailable: m['isAvailable'] ?? true,
       );
 
-  ItemOption copyWith({String? name, double? priceAdjustment}) => ItemOption(
+  ItemOption copyWith({String? name, double? priceAdjustment, bool? isAvailable}) =>
+      ItemOption(
         id: id,
         name: name ?? this.name,
         priceAdjustment: priceAdjustment ?? this.priceAdjustment,
+        isAvailable: isAvailable ?? this.isAvailable,
       );
 }
 
@@ -67,6 +73,11 @@ class OptionGroup {
             .map((o) => ItemOption.fromMap(o as Map<String, dynamic>))
             .toList(),
       );
+
+  // الخيارات المفعَّلة فقط — تُستخدَم في واجهة العميل حتى لا يرى/يختار
+  // خياراً أوقفه المطبخ مؤقتاً (مثلاً نفدت مكوّناته)
+  List<ItemOption> get availableOptions =>
+      options.where((o) => o.isAvailable).toList();
 
   OptionGroup copyWith({
     String? name,

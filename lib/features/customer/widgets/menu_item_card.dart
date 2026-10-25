@@ -786,8 +786,8 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   }
 
   Set<String> _defaultSelectionFor(OptionGroup group) {
-    if (group.type == OptionGroupType.single && group.required && group.options.isNotEmpty) {
-      return {group.options.first.id};
+    if (group.type == OptionGroupType.single && group.required && group.availableOptions.isNotEmpty) {
+      return {group.availableOptions.first.id};
     }
     return {};
   }
@@ -1072,7 +1072,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
               ],
             ),
             const SizedBox(height: 8),
-            ...group.options.map((opt) {
+            ...group.availableOptions.map((opt) {
               final selected = _selections[group.id]?.contains(opt.id) ?? false;
               return GestureDetector(
                 onTap: () => setState(() {

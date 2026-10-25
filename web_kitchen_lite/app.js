@@ -47,6 +47,110 @@ function el(tag, attrs, children) {
   return e;
 }
 function pad4(n) { return String(n).padStart(4, '0'); }
+
+// ─── حالة الفتح/الإغلاق (مطابقة لمنطق RestaurantSettings.effectivelyOpen
+// في lib/core/models/settings_model.dart — نفس القواعد بالضبط بما فيها
+// الفترات الليلية الممتدة لما بعد منتصف الليل) ─────────────────────────────
+var DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat']; // يطابق Date.getDay()
+function parseHHMM(hhmm, date) {
+  if (!hhmm) return null;
+  var parts = String(hhmm).split(':');
+  if (parts.length !== 2) return null;
+  var h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+  if (isNaN(h) || isNaN(m)) return null;
+  var d = new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m);
+  return d;
+}
+function fmtHHMM(hhmm) {
+  var parts = String(hhmm || '').split(':');
+  if (parts.length !== 2) return hhmm || '';
+  var h = parseInt(parts[0], 10) || 0, m = parseInt(parts[1], 10) || 0;
+  var isPm = h >= 12;
+  var h12 = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+  return h12 + ':' + String(m).padStart(2, '0') + ' ' + (isPm ? 'م' : 'ص');
+}
+function hasDetailedHours(s) { return s.workingHours && Object.keys(s.workingHours).length > 0; }
+function dayShifts(s, date) { return (s.workingHours && s.workingHours[DAY_KEYS[date.getDay()]]) || []; }
+function effectivelyOpen(s) {
+  if (s.isOpen === false || s.allowOrders === false) return false;
+  var now = new Date();
+  if (hasDetailedHours(s)) {
+    var shifts = dayShifts(s, now);
+    if (!shifts.length) return false;
+    for (var i = 0; i < shifts.length; i++) {
+      var open = parseHHMM(shifts[i].open, now), close = parseHHMM(shifts[i].close, now);
+      if (!open || !close) continue;
+      if (close <= open) { if (now > open || now < close) return true; }
+      else if (now > open && now < close) return true;
+    }
+    return false;
+  }
+  if (!s.openTime || !s.closeTime) return true;
+  var open2 = parseHHMM(s.openTime, now), close2 = parseHHMM(s.closeTime, now);
+  if (!open2 || !close2) return true;
+  if (close2 <= open2) return now > open2 || now < close2;
+  return now > open2 && now < close2;
+}
+function currentOpenShift(s) {
+  if (!hasDetailedHours(s)) return null;
+  var now = new Date();
+  var today = dayShifts(s, now);
+  for (var i = 0; i < today.length; i++) {
+    var open = parseHHMM(today[i].open, now), close = parseHHMM(today[i].close, now);
+    if (!open || !close) continue;
+    if (close <= open) { if (now > open) return today[i]; }
+    else if (now > open && now < close) return today[i];
+  }
+  var yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  var yShifts = dayShifts(s, yesterday);
+  for (var j = 0; j < yShifts.length; j++) {
+    var yOpen = parseHHMM(yShifts[j].open, yesterday), yClose = parseHHMM(yShifts[j].close, yesterday);
+    if (!yOpen || !yClose) continue;
+    if (yClose <= yOpen) {
+      var closeToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), yClose.getHours(), yClose.getMinutes());
+      if (now < closeToday) return yShifts[j];
+    }
+  }
+  return null;
+}
+function nextOpeningShift(s) {
+  if (!hasDetailedHours(s)) return null;
+  var now = new Date();
+  for (var dayOffset = 0; dayOffset < 8; dayOffset++) {
+    var day = new Date(now.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+    var shifts = dayShifts(s, day);
+    var best = null, bestOpen = null;
+    for (var i = 0; i < shifts.length; i++) {
+      var open = parseHHMM(shifts[i].open, day);
+      if (!open) continue;
+      if (dayOffset === 0 && open <= now) continue;
+      if (!bestOpen || open < bestOpen) { bestOpen = open; best = shifts[i]; }
+    }
+    if (best) return best;
+  }
+  return null;
+}
+function scheduleLabel(s) {
+  var openLabel, closeLabel;
+  if (hasDetailedHours(s)) {
+    var next = nextOpeningShift(s);
+    openLabel = next ? fmtHHMM(next.open) : fmtHHMM(s.openTime);
+    var cur = currentOpenShift(s);
+    closeLabel = cur ? fmtHHMM(cur.close) : fmtHHMM(s.closeTime);
+  } else {
+    openLabel = fmtHHMM(s.openTime);
+    closeLabel = fmtHHMM(s.closeTime);
+  }
+  return openLabel + ' - ' + closeLabel;
+}
+function renderOpenStatus() {
+  var elStatus = $('#openStatus');
+  if (!elStatus) return;
+  var s = state.settings;
+  var open = effectivelyOpen(s);
+  elStatus.textContent = (open ? 'مفتوح الآن' : 'مغلق الآن') + ' · ' + scheduleLabel(s);
+  elStatus.className = 'open-status ' + (open ? 'open' : 'closed');
+}
 // أيقونة خطّية أحادية اللون (currentColor) بدل الإيموجي الملوّن — الإيموجي
 // يحمل ألوانه الثابتة الخاصة (مثلاً 📞 وردي/أخضر) فيكسر أي نظام ألوان مهما
 // كانت الخلفية، وهذا كان سبب رئيسي في مظهر "العفاشة" اللي اشتكى منه المستخدم
@@ -156,6 +260,7 @@ function setupListeners() {
   if (state.unsubSettings) return; // مُفعَّل مسبقاً
   state.unsubSettings = db.doc('settings/restaurant').onSnapshot(function (snap) {
     if (snap.exists) state.settings = Object.assign({ restaurantName: 'Meals', estimatedPrepTime: 30 }, snap.data());
+    renderOpenStatus();
   });
 
   state.unsubOrders = db.collection('orders')
@@ -820,6 +925,8 @@ function renderAvailability() {
   });
 }
 
+var availExpanded = {}; // itemId -> bool (هل لوحة خيارات الصنف مفتوحة)
+
 function buildAvailItem(item) {
   var available = item.isAvailable !== false;
   var iconEl = item.imageUrl
@@ -828,7 +935,10 @@ function buildAvailItem(item) {
 
   var toggle = el('input', { type: 'checkbox' });
   toggle.checked = available;
-  var switchWrap = el('label', { class: 'switch' }, [toggle, el('span', { class: 'slider' })]);
+  var switchWrap = el('label', {
+    class: 'switch',
+    onclick: function (e) { e.stopPropagation(); },
+  }, [toggle, el('span', { class: 'slider' })]);
 
   toggle.addEventListener('change', function () {
     var val = toggle.checked;
@@ -845,14 +955,77 @@ function buildAvailItem(item) {
       .finally(function () { toggle.disabled = false; });
   });
 
-  return el('div', { class: 'avail-item' + (available ? '' : ' off') }, [
+  var hasOptions = (item.optionGroups || []).some(function (g) { return (g.options || []).length; });
+  var isOpen = !!availExpanded[item.id];
+
+  var row = el('div', {
+    class: 'avail-item' + (available ? '' : ' off'),
+    onclick: function () { availExpanded[item.id] = !availExpanded[item.id]; renderAvailability(); },
+  }, [
     iconEl,
     el('div', { class: 'avail-info' }, [
       el('div', { class: 'avail-name' }, [item.name]),
       el('div', { class: 'avail-price' }, [(item.price || 0).toFixed(2) + ' ر.س']),
     ]),
     switchWrap,
+    hasOptions ? el('span', { class: 'avail-expand-arrow' + (isOpen ? ' open' : '') }, ['▾']) : null,
   ]);
+
+  var wrap = el('div', {}, [row]);
+  if (isOpen) {
+    wrap.appendChild(hasOptions ? buildAvailOptions(item) : el('div', { class: 'avail-options' }, [
+      el('div', { class: 'avail-no-opts' }, ['لا توجد خيارات لهذا الصنف']),
+    ]));
+  }
+  return wrap;
+}
+
+// لوحة خيارات الصنف — كل مجموعة وخياراتها مع مفتاح تفعيل/إيقاف لكل خيار
+// على حِدة (مثال: إيقاف "جبنة إضافية" مؤقتاً لنفادها دون إيقاف الصنف كله)
+function buildAvailOptions(item) {
+  var panel = el('div', { class: 'avail-options' });
+  (item.optionGroups || []).forEach(function (group) {
+    if (!(group.options || []).length) return;
+    var rows = group.options.map(function (opt) {
+      var optAvailable = opt.isAvailable !== false;
+      var optToggle = el('input', { type: 'checkbox' });
+      optToggle.checked = optAvailable;
+      var optSwitch = el('label', { class: 'switch small' }, [optToggle, el('span', { class: 'slider' })]);
+
+      optToggle.addEventListener('change', function () {
+        var val = optToggle.checked;
+        optToggle.disabled = true;
+        var updatedGroups = (item.optionGroups || []).map(function (g) {
+          if (g.id !== group.id) return g;
+          return Object.assign({}, g, {
+            options: g.options.map(function (o) {
+              return o.id === opt.id ? Object.assign({}, o, { isAvailable: val }) : o;
+            }),
+          });
+        });
+        db.collection('menu_items').doc(item.id).update({ optionGroups: updatedGroups })
+          .then(function () {
+            item.optionGroups = updatedGroups;
+            opt.isAvailable = val;
+            renderAvailability();
+          })
+          .catch(function (e) {
+            optToggle.checked = !val;
+            toast('خطأ: ' + e.message);
+          })
+          .finally(function () { optToggle.disabled = false; });
+      });
+
+      return el('div', { class: 'avail-opt-row' + (optAvailable ? '' : ' off') }, [
+        el('span', { class: 'avail-opt-name' }, [opt.name]),
+        optSwitch,
+      ]);
+    });
+    panel.appendChild(el('div', { class: 'avail-opt-group' }, [
+      el('div', { class: 'avail-opt-group-title' }, [group.name]),
+    ].concat(rows)));
+  });
+  return panel;
 }
 
 // ─── تحديث العدّادات كل ثانية (المنقضي + الوقت المتبقي) بدون إعادة رسم كاملة ──
