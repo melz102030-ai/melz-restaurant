@@ -332,8 +332,8 @@ class _MenuItemTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(16),
@@ -344,136 +344,124 @@ class _MenuItemTile extends ConsumerWidget {
         ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // مقبض السحب الفعلي — في RTL يضع Flutter مقبضه الافتراضي فوق
-          // منطقة المفتاح/الأزرار على الطرف الآخر، لذا نربطه يدوياً بهذه
-          // الأيقونة الظاهرة عبر buildDefaultDragHandles: false أعلاه
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: ReorderableDragStartListener(
-              index: index,
-              child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 18),
-            ),
+          ReorderableDragStartListener(
+            index: index,
+            child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 16),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           ClipRRect(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(8),
             child: item.imageUrl != null
                 ? Image.network(item.imageUrl!,
-                    width: 60, height: 60, fit: BoxFit.cover,
+                    width: 48, height: 48, fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => _placeholder())
                 : _placeholder(),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  item.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        item.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13),
+                      ),
+                    ),
+                    if (!item.isAvailable)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Icon(Icons.block, color: AppColors.error, size: 13),
+                      ),
+                  ],
                 ),
-                if (item.hasOptions || !item.isAvailable) ...[
-                  const SizedBox(height: 4),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: [
-                      if (item.hasOptions)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.purple.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(5),
-                          ),
-                          child: Text(
-                            '${item.optionGroups.length} خيارات',
-                            style: TextStyle(color: AppColors.purple, fontSize: 10),
-                          ),
-                        ),
-                      if (!item.isAvailable)
-                        Icon(Icons.block, color: AppColors.error, size: 16),
-                    ],
+                const SizedBox(height: 2),
+                Text(
+                  '${item.categoryName} · ${item.price.toStringAsFixed(2)} ${AppStrings.sar}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                ),
+                if (item.hasOptions) ...[
+                  const SizedBox(height: 3),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: AppColors.purple.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${item.optionGroups.length} خيارات',
+                      style: TextStyle(color: AppColors.purple, fontSize: 10),
+                    ),
                   ),
                 ],
-                const SizedBox(height: 4),
-                Text(item.categoryName,
-                    style: TextStyle(color: AppColors.textHint, fontSize: 12)),
-                Text('${item.price.toStringAsFixed(2)} ${AppStrings.sar}',
-                    style: TextStyle(
-                        color: AppColors.purple, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
-          const SizedBox(width: 6),
-          Column(
-            children: [
-              Switch(
-                value: item.isAvailable,
-                onChanged: (v) =>
-                    runOrShowError(context, () => MenuService.toggleItemAvailability(item.id, v)),
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          const SizedBox(width: 4),
+          Transform.scale(
+            scale: 0.78,
+            alignment: Alignment.centerLeft,
+            child: Switch(
+              value: item.isAvailable,
+              onChanged: (v) =>
+                  runOrShowError(context, () => MenuService.toggleItemAvailability(item.id, v)),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+          ActionIcon(
+            icon: Icons.edit,
+            color: AppColors.textSecondary,
+            tooltip: 'تعديل',
+            onTap: () => showDialog(
+              context: context,
+              builder: (_) => _MenuItemDialog(item: item),
+            ),
+          ),
+          const SizedBox(width: 4),
+          ActionIcon(
+            icon: Icons.copy,
+            color: AppColors.purple,
+            tooltip: 'نسخ',
+            onTap: () => showDialog(
+              context: context,
+              builder: (_) => _MenuItemDialog(
+                item: MenuItemModel(
+                  id: '',
+                  name: '${item.name} (نسخة)',
+                  description: item.description,
+                  categoryId: item.categoryId,
+                  categoryName: item.categoryName,
+                  price: item.price,
+                  isAvailable: item.isAvailable,
+                  sortOrder: item.sortOrder,
+                  tags: item.tags,
+                  discountPercent: item.discountPercent,
+                  optionGroups: item.optionGroups,
+                  isBestSeller: item.isBestSeller,
+                  isNew: item.isNew,
+                ),
+                isDuplicate: true,
               ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ActionIcon(
-                    icon: Icons.edit,
-                    color: AppColors.textSecondary,
-                    tooltip: 'تعديل',
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (_) => _MenuItemDialog(item: item),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  ActionIcon(
-                    icon: Icons.copy,
-                    color: AppColors.purple,
-                    tooltip: 'نسخ',
-                    // الصورة لا تُنسَخ عمداً (بناء مباشر لا copyWith — تمرير
-                    // imageUrl: null فيه لا يُصفّرها فعلياً بل يُبقي صورة
-                    // الأصل حسب نمط copyWith(x: null) المعتمد في هذا الملف) —
-                    // نسخة تشارك رابط صورة الأصل تنكسر صامتة إن حُذف الأصل
-                    // لاحقاً (حذف حقيقي من Cloudinary)، فالأدمن يرفع صورة
-                    // جديدة للنسخة أو يتركها بلا صورة
-                    onTap: () => showDialog(
-                      context: context,
-                      builder: (_) => _MenuItemDialog(
-                        item: MenuItemModel(
-                          id: '',
-                          name: '${item.name} (نسخة)',
-                          description: item.description,
-                          categoryId: item.categoryId,
-                          categoryName: item.categoryName,
-                          price: item.price,
-                          isAvailable: item.isAvailable,
-                          sortOrder: item.sortOrder,
-                          tags: item.tags,
-                          discountPercent: item.discountPercent,
-                          optionGroups: item.optionGroups,
-                          isBestSeller: item.isBestSeller,
-                          isNew: item.isNew,
-                        ),
-                        isDuplicate: true,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  ActionIcon(
-                    icon: Icons.delete,
-                    color: AppColors.error,
-                    tooltip: 'حذف',
-                    onTap: () => _confirmDelete(context, item),
-                  ),
-                ],
-              ),
-            ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          ActionIcon(
+            icon: Icons.delete,
+            color: AppColors.error,
+            tooltip: 'حذف',
+            onTap: () => _confirmDelete(context, item),
           ),
         ],
       ),
@@ -481,8 +469,8 @@ class _MenuItemTile extends ConsumerWidget {
   }
 
   Widget _placeholder() => Container(
-        width: 60, height: 60, color: AppColors.surfaceLight,
-        child: Icon(Icons.restaurant, color: AppColors.textHint, size: 24),
+        width: 48, height: 48, color: AppColors.surfaceLight,
+        child: Icon(Icons.restaurant, color: AppColors.textHint, size: 20),
       );
 
   void _confirmDelete(BuildContext context, MenuItemModel item) {
