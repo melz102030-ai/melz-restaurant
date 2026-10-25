@@ -1929,7 +1929,7 @@ class _TemplatesTab extends ConsumerWidget {
         data: (templates) {
           if (templates.isEmpty) {
             return const EmptyState(
-              message: 'لا توجد قوالب خيارات\nأضف مجموعات خيارات لصنف ثم احفظها كقالب',
+              message: 'لا توجد قوالب خيارات\nاضغط + لإضافة قالب جديد',
               icon: Icons.library_books_outlined,
             );
           }
@@ -1941,6 +1941,15 @@ class _TemplatesTab extends ConsumerWidget {
         },
         loading: () => const LoadingWidget(),
         error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showDialog(
+          context: context,
+          builder: (_) => const _TemplateEditorDialog(),
+        ),
+        backgroundColor: AppColors.purple,
+        tooltip: 'قالب جديد',
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
@@ -1973,7 +1982,7 @@ class _TemplateTile extends StatelessWidget {
               tooltip: 'تعديل',
               onTap: () => showDialog(
                 context: context,
-                builder: (_) => _EditTemplateDialog(template: template),
+                builder: (_) => _TemplateEditorDialog(template: template),
               ),
             ),
             const SizedBox(width: 6),
@@ -2051,22 +2060,25 @@ class _TemplateGroupsPreview extends StatelessWidget {
   }
 }
 
-class _EditTemplateDialog extends StatefulWidget {
-  final OptionTemplateModel template;
-  const _EditTemplateDialog({required this.template});
+class _TemplateEditorDialog extends StatefulWidget {
+  final OptionTemplateModel? template; // null = قالب جديد
+  const _TemplateEditorDialog({this.template});
 
   @override
-  State<_EditTemplateDialog> createState() => _EditTemplateDialogState();
+  State<_TemplateEditorDialog> createState() => _TemplateEditorDialogState();
 }
 
-class _EditTemplateDialogState extends State<_EditTemplateDialog> {
+class _TemplateEditorDialogState extends State<_TemplateEditorDialog> {
   late TextEditingController _nameCtrl;
+  late List<OptionGroup> _groups;
   bool _saving = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _nameCtrl = TextEditingController(text: widget.template.name);
+    _nameCtrl = TextEditingController(text: widget.template?.name ?? '');
+    _groups = List.from(widget.template?.groups ?? []);
   }
 
   @override
@@ -2075,31 +2087,167 @@ class _EditTemplateDialogState extends State<_EditTemplateDialog> {
     super.dispose();
   }
 
+  void _addGroup() async {
+    final result = await showDialog<OptionGroup>(
+      context: context,
+      builder: (_) => const _OptionGroupDialog(),
+    );
+    if (result != null) setState(() => _groups.add(result));
+  }
+
+  void _editGroup(int index) async {
+    final result = await showDialog<OptionGroup>(
+      context: context,
+      builder: (_) => _OptionGroupDialog(group: _groups[index]),
+    );
+    if (result != null) setState(() => _groups[index] = result);
+  }
+
+  Future<void> _save() async {
+    if (_nameCtrl.text.trim().isEmpty) {
+      setState(() => _error = 'أدخل اسم القالب');
+      return;
+    }
+    if (_groups.isEmpty) {
+      setState(() => _error = 'أضف مجموعة خيارات واحدة على الأقل');
+      return;
+    }
+    setState(() { _saving = true; _error = null; });
+    final t = OptionTemplateModel(
+      id: widget.template?.id ?? '',
+      name: _nameCtrl.text.trim(),
+      groups: _groups,
+    );
+    if (widget.template != null) {
+      await MenuService.updateOptionTemplate(t);
+    } else {
+      await MenuService.addOptionTemplate(t);
+    }
+    if (mounted) Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('تعديل اسم القالب'),
-      content: TextField(
-        controller: _nameCtrl,
-        autofocus: true,
-        decoration: const InputDecoration(labelText: 'اسم القالب'),
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
-        ElevatedButton(
-          onPressed: _saving ? null : () async {
-            if (_nameCtrl.text.trim().isEmpty) return;
-            setState(() => _saving = true);
-            await MenuService.updateOptionTemplate(OptionTemplateModel(
-              id: widget.template.id,
-              name: _nameCtrl.text.trim(),
-              groups: widget.template.groups,
-            ));
-            if (context.mounted) Navigator.pop(context);
-          },
-          child: const Text('حفظ'),
+    final isEdit = widget.template != null;
+    return Dialog(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480, maxHeight: 600),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.purple,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      isEdit ? 'تعديل القالب' : 'قالب جديد',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: TextField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(labelText: 'اسم القالب *'),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  Text('مجموعات الخيارات',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: _addGroup,
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text('إضافة'),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _groups.isEmpty
+                  ? Center(
+                      child: Text('لا توجد مجموعات بعد',
+                          style: TextStyle(color: AppColors.textHint)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: _groups.length,
+                      itemBuilder: (_, i) {
+                        final g = _groups[i];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.cardBackground,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+                          ),
+                          child: ListTile(
+                            dense: true,
+                            title: Text(g.name,
+                                style: TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontWeight: FontWeight.bold)),
+                            subtitle: Text(
+                                '${g.options.length} خيار • ${g.required ? "إجباري" : "اختياري"}',
+                                style: TextStyle(
+                                    color: AppColors.textHint, fontSize: 11)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ActionIcon(
+                                    icon: Icons.edit,
+                                    color: AppColors.textSecondary,
+                                    onTap: () => _editGroup(i)),
+                                const SizedBox(width: 4),
+                                ActionIcon(
+                                    icon: Icons.delete,
+                                    color: AppColors.error,
+                                    onTap: () =>
+                                        setState(() => _groups.removeAt(i))),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Text(_error!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12)),
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: ElevatedButton(
+                onPressed: _saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 44)),
+                child: _saving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text(isEdit ? 'حفظ القالب' : 'إضافة القالب'),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
