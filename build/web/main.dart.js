@@ -37519,7 +37519,7 @@ return s},
 d1l(a){var s
 if(a==null)return"/home"
 s=a.d
-if(s===B.eG){window.location.href="/kitchen-lite/#/kitchen"
+if(s===B.eG){window.location.href="/k/#/kitchen"
 return"/home"}return A.cJo(s)},
 cJo(a){switch(a.a){case 1:return"/admin"
 case 2:return"/home"
@@ -143321,7 +143321,7 @@ $2(a,b){var s,r=this.a.dX(0,$.Kg(),t.SK),q=b.c,p=q==="/staff-login",o=B.e.cj(q,"
 if(r==null){if(p||m)return null
 if(o||n)return"/staff-login"
 return"/home"}s=r.d
-if(s===B.eG){window.location.href="/kitchen-lite/#/kitchen"
+if(s===B.eG){window.location.href="/k/#/kitchen"
 return null}if(p)return A.cJo(s)
 if(s===B.eF&&!o&&!m)return"/admin"
 if(s===B.mI&&!n&&!m)return"/driver"
@@ -149114,7 +149114,7 @@ if(g==null){n=[1]
 s=5
 break}switch(j.d.a){case 1:A.fc(g).iK(0,"/admin",null)
 break
-case 2:window.location.href="/kitchen-lite/#/kitchen"
+case 2:window.location.href="/k/#/kitchen"
 break
 case 3:A.fc(g).iK(0,"/driver",null)
 break
