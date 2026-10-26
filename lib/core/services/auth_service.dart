@@ -43,8 +43,10 @@ class AuthService {
   }
 
   static Future<UserModel?> loadSession() async {
-    // أولاً: تحقق من Firebase Auth الحالي
-    final firebaseUser = _auth.currentUser;
+    // على الويب تُستعاد جلسة Firebase Auth من IndexedDB بشكل غير متزامن،
+    // فـcurrentUser قد يعود null مباشرةً حتى لو كانت هناك جلسة محفوظة.
+    // authStateChanges().first ينتظر اكتمال هذا الاستعادة قبل المتابعة.
+    final firebaseUser = await _auth.authStateChanges().first;
     if (firebaseUser != null) {
       try {
         final doc = await _db.collection(_colUsers).doc(firebaseUser.uid).get();
