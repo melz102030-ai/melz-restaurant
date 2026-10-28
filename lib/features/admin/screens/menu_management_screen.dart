@@ -19,6 +19,8 @@ import '../../../core/providers/app_theme_provider.dart';
 import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/admin_action_widgets.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../../../core/models/combo_model.dart';
+import '../../../core/services/combo_service.dart';
 
 const _uuid = Uuid();
 
@@ -36,7 +38,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -57,6 +59,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
             Tab(text: 'عناصر القائمة'),
             Tab(text: 'الفئات'),
             Tab(text: 'القوالب'),
+            Tab(text: 'التركيبات'),
           ],
         ),
         actions: [
@@ -78,6 +81,7 @@ class _MenuManagementScreenState extends ConsumerState<MenuManagementScreen>
           _MenuItemsTab(),
           _CategoriesTab(),
           const _TemplatesTab(),
+          const _CombosTab(),
         ],
       ),
     );
@@ -2586,6 +2590,302 @@ class _CatChip extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// ─── تبويب التركيبات ──────────────────────────────────────────────────────────
+
+final _combosStreamProvider = StreamProvider<List<ComboModel>>((ref) {
+  return ComboService.streamCombos();
+});
+
+class _CombosTab extends ConsumerWidget {
+  const _CombosTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final combosAsync = ref.watch(_combosStreamProvider);
+    return Scaffold(
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.purple,
+        tooltip: 'تركيبة جديدة',
+        onPressed: () => _showComboDialog(context, ref),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      body: combosAsync.when(
+        data: (combos) {
+          if (combos.isEmpty) {
+            return const EmptyState(
+              message: 'لا توجد تركيبات بعد\nاضغط + لإضافة تركيبة',
+              icon: Icons.layers_outlined,
+            );
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+            itemCount: combos.length,
+            itemBuilder: (_, i) => _ComboManageTile(
+              combo: combos[i],
+              onEdit: () => _showComboDialog(context, ref, combo: combos[i]),
+              onDelete: () => _confirmDeleteCombo(context, combos[i]),
+              onToggle: (active) => ComboService.save(combos[i].copyWith(isActive: active)),
+            ),
+          );
+        },
+        loading: () => const LoadingWidget(),
+        error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error),
+      ),
+    );
+  }
+
+  Future<void> _showComboDialog(BuildContext context, WidgetRef ref, {ComboModel? combo}) async {
+    await showDialog(
+      context: context,
+      builder: (_) => _ComboEditDialog(combo: combo, ref: ref),
+    );
+  }
+
+  Future<void> _confirmDeleteCombo(BuildContext context, ComboModel combo) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('حذف التركيبة'),
+        content: Text('هل تريد حذف "${combo.name}"؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(_, false), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(_, true),
+            child: Text('حذف', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await ComboService.delete(combo.id);
+  }
+}
+
+class _ComboManageTile extends StatelessWidget {
+  final ComboModel combo;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final void Function(bool) onToggle;
+
+  const _ComboManageTile({
+    required this.combo,
+    required this.onEdit,
+    required this.onDelete,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: combo.isActive
+              ? AppColors.purple.withOpacity(0.18)
+              : AppColors.divider,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.purple.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: combo.imageUrl != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(combo.imageUrl!, fit: BoxFit.cover))
+                : Icon(Icons.layers_outlined, color: AppColors.purple, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(combo.name,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        fontSize: 14)),
+                const SizedBox(height: 2),
+                Text(
+                  '${combo.items.length} صنف · ${combo.price.toStringAsFixed(2)} ر.س',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: combo.isActive,
+            activeColor: AppColors.purple,
+            onChanged: onToggle,
+          ),
+          PopupMenuButton<String>(
+            color: AppColors.surface,
+            icon: Icon(Icons.more_vert, color: AppColors.textHint, size: 20),
+            onSelected: (v) {
+              if (v == 'edit') onEdit();
+              if (v == 'delete') onDelete();
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'edit', child: Text('تعديل')),
+              const PopupMenuItem(value: 'delete', child: Text('حذف')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ComboEditDialog extends ConsumerStatefulWidget {
+  final ComboModel? combo;
+  final WidgetRef ref;
+  const _ComboEditDialog({this.combo, required this.ref});
+
+  @override
+  ConsumerState<_ComboEditDialog> createState() => _ComboEditDialogState();
+}
+
+class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
+  final _nameCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  final _priceCtrl = TextEditingController();
+  bool _isActive = true;
+  List<ComboItemRef> _items = [];
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.combo;
+    if (c != null) {
+      _nameCtrl.text = c.name;
+      _descCtrl.text = c.description ?? '';
+      _priceCtrl.text = c.price.toStringAsFixed(2);
+      _isActive = c.isActive;
+      _items = List.from(c.items);
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _descCtrl.dispose();
+    _priceCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_nameCtrl.text.trim().isEmpty) return;
+    final price = double.tryParse(_priceCtrl.text) ?? 0;
+    if (price <= 0 || _items.isEmpty) return;
+    setState(() => _saving = true);
+    try {
+      await ComboService.save(ComboModel(
+        id: widget.combo?.id ?? '',
+        name: _nameCtrl.text.trim(),
+        description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+        imageUrl: widget.combo?.imageUrl,
+        price: price,
+        isActive: _isActive,
+        sortOrder: widget.combo?.sortOrder ?? 0,
+        items: _items,
+      ));
+      if (mounted) Navigator.pop(context);
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final allItems = ref.watch(adminMenuItemsProvider).valueOrNull ?? const <MenuItemModel>[];
+    return AlertDialog(
+      title: Text(widget.combo == null ? 'تركيبة جديدة' : 'تعديل التركيبة'),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _nameCtrl,
+                autofocus: true,
+                decoration: const InputDecoration(labelText: 'اسم التركيبة'),
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _descCtrl,
+                decoration: const InputDecoration(labelText: 'وصف (اختياري)'),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 10),
+              TextFormField(
+                controller: _priceCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'السعر (ر.س)', suffixText: 'ر.س'),
+              ),
+              const SizedBox(height: 10),
+              SwitchListTile(
+                value: _isActive,
+                onChanged: (v) => setState(() => _isActive = v),
+                title: const Text('ظاهرة للعملاء'),
+                activeColor: AppColors.purple,
+                contentPadding: EdgeInsets.zero,
+              ),
+              const Divider(),
+              const Text('أصناف التركيبة', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              ..._items.map((r) {
+                final item = allItems.where((i) => i.id == r.itemId).firstOrNull;
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.drag_handle, color: AppColors.textHint),
+                  title: Text(item?.name ?? r.itemId,
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+                  trailing: IconButton(
+                    icon: Icon(Icons.remove_circle_outline, color: AppColors.error, size: 20),
+                    onPressed: () => setState(() => _items.removeWhere((x) => x.itemId == r.itemId)),
+                  ),
+                );
+              }),
+              const SizedBox(height: 4),
+              DropdownButtonFormField<MenuItemModel>(
+                value: null,
+                decoration: const InputDecoration(labelText: 'أضف صنفاً', isDense: true),
+                items: allItems
+                    .where((i) => !_items.any((r) => r.itemId == i.id))
+                    .map((i) => DropdownMenuItem(value: i, child: Text(i.name, overflow: TextOverflow.ellipsis)))
+                    .toList(),
+                onChanged: (i) {
+                  if (i != null && !_items.any((r) => r.itemId == i.id)) {
+                    setState(() => _items.add(ComboItemRef(itemId: i.id)));
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: Text(_saving ? 'جارٍ الحفظ...' : 'حفظ'),
+        ),
+      ],
     );
   }
 }

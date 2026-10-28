@@ -32,7 +32,6 @@ import 'features/admin/screens/admin_banners_screen.dart';
 import 'features/admin/screens/admin_splash_screen.dart';
 import 'features/admin/screens/admin_support_screen.dart';
 import 'features/admin/screens/admin_support_ticket_screen.dart';
-import 'features/admin/screens/admin_combos_screen.dart';
 import 'features/driver/screens/driver_screen.dart';
 import 'shared/utils/kitchen_redirect.dart';
 import 'features/game/heart_dodge_game_screen.dart';
@@ -165,10 +164,6 @@ final _routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/admin/menu',
             builder: (_, __) => const MenuManagementScreen(),
-          ),
-          GoRoute(
-            path: '/admin/combos',
-            builder: (_, __) => const AdminCombosScreen(),
           ),
           GoRoute(
             path: '/admin/orders',
