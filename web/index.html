@@ -167,43 +167,23 @@
       margin: 0 auto 24px;
     }
 
-    /* Comet-tail spinner: conic gradient + radial mask = hair-thin ring */
+    /* Clean SVG-based spinner rings */
     .ring-outer, .ring-inner {
       position: absolute;
       border-radius: 50%;
     }
 
-    /* Outer ring — CW, purple comet tail, 1.5 px */
-    .ring-outer {
-      inset: 0;
-      background: conic-gradient(
-        from 0deg,
-        rgba(106,13,173,0)   0deg,
-        rgba(106,13,173,0.12) 70deg,
-        rgba(106,13,173,0.55) 180deg,
-        #6A0DAD              310deg,
-        rgba(106,13,173,0)   360deg
-      );
-      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
-              mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
-      animation: spinCW 2.2s linear infinite;
+    .ring-outer svg, .ring-inner svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
     }
 
-    /* Inner ring — CCW, warm red comet tail, 1.5 px */
-    .ring-inner {
-      inset: 13%;
-      background: conic-gradient(
-        from 180deg,
-        rgba(210,50,20,0)    0deg,
-        rgba(210,50,20,0.10) 60deg,
-        rgba(210,50,20,0.50) 170deg,
-        #D43215              300deg,
-        rgba(210,50,20,0)    360deg
-      );
-      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
-              mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
-      animation: spinCCW 1.7s linear infinite;
-    }
+    .ring-outer        { inset: 0; }
+    .ring-outer svg    { animation: spinCW  2.2s linear infinite; }
+
+    .ring-inner        { inset: 13%; }
+    .ring-inner svg    { animation: spinCCW 1.7s linear infinite; }
 
     @keyframes spinCW  { to { transform: rotate(360deg);  } }
     @keyframes spinCCW { to { transform: rotate(-360deg); } }
@@ -294,8 +274,22 @@
   <div id="loading">
     <!-- Logo + counter-rotating rings -->
     <div class="logo-wrap" id="logo-banner">
-      <div class="ring-outer" aria-hidden="true"></div>
-      <div class="ring-inner" aria-hidden="true"></div>
+      <!-- Outer ring: faint track + 240° arc, CW -->
+      <div class="ring-outer" aria-hidden="true">
+        <svg viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="46" stroke="#6A0DAD" stroke-width="1" opacity="0.13"/>
+          <circle cx="50" cy="50" r="46" stroke="#6A0DAD" stroke-width="2.2"
+                  stroke-dasharray="218 71" stroke-linecap="round" opacity="0.82"/>
+        </svg>
+      </div>
+      <!-- Inner ring: faint track + 160° arc, CCW -->
+      <div class="ring-inner" aria-hidden="true">
+        <svg viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="46" stroke="#D43215" stroke-width="1" opacity="0.10"/>
+          <circle cx="50" cy="50" r="46" stroke="#D43215" stroke-width="2"
+                  stroke-dasharray="145 144" stroke-linecap="round" opacity="0.72"/>
+        </svg>
+      </div>
       <!-- Logo circle: gradient bg + logo image (or letter mark fallback) -->
       <div class="logo-circle" id="logo-circle">
         <span class="logo-mark" id="logo-fallback">م</span>
