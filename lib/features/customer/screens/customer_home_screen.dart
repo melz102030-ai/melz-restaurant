@@ -1010,7 +1010,7 @@ class _SearchCategoryBar extends StatelessWidget {
       children: [
         // Search field
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
           child: TextField(
             controller: searchController,
             focusNode: searchFocusNode,
@@ -1049,7 +1049,7 @@ class _SearchCategoryBar extends StatelessWidget {
             controller: catBarScroll,
             scrollDirection: Axis.horizontal,
             padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                const EdgeInsets.fromLTRB(12, 8, 12, 4),
             itemCount: categories.length,
             itemBuilder: (_, i) {
               final isSelected = highlightedCatId == categories[i].id;

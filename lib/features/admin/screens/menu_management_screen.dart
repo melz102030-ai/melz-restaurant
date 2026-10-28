@@ -190,7 +190,7 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
       body: Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
           child: TextField(
             controller: _searchCtrl,
             onChanged: (v) => setState(() => _query = v.trim()),
@@ -218,7 +218,9 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
           ),
         ),
         if (categories.isNotEmpty)
-          SizedBox(
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 4),
+            child: SizedBox(
             height: 34,
             child: ListView(
               scrollDirection: Axis.horizontal,
@@ -239,7 +241,8 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
               ],
             ),
           ),
-        const SizedBox(height: 8),
+          ),
+        const SizedBox(height: 4),
         Expanded(
           child: itemsAsync.when(
             data: (allItems) {
