@@ -162,36 +162,47 @@
     /* ── Logo + spinning rings ──────────────────────────────────────── */
     .logo-wrap {
       position: relative;
-      width: min(58vw, 200px);
-      height: min(58vw, 200px);
-      margin: 0 auto 28px;
+      width: min(56vw, 192px);
+      height: min(56vw, 192px);
+      margin: 0 auto 24px;
     }
 
-    /* Two SVG rings absolutely centred in the wrap */
-    .ring {
+    /* Comet-tail spinner: conic gradient + radial mask = hair-thin ring */
+    .ring-outer, .ring-inner {
       position: absolute;
-      inset: 0;
       border-radius: 50%;
     }
 
-    .ring svg {
-      width: 100%;
-      height: 100%;
+    /* Outer ring — CW, purple comet tail, 1.5 px */
+    .ring-outer {
+      inset: 0;
+      background: conic-gradient(
+        from 0deg,
+        rgba(106,13,173,0)   0deg,
+        rgba(106,13,173,0.12) 70deg,
+        rgba(106,13,173,0.55) 180deg,
+        #6A0DAD              310deg,
+        rgba(106,13,173,0)   360deg
+      );
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
+              mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
+      animation: spinCW 2.2s linear infinite;
     }
 
-    /* Outer ring — clockwise, one thick arc + small dot */
-    .ring-outer svg circle {
-      animation: spinCW 2.4s linear infinite;
-      transform-origin: 50% 50%;
-    }
-
-    /* Inner ring — counter-clockwise, two arcs */
+    /* Inner ring — CCW, warm red comet tail, 1.5 px */
     .ring-inner {
-      inset: 14%;
-    }
-    .ring-inner svg circle {
-      animation: spinCCW 1.8s linear infinite;
-      transform-origin: 50% 50%;
+      inset: 13%;
+      background: conic-gradient(
+        from 180deg,
+        rgba(210,50,20,0)    0deg,
+        rgba(210,50,20,0.10) 60deg,
+        rgba(210,50,20,0.50) 170deg,
+        #D43215              300deg,
+        rgba(210,50,20,0)    360deg
+      );
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
+              mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1.5px));
+      animation: spinCCW 1.7s linear infinite;
     }
 
     @keyframes spinCW  { to { transform: rotate(360deg);  } }
@@ -230,46 +241,22 @@
 
     #loading p {
       color: #5B4A75;
-      font-size: 0.95rem;
-      margin-bottom: 28px;
+      font-size: 0.92rem;
+      margin-bottom: 0;
       animation: fadeSlide 0.4s ease 0.3s both;
     }
 
-    /* Progress bar */
-    .progress-track {
-      width: 200px;
-      height: 4px;
-      background: #EDE7F6;
-      border-radius: 4px;
-      margin: 0 auto 12px;
-      overflow: hidden;
-      animation: fadeSlide 0.4s ease 0.35s both;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #6A0DAD, #CC1100);
-      border-radius: 4px;
-      animation: progress 3s ease-in-out forwards;
-    }
-
-    @keyframes progress {
-      0%   { width: 5%; }
-      30%  { width: 40%; }
-      60%  { width: 65%; }
-      85%  { width: 85%; }
-      100% { width: 95%; }
-    }
-
     .loading-text {
+      display: block;
       color: #9B8BAD;
-      font-size: 0.8rem;
-      animation: fadeSlide 0.4s ease 0.4s both, blink 1.5s 0.8s ease-in-out infinite;
+      font-size: 0.78rem;
+      margin-top: 8px;
+      animation: fadeSlide 0.4s ease 0.4s both, blink 1.6s 0.8s ease-in-out infinite;
     }
 
     @keyframes blink {
-      0%, 100% { opacity: 0.4; }
-      50%       { opacity: 1; }
+      0%, 100% { opacity: 0.35; }
+      50%       { opacity: 0.9; }
     }
 
     /* Fade out when Flutter is ready */
@@ -307,29 +294,14 @@
   <div id="loading">
     <!-- Logo + counter-rotating rings -->
     <div class="logo-wrap" id="logo-banner">
-      <!-- Outer ring: one thick arc rotating clockwise -->
-      <div class="ring ring-outer">
-        <svg viewBox="0 0 100 100" fill="none">
-          <circle cx="50" cy="50" r="47" stroke="#6A0DAD" stroke-width="3.5"
-                  stroke-dasharray="210 85" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <!-- Inner ring: two short arcs rotating counter-clockwise -->
-      <div class="ring ring-inner">
-        <svg viewBox="0 0 100 100" fill="none">
-          <circle cx="50" cy="50" r="47" stroke="#CC1100" stroke-width="3"
-                  stroke-dasharray="90 60 30 115" stroke-linecap="round" opacity="0.75"/>
-        </svg>
-      </div>
+      <div class="ring-outer" aria-hidden="true"></div>
+      <div class="ring-inner" aria-hidden="true"></div>
       <!-- Logo circle: gradient bg + logo image (or letter mark fallback) -->
       <div class="logo-circle" id="logo-circle">
         <span class="logo-mark" id="logo-fallback">م</span>
       </div>
     </div>
     <p>أشهى المأكولات بين يديك</p>
-    <div class="progress-track">
-      <div class="progress-fill"></div>
-    </div>
     <span class="loading-text">جاري التحميل...</span>
   </div>
 
