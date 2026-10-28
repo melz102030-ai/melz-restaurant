@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/services/cloudinary_service.dart';
+import '../../../shared/widgets/menu_item_image.dart';
 import '../providers/menu_provider.dart';
 import '../widgets/menu_item_card.dart';
 
@@ -70,16 +71,13 @@ class _ItemHeader extends StatelessWidget {
           children: [
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 320),
-              child: ClipRect(
-                child: item.imageUrl != null
-                    ? Image.network(
-                        CloudinaryService.optimized(item.imageUrl, width: 1000),
-                        width: double.infinity,
-                        fit: BoxFit.fitWidth,
-                        alignment: Alignment.center,
-                        errorBuilder: (_, __, ___) => _placeholder(),
-                      )
-                    : _placeholder(),
+              child: SizedBox(
+                width: double.infinity,
+                child: MenuItemImage(
+                  item: item,
+                  available: available,
+                  optimizeWidth: 1000,
+                ),
               ),
             ),
             Positioned(

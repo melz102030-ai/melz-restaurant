@@ -50,6 +50,18 @@ class MenuItemModel {
   // عند تعديل قالب لتحديث مجموعات خياراته في الصنف تلقائياً
   final List<String> linkedTemplateIds;
 
+  // ── إعدادات الصورة الشفافة ──────────────────────────────────────────────────
+  // يمكّن للأصناف ذات صور PNG شفافة وضع لون خلفية خلفها بدل الخلفية الافتراضية
+  final bool useTransparentBg;
+  // اللون بصيغة hex بلا # (مثلاً: 'FFFFFF')
+  final String imageBgColor;
+  // مقياس الصورة داخل الإطار (1.0 = الحجم الطبيعي)
+  final double imageScale;
+  // إزاحة أفقية (موجبة = يمين)
+  final double imageOffsetX;
+  // إزاحة عمودية (موجبة = أسفل)
+  final double imageOffsetY;
+
   const MenuItemModel({
     required this.id,
     required this.name,
@@ -71,6 +83,11 @@ class MenuItemModel {
     this.allergens = const [],
     this.showNutritionInfo = false,
     this.linkedTemplateIds = const [],
+    this.useTransparentBg = false,
+    this.imageBgColor = 'FFFFFF',
+    this.imageScale = 1.0,
+    this.imageOffsetX = 0.0,
+    this.imageOffsetY = 0.0,
   });
 
   double get finalPrice {
@@ -114,6 +131,11 @@ class MenuItemModel {
       allergens: List<String>.from(map['allergens'] ?? []),
       showNutritionInfo: map['showNutritionInfo'] ?? false,
       linkedTemplateIds: List<String>.from(map['linkedTemplateIds'] ?? []),
+      useTransparentBg: map['useTransparentBg'] ?? false,
+      imageBgColor: map['imageBgColor'] ?? 'FFFFFF',
+      imageScale: (map['imageScale'] as num?)?.toDouble() ?? 1.0,
+      imageOffsetX: (map['imageOffsetX'] as num?)?.toDouble() ?? 0.0,
+      imageOffsetY: (map['imageOffsetY'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -138,6 +160,11 @@ class MenuItemModel {
       'allergens': allergens,
       'showNutritionInfo': showNutritionInfo,
       'linkedTemplateIds': linkedTemplateIds,
+      'useTransparentBg': useTransparentBg,
+      'imageBgColor': imageBgColor,
+      'imageScale': imageScale,
+      'imageOffsetX': imageOffsetX,
+      'imageOffsetY': imageOffsetY,
     };
   }
 
@@ -162,6 +189,11 @@ class MenuItemModel {
     List<String>? allergens,
     bool? showNutritionInfo,
     List<String>? linkedTemplateIds,
+    bool? useTransparentBg,
+    String? imageBgColor,
+    double? imageScale,
+    double? imageOffsetX,
+    double? imageOffsetY,
   }) {
     return MenuItemModel(
       id: id ?? this.id,
@@ -184,6 +216,11 @@ class MenuItemModel {
       allergens: allergens ?? this.allergens,
       showNutritionInfo: showNutritionInfo ?? this.showNutritionInfo,
       linkedTemplateIds: linkedTemplateIds ?? this.linkedTemplateIds,
+      useTransparentBg: useTransparentBg ?? this.useTransparentBg,
+      imageBgColor: imageBgColor ?? this.imageBgColor,
+      imageScale: imageScale ?? this.imageScale,
+      imageOffsetX: imageOffsetX ?? this.imageOffsetX,
+      imageOffsetY: imageOffsetY ?? this.imageOffsetY,
     );
   }
 }

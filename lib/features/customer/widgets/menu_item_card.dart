@@ -8,6 +8,7 @@ import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_group_model.dart';
 import '../../../core/providers/cart_provider.dart';
 import '../../../core/services/cloudinary_service.dart';
+import '../../../shared/widgets/menu_item_image.dart';
 import '../providers/menu_provider.dart';
 
 // إضافة سريعة (صنف بلا خيارات، أول قطعة) مع تغذية راجعة موحّدة — بنفس رسالة
@@ -76,23 +77,7 @@ class MenuItemListCard extends ConsumerWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      ColorFiltered(
-                        colorFilter: available
-                            ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
-                            : const ColorFilter.matrix([
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0.2126, 0.7152, 0.0722, 0, 0,
-                                0,      0,      0,      1, 0,
-                              ]),
-                        child: item.imageUrl != null
-                            ? Image.network(
-                                CloudinaryService.optimized(item.imageUrl, width: 500),
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _placeholder(),
-                              )
-                            : _placeholder(),
-                      ),
+                      MenuItemImage(item: item, available: available, optimizeWidth: 300),
                       if (available && (item.isBestSeller || item.isNew))
                         Positioned(
                           top: 4,
@@ -334,23 +319,7 @@ class MenuItemGridCard extends ConsumerWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    ColorFiltered(
-                      colorFilter: available
-                          ? const ColorFilter.mode(Colors.transparent, BlendMode.dst)
-                          : const ColorFilter.matrix([
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0.2126, 0.7152, 0.0722, 0, 0,
-                              0,      0,      0,      1, 0,
-                            ]),
-                      child: item.imageUrl != null
-                          ? Image.network(
-                              CloudinaryService.optimized(item.imageUrl, width: 500),
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _placeholder(),
-                            )
-                          : _placeholder(),
-                    ),
+                    MenuItemImage(item: item, available: available, optimizeWidth: 400),
                     if (!available)
                       Positioned(
                         top: 6,

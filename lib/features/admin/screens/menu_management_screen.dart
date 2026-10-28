@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:uuid/uuid.dart';
@@ -687,6 +688,12 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   List<String> _suggestedItemIds = [];
   List<String> _linkedTemplateIds = [];
   String? _saveError;
+  // إعدادات الصورة الشفافة
+  bool _useTransparentBg = false;
+  String _imageBgColor = 'FFFFFF';
+  double _imageScale = 1.0;
+  double _imageOffsetX = 0.0;
+  double _imageOffsetY = 0.0;
 
   late TabController _tabCtrl;
 
@@ -706,6 +713,11 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       _isBestSeller = item.isBestSeller;
       _isNew = item.isNew;
       _imageUrl = item.imageUrl;
+      _useTransparentBg = item.useTransparentBg;
+      _imageBgColor = item.imageBgColor;
+      _imageScale = item.imageScale;
+      _imageOffsetX = item.imageOffsetX;
+      _imageOffsetY = item.imageOffsetY;
       _optionGroups = List.from(item.optionGroups);
       _presets = List.from(item.presets);
       _suggestedItemIds = List.from(item.suggestedItemIds);
@@ -787,6 +799,11 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         allergens: _allergens,
         showNutritionInfo: _showNutritionInfo,
         linkedTemplateIds: _linkedTemplateIds,
+        useTransparentBg: _useTransparentBg,
+        imageBgColor: _imageBgColor,
+        imageScale: _imageScale,
+        imageOffsetX: _imageOffsetX,
+        imageOffsetY: _imageOffsetY,
       );
       if (widget.item != null && !widget.isDuplicate) {
         await MenuService.updateMenuItem(newItem);
@@ -931,6 +948,26 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                         ),
             ),
           ),
+          // ── إعدادات الصورة الشفافة ──────────────────────────────────────────
+          if (_imageUrl != null || _imageBytes != null) ...[
+            const SizedBox(height: 10),
+            _ImageBgSection(
+              imageUrl: _imageUrl,
+              imageBytes: _imageBytes,
+              useTransparentBg: _useTransparentBg,
+              bgColor: _imageBgColor,
+              scale: _imageScale,
+              offsetX: _imageOffsetX,
+              offsetY: _imageOffsetY,
+              onToggle: (v) => setState(() => _useTransparentBg = v),
+              onColorChanged: (hex) => setState(() => _imageBgColor = hex),
+              onScaleChanged: (v) => setState(() => _imageScale = v),
+              onOffsetChanged: (x, y) => setState(() {
+                _imageOffsetX = x;
+                _imageOffsetY = y;
+              }),
+            ),
+          ],
           const SizedBox(height: 14),
           TextField(
             controller: _nameCtrl,
@@ -2323,6 +2360,231 @@ class _PickTemplateDialog extends StatelessWidget {
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
       ],
+    );
+  }
+}
+
+// ── قسم إعدادات الخلفية الشفافة للصورة ───────────────────────────────────────
+
+class _ImageBgSection extends StatefulWidget {
+  final String? imageUrl;
+  final Uint8List? imageBytes;
+  final bool useTransparentBg;
+  final String bgColor;
+  final double scale;
+  final double offsetX;
+  final double offsetY;
+  final ValueChanged<bool> onToggle;
+  final ValueChanged<String> onColorChanged;
+  final ValueChanged<double> onScaleChanged;
+  final void Function(double x, double y) onOffsetChanged;
+
+  const _ImageBgSection({
+    required this.imageUrl,
+    required this.imageBytes,
+    required this.useTransparentBg,
+    required this.bgColor,
+    required this.scale,
+    required this.offsetX,
+    required this.offsetY,
+    required this.onToggle,
+    required this.onColorChanged,
+    required this.onScaleChanged,
+    required this.onOffsetChanged,
+  });
+
+  @override
+  State<_ImageBgSection> createState() => _ImageBgSectionState();
+}
+
+class _ImageBgSectionState extends State<_ImageBgSection> {
+  static const double _previewSize = 140.0;
+
+  Color get _bgColorObj {
+    try {
+      return Color(int.parse('FF${widget.bgColor.replaceAll("#", "")}', radix: 16));
+    } catch (_) {
+      return Colors.white;
+    }
+  }
+
+  void _pickColor() {
+    Color picked = _bgColorObj;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('اختر لون الخلفية'),
+        content: SingleChildScrollView(
+          child: ColorPicker(
+            pickerColor: picked,
+            onColorChanged: (c) => picked = c,
+            enableAlpha: false,
+            labelTypes: const [],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              final hex = picked.value.toRadixString(16).substring(2).toUpperCase();
+              widget.onColorChanged(hex);
+            },
+            child: const Text('تأكيد'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.purple.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_fix_high, size: 16, color: AppColors.purple),
+              const SizedBox(width: 6),
+              Text('إعدادات الصورة',
+                  style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700)),
+              const Spacer(),
+              Switch(
+                value: widget.useTransparentBg,
+                onChanged: widget.onToggle,
+                activeColor: AppColors.purple,
+              ),
+            ],
+          ),
+          if (widget.useTransparentBg) ...[
+            const SizedBox(height: 10),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // معاينة تفاعلية
+                Column(
+                  children: [
+                    Text('معاينة (اسحب لضبط الموضع)',
+                        style: TextStyle(color: AppColors.textHint, fontSize: 10)),
+                    const SizedBox(height: 4),
+                    GestureDetector(
+                      onPanUpdate: (d) {
+                        widget.onOffsetChanged(
+                          widget.offsetX + d.delta.dx,
+                          widget.offsetY + d.delta.dy,
+                        );
+                      },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                          width: _previewSize,
+                          height: _previewSize,
+                          child: Container(
+                            color: _bgColorObj,
+                            child: ClipRect(
+                              child: Transform.translate(
+                                offset: Offset(widget.offsetX, widget.offsetY),
+                                child: Transform.scale(
+                                  scale: widget.scale,
+                                  child: widget.imageBytes != null
+                                      ? Image.memory(widget.imageBytes!,
+                                          fit: BoxFit.contain)
+                                      : Image.network(widget.imageUrl!,
+                                          fit: BoxFit.contain),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    // زر إعادة الضبط
+                    TextButton.icon(
+                      onPressed: () {
+                        widget.onOffsetChanged(0, 0);
+                        widget.onScaleChanged(1.0);
+                      },
+                      icon: Icon(Icons.refresh, size: 14, color: AppColors.textHint),
+                      label: Text('إعادة ضبط',
+                          style: TextStyle(color: AppColors.textHint, fontSize: 11)),
+                      style: TextButton.styleFrom(
+                          minimumSize: Size.zero, padding: EdgeInsets.zero),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 14),
+                // عناصر التحكم
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // لون الخلفية
+                      Text('لون الخلفية',
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                      const SizedBox(height: 4),
+                      GestureDetector(
+                        onTap: _pickColor,
+                        child: Container(
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: _bgColorObj,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.textHint.withValues(alpha: 0.4)),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '#${widget.bgColor.toUpperCase()}',
+                              style: TextStyle(
+                                color: _bgColorObj.computeLuminance() > 0.5
+                                    ? Colors.black87
+                                    : Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      // مقياس التكبير
+                      Text('حجم الصورة  ×${widget.scale.toStringAsFixed(1)}',
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                      SliderTheme(
+                        data: SliderThemeData(
+                          thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                          overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                          activeTrackColor: AppColors.purple,
+                          thumbColor: AppColors.purple,
+                          inactiveTrackColor: AppColors.surfaceLight,
+                          trackHeight: 3,
+                        ),
+                        child: Slider(
+                          value: widget.scale.clamp(0.3, 3.0),
+                          min: 0.3,
+                          max: 3.0,
+                          divisions: 27,
+                          onChanged: widget.onScaleChanged,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
