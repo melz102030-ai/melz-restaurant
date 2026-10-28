@@ -128,6 +128,28 @@ class AuthService {
     await _db.collection(_colUsers).doc(userId).update({'role': role.name});
   }
 
+  static Future<void> setExtraRoles(
+      String userId, List<String> extraRoles) async {
+    await _db
+        .collection(_colUsers)
+        .doc(userId)
+        .update({'extraRoles': extraRoles});
+  }
+
+  // ترقية حساب عميل (مجهول) إلى موظف (مطبخ/إدارة/مندوب):
+  // ينشئ حساب Firebase Auth جديداً بالجوال+كلمة مرور ثم يحذف مستند الفايرستور القديم.
+  // الطلبات القديمة تبقى مرتبطة بالـUID القديم ولا يمكن ترحيلها بدون Admin SDK.
+  static Future<void> promoteCustomerToStaff({
+    required String oldUserId,
+    required String phone,
+    required String name,
+    required String password,
+    required UserRole newRole,
+  }) async {
+    await createStaffUser(phone, name, newRole, password);
+    await deleteUserProfile(oldUserId);
+  }
+
   // يعدّل اسم مستخدم آخر من لوحة الأدمن — عمداً لا يلمس SharedPreferences
   // المحلي (بخلاف updateUserName أعلاه المخصَّصة لتعديل العميل اسمه هو)، وإلا
   // لاستبدلت جلسة الأدمن المحلية نفسها باسم المستخدم الآخر الذي يعدّله

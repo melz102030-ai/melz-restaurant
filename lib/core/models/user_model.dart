@@ -16,6 +16,9 @@ class UserModel {
   final double? savedLat;
   final double? savedLng;
   final String? savedAddress;
+  // أدوار ثانوية إضافية — يستخدم حالياً لمنح أدمن وصول واجهة المطبخ أيضاً
+  // دون تغيير دوره الأساسي: ['kitchen']
+  final List<String> extraRoles;
 
   const UserModel({
     required this.id,
@@ -29,9 +32,12 @@ class UserModel {
     this.savedLat,
     this.savedLng,
     this.savedAddress,
+    this.extraRoles = const [],
   });
 
   bool get hasSavedLocation => savedLat != null && savedLng != null;
+  bool get hasKitchenAccess =>
+      role == UserRole.kitchen || extraRoles.contains('kitchen');
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
     return UserModel(
@@ -51,6 +57,7 @@ class UserModel {
       savedLat: (map['savedLat'] as num?)?.toDouble(),
       savedLng: (map['savedLng'] as num?)?.toDouble(),
       savedAddress: map['savedAddress'],
+      extraRoles: List<String>.from(map['extraRoles'] ?? []),
     );
   }
 
@@ -66,6 +73,7 @@ class UserModel {
       'savedLat': savedLat,
       'savedLng': savedLng,
       'savedAddress': savedAddress,
+      'extraRoles': extraRoles,
     };
   }
 
@@ -78,6 +86,7 @@ class UserModel {
     double? savedLat,
     double? savedLng,
     String? savedAddress,
+    List<String>? extraRoles,
   }) {
     return UserModel(
       id: id,
@@ -91,6 +100,7 @@ class UserModel {
       savedLat: savedLat ?? this.savedLat,
       savedLng: savedLng ?? this.savedLng,
       savedAddress: savedAddress ?? this.savedAddress,
+      extraRoles: extraRoles ?? this.extraRoles,
     );
   }
 }

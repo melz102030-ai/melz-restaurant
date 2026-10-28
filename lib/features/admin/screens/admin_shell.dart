@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
+import '../../../shared/utils/kitchen_redirect.dart';
 
 const double _railCollapsedWidth = 64;
 const double _railExpandedWidth = 220;
@@ -171,6 +172,13 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                         ),
                       ),
                     ),
+                    if (user?.hasKitchenAccess == true)
+                      IconButton(
+                        icon: Icon(Icons.soup_kitchen_outlined,
+                            color: AppColors.manjawi, size: 20),
+                        tooltip: 'فتح واجهة المطبخ',
+                        onPressed: redirectToKitchenLite,
+                      ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 16, top: 8),
                       child: IconButton(

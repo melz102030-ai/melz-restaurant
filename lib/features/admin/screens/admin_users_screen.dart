@@ -259,12 +259,21 @@ class _UserTile extends StatelessWidget {
             onSelected: (action) {
               if (action == 'edit') _showEditNameDialog(context);
               if (action == 'password') _showChangePasswordDialog(context);
+              if (action == 'kitchen_toggle') _toggleKitchenAccess(context);
               if (action == 'delete') _confirmDelete(context);
             },
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'edit', child: Text('تعديل الاسم')),
               if (user.role != UserRole.customer)
                 const PopupMenuItem(value: 'password', child: Text('تغيير كلمة المرور')),
+              // وصول المطبخ — فقط للأدمن والمندوب (المطبخ لديه وصول افتراضياً)
+              if (user.role == UserRole.admin || user.role == UserRole.driver)
+                PopupMenuItem(
+                  value: 'kitchen_toggle',
+                  child: Text(user.extraRoles.contains('kitchen')
+                      ? 'إزالة وصول المطبخ'
+                      : 'منح وصول المطبخ'),
+                ),
               PopupMenuItem(
                 value: 'delete',
                 enabled: !isSelf,
@@ -315,6 +324,14 @@ class _UserTile extends StatelessWidget {
     );
   }
 
+  void _toggleKitchenAccess(BuildContext context) {
+    final hasAccess = user.extraRoles.contains('kitchen');
+    final newRoles = hasAccess
+        ? user.extraRoles.where((r) => r != 'kitchen').toList()
+        : [...user.extraRoles, 'kitchen'];
+    runOrShowError(context, () => AuthService.setExtraRoles(user.id, newRoles));
+  }
+
   // حذف المستخدم لا رجعة فيه — يفقد الوصول للدخول فوراً (راجع ملاحظة
   // AuthService.deleteUserProfile حول نطاق الحذف الفعلي)
   void _confirmDelete(BuildContext context) {
@@ -343,6 +360,16 @@ class _UserTile extends StatelessWidget {
   void _confirmRoleChange(
       BuildContext context, UserRole newRole, Map<UserRole, String> roleLabels) {
     if (newRole == user.role) return;
+
+    // ترقية عميل (حساب مجهول بلا كلمة مرور) إلى موظف — يجب إعداد بيانات الدخول
+    if (user.role == UserRole.customer && newRole != UserRole.customer) {
+      showDialog(
+        context: context,
+        builder: (_) => _PromoteCustomerDialog(customer: user, targetRole: newRole),
+      );
+      return;
+    }
+
     // الترقية لصلاحية "إدارة" كاملة أخطر عملية صلاحيات في التطبيق بأكمله —
     // تحتاج حاجزاً إضافياً (كتابة الاسم) بدل نفس تأكيد تغيير أي دور آخر
     if (newRole == UserRole.admin) {
@@ -415,6 +442,146 @@ class _UserTile extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _PromoteCustomerDialog extends StatefulWidget {
+  final UserModel customer;
+  final UserRole targetRole;
+  const _PromoteCustomerDialog({required this.customer, required this.targetRole});
+
+  @override
+  State<_PromoteCustomerDialog> createState() => _PromoteCustomerDialogState();
+}
+
+class _PromoteCustomerDialogState extends State<_PromoteCustomerDialog> {
+  late final TextEditingController _phoneCtrl;
+  final _passwordCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _obscure = true;
+  bool _obscureConfirm = true;
+  bool _isSaving = false;
+  String? _error;
+
+  static const _roleLabels = {
+    UserRole.admin: 'إدارة',
+    UserRole.kitchen: 'مطبخ',
+    UserRole.driver: 'مندوب',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneCtrl = TextEditingController(text: widget.customer.phone);
+  }
+
+  @override
+  void dispose() {
+    _phoneCtrl.dispose();
+    _passwordCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final phone = _phoneCtrl.text.trim();
+    final pw = _passwordCtrl.text.trim();
+    final confirm = _confirmCtrl.text.trim();
+
+    if (phone.isEmpty || pw.isEmpty || confirm.isEmpty) {
+      setState(() => _error = 'جميع الحقول مطلوبة');
+      return;
+    }
+    if (pw != confirm) {
+      setState(() => _error = 'كلمة المرور غير متطابقة');
+      return;
+    }
+    if (pw.length < 6) {
+      setState(() => _error = 'كلمة المرور 6 أحرف على الأقل');
+      return;
+    }
+
+    setState(() { _isSaving = true; _error = null; });
+    try {
+      // نُنشئ حساب موظف جديداً بالجوال+كلمة المرور ونحذف مستند الفايرستور القديم
+      await AuthService.promoteCustomerToStaff(
+        oldUserId: widget.customer.id,
+        phone: phone,
+        name: widget.customer.name,
+        password: pw,
+        newRole: widget.targetRole,
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final roleLabel = _roleLabels[widget.targetRole] ?? widget.targetRole.name;
+    return AlertDialog(
+      title: Row(children: [
+        Icon(Icons.manage_accounts, color: AppColors.purple, size: 20),
+        const SizedBox(width: 8),
+        Expanded(child: Text('ترقية "${widget.customer.name}" إلى $roleLabel',
+            maxLines: 2, style: const TextStyle(fontSize: 15))),
+      ]),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'حساب العميل لا يملك كلمة مرور للدخول كموظف.\n'
+            'سيُنشأ حساب موظف جديد بهذا الرقم وكلمة المرور.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _phoneCtrl,
+            keyboardType: TextInputType.phone,
+            style: TextStyle(color: AppColors.textPrimary),
+            decoration: const InputDecoration(
+                labelText: 'رقم الجوال', hintText: '+966XXXXXXXXX'),
+          ),
+          const SizedBox(height: 12),
+          _PasswordField(
+            controller: _passwordCtrl,
+            label: 'كلمة المرور',
+            obscure: _obscure,
+            onToggle: () => setState(() => _obscure = !_obscure),
+          ),
+          const SizedBox(height: 12),
+          _PasswordField(
+            controller: _confirmCtrl,
+            label: 'تأكيد كلمة المرور',
+            obscure: _obscureConfirm,
+            onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 10),
+            Text(_error!, style: TextStyle(color: AppColors.error, fontSize: 13)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+            onPressed: _isSaving ? null : () => Navigator.pop(context),
+            child: const Text('إلغاء')),
+        ElevatedButton(
+          onPressed: _isSaving ? null : _save,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : Text('ترقية إلى $roleLabel'),
+        ),
+      ],
     );
   }
 }
