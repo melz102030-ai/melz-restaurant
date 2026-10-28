@@ -75,6 +75,7 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
               const SizedBox(height: 20),
               TextFormField(
                 controller: _nameCtrl,
+                autofocus: true,
                 textInputAction: TextInputAction.next,
                 style: TextStyle(color: AppColors.textPrimary),
                 decoration: const InputDecoration(

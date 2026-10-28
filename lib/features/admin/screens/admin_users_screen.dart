@@ -780,6 +780,7 @@ class _PromoteCustomerDialogState extends State<_PromoteCustomerDialog> {
           const SizedBox(height: 14),
           TextField(
             controller: _phoneCtrl,
+            autofocus: true,
             keyboardType: TextInputType.phone,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(
@@ -896,6 +897,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
             label: 'كلمة المرور الحالية',
             obscure: _obscureCurrent,
             onToggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
+            autofocus: true,
           ),
           const SizedBox(height: 12),
           _PasswordField(
@@ -937,11 +939,13 @@ class _PasswordField extends StatelessWidget {
   final String label;
   final bool obscure;
   final VoidCallback onToggle;
+  final bool autofocus;
   const _PasswordField({
     required this.controller,
     required this.label,
     required this.obscure,
     required this.onToggle,
+    this.autofocus = false,
   });
 
   @override
@@ -949,6 +953,7 @@ class _PasswordField extends StatelessWidget {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      autofocus: autofocus,
       style: TextStyle(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
@@ -1013,6 +1018,7 @@ class _AddStaffDialogState extends State<_AddStaffDialog> {
         children: [
           TextField(
             controller: _nameCtrl,
+            autofocus: true,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'الاسم'),
           ),

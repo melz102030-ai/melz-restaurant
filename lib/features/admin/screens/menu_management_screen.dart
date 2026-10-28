@@ -967,6 +967,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
           const SizedBox(height: 14),
           TextField(
             controller: _nameCtrl,
+            autofocus: true,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'اسم العنصر *'),
           ),
@@ -1608,6 +1609,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                   children: [
                     TextField(
                       controller: _nameCtrl,
+                      autofocus: true,
                       style: TextStyle(color: AppColors.textPrimary),
                       decoration: const InputDecoration(
                           labelText: 'اسم المجموعة *',
@@ -1836,6 +1838,7 @@ class _ItemOptionDialogState extends State<_ItemOptionDialog> {
         children: [
           TextField(
             controller: _nameCtrl,
+            autofocus: true,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(
                 labelText: 'اسم الخيار *', hintText: 'مثال: كاتشب، جبنة إضافية'),
@@ -1975,6 +1978,7 @@ class _CategoryDialogState extends ConsumerState<_CategoryDialog> {
           const SizedBox(height: 14),
           TextField(
             controller: _nameCtrl,
+            autofocus: true,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'اسم الفئة *'),
           ),
@@ -2234,6 +2238,7 @@ class _TemplateEditorDialogState extends State<_TemplateEditorDialog> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: TextField(
                 controller: _nameCtrl,
+                autofocus: true,
                 decoration: const InputDecoration(labelText: 'اسم القالب *'),
               ),
             ),

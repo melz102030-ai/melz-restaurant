@@ -541,6 +541,7 @@ class _ZoneDialogState extends State<_ZoneDialog> {
         children: [
           TextField(
             controller: _nameCtrl,
+            autofocus: true,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'اسم النطاق', hintText: 'مثال: قريب'),
           ),

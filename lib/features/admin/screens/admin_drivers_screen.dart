@@ -210,6 +210,7 @@ class _AddDriverDialogState extends State<_AddDriverDialog> {
         children: [
           TextField(
             controller: _nameCtrl,
+            autofocus: true,
             style: TextStyle(color: AppColors.textPrimary),
             decoration: const InputDecoration(labelText: 'الاسم'),
           ),
