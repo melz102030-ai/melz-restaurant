@@ -197,7 +197,8 @@ $('#loginForm').addEventListener('submit', function (e) {
       return db.collection('users').doc(cred.user.uid).get();
     })
     .then(function (doc) {
-      if (!doc.exists || doc.data().role !== 'kitchen') {
+      var role = doc.exists ? doc.data().role : null;
+      if (role !== 'kitchen' && role !== 'admin') {
         auth.signOut();
         throw new Error('هذا الحساب غير مخوَّل للدخول لشاشة المطبخ');
       }
@@ -244,7 +245,8 @@ auth.onAuthStateChanged(function (user) {
     return;
   }
   db.collection('users').doc(user.uid).get().then(function (doc) {
-    if (!doc.exists || doc.data().role !== 'kitchen') {
+    var role = doc.exists ? doc.data().role : null;
+    if (role !== 'kitchen' && role !== 'admin') {
       auth.signOut();
       return;
     }
