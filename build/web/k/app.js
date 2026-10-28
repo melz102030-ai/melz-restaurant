@@ -237,6 +237,7 @@ $('#logoutBtn').addEventListener('click', function () {
 
 // ─── مراقبة حالة الدخول ──────────────────────────────────────────────────────
 auth.onAuthStateChanged(function (user) {
+  $('#initView').style.display = 'none';
   if (!user) {
     teardownListeners();
     $('#loginView').style.display = 'flex';
