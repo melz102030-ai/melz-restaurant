@@ -1640,11 +1640,6 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                         ),
                       ],
                     ),
-                    ..._options.asMap().entries.map((e) => _OptionRow(
-                          opt: e.value,
-                          onEdit: () => _editOption(e.key),
-                          onDelete: () => setState(() => _options.removeAt(e.key)),
-                        )),
                     if (_options.isEmpty)
                       Center(
                         child: Padding(
@@ -1652,6 +1647,26 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                           child: Text('لا توجد خيارات بعد',
                               style: TextStyle(color: AppColors.textHint)),
                         ),
+                      )
+                    else
+                      ReorderableListView(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        buildDefaultDragHandles: false,
+                        onReorder: (oldIdx, newIdx) {
+                          setState(() {
+                            if (newIdx > oldIdx) newIdx--;
+                            final opt = _options.removeAt(oldIdx);
+                            _options.insert(newIdx, opt);
+                          });
+                        },
+                        children: _options.asMap().entries.map((e) => _OptionRow(
+                              key: ValueKey(e.value.id),
+                              index: e.key,
+                              opt: e.value,
+                              onEdit: () => _editOption(e.key),
+                              onDelete: () => setState(() => _options.removeAt(e.key)),
+                            )).toList(),
                       ),
                   ],
                 ),
@@ -1705,11 +1720,18 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
 }
 
 class _OptionRow extends StatelessWidget {
+  final int index;
   final ItemOption opt;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
-  const _OptionRow({required this.opt, required this.onEdit, required this.onDelete});
+  const _OptionRow({
+    super.key,
+    required this.index,
+    required this.opt,
+    required this.onEdit,
+    required this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1723,6 +1745,11 @@ class _OptionRow extends StatelessWidget {
       ),
       child: Row(
         children: [
+          ReorderableDragStartListener(
+            index: index,
+            child: Icon(Icons.drag_handle, color: AppColors.textHint, size: 20),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(opt.name,
                 style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
