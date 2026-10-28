@@ -15,17 +15,20 @@ class AppThemeSettings {
   final String fontFamily;
   final CardStyle cardStyle;
   final MenuDisplayStyle menuDisplayStyle;
+  // لون خلفية موحَّد لجميع أصناف الصور الشفافة — يُضبط مرة واحدة من شاشة المظهر
+  final int transparentItemBgColor;
 
   const AppThemeSettings({
-    this.primaryColor = 0xFF6A0DAD, // بنفسجي (الافتراضي)
-    this.secondaryColor = 0xFF800040, // منجاوي (الافتراضي)
-    this.backgroundColor = 0xFFF5EEDC, // بيج (الافتراضي)
+    this.primaryColor = 0xFF6A0DAD,
+    this.secondaryColor = 0xFF800040,
+    this.backgroundColor = 0xFFF5EEDC,
     this.cardColor = 0xFFFFFFFF,
     this.textColor = 0xFF1A0030,
-    this.inputFieldColor = 0xFFEADFC8, // نفس الظل المشتق سابقاً — لا تغيير بصري حتى يخصّصه الأدمن
+    this.inputFieldColor = 0xFFEADFC8,
     this.fontFamily = 'Cairo',
     this.cardStyle = CardStyle.rounded,
     this.menuDisplayStyle = MenuDisplayStyle.list,
+    this.transparentItemBgColor = 0xFFFFFFFF,
   });
 
   // خطوط عربية مختارة تدعم Google Fonts
@@ -48,6 +51,7 @@ class AppThemeSettings {
       cardColor: map['cardColor'] ?? 0xFFFFFFFF,
       textColor: map['textColor'] ?? 0xFF1A0030,
       inputFieldColor: map['inputFieldColor'] ?? 0xFFEADFC8,
+      transparentItemBgColor: map['transparentItemBgColor'] ?? 0xFFFFFFFF,
       fontFamily: map['fontFamily'] ?? 'Cairo',
       cardStyle: CardStyle.values.firstWhere(
         (s) => s.name == (map['cardStyle'] ?? 'rounded'),
@@ -68,6 +72,7 @@ class AppThemeSettings {
       'cardColor': cardColor,
       'textColor': textColor,
       'inputFieldColor': inputFieldColor,
+      'transparentItemBgColor': transparentItemBgColor,
       'fontFamily': fontFamily,
       'cardStyle': cardStyle.name,
       'menuDisplayStyle': menuDisplayStyle.name,
@@ -81,6 +86,7 @@ class AppThemeSettings {
     int? cardColor,
     int? textColor,
     int? inputFieldColor,
+    int? transparentItemBgColor,
     String? fontFamily,
     CardStyle? cardStyle,
     MenuDisplayStyle? menuDisplayStyle,
@@ -92,6 +98,7 @@ class AppThemeSettings {
       cardColor: cardColor ?? this.cardColor,
       textColor: textColor ?? this.textColor,
       inputFieldColor: inputFieldColor ?? this.inputFieldColor,
+      transparentItemBgColor: transparentItemBgColor ?? this.transparentItemBgColor,
       fontFamily: fontFamily ?? this.fontFamily,
       cardStyle: cardStyle ?? this.cardStyle,
       menuDisplayStyle: menuDisplayStyle ?? this.menuDisplayStyle,

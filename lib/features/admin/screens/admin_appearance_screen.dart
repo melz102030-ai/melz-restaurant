@@ -320,6 +320,12 @@ class _AdminAppearanceScreenState extends ConsumerState<AdminAppearanceScreen> {
             onTap: () => _pickColor(context, Color(settings.inputFieldColor),
                 (c) => _update(current, (s) => s.copyWith(inputFieldColor: c.toARGB32()))),
           ),
+          _ColorRow(
+            label: 'خلفية أصناف الصور الشفافة (موحَّدة)',
+            color: Color(settings.transparentItemBgColor),
+            onTap: () => _pickColor(context, Color(settings.transparentItemBgColor),
+                (c) => _update(current, (s) => s.copyWith(transparentItemBgColor: c.toARGB32()))),
+          ),
 
           const SizedBox(height: 24),
           _SectionTitle('الخط'),

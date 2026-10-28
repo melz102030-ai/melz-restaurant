@@ -15,6 +15,7 @@ import '../../../core/services/menu_service.dart';
 import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/excel_import_service.dart';
 import '../../../features/customer/providers/menu_provider.dart';
+import '../../../core/providers/app_theme_provider.dart';
 import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/admin_action_widgets.dart';
 import '../../../shared/widgets/loading_widget.dart';
@@ -690,7 +691,6 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   String? _saveError;
   // إعدادات الصورة الشفافة
   bool _useTransparentBg = false;
-  String _imageBgColor = 'FFFFFF';
   double _imageScale = 1.0;
   double _imageOffsetX = 0.0;
   double _imageOffsetY = 0.0;
@@ -714,7 +714,6 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       _isNew = item.isNew;
       _imageUrl = item.imageUrl;
       _useTransparentBg = item.useTransparentBg;
-      _imageBgColor = item.imageBgColor;
       _imageScale = item.imageScale;
       _imageOffsetX = item.imageOffsetX;
       _imageOffsetY = item.imageOffsetY;
@@ -800,7 +799,6 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         showNutritionInfo: _showNutritionInfo,
         linkedTemplateIds: _linkedTemplateIds,
         useTransparentBg: _useTransparentBg,
-        imageBgColor: _imageBgColor,
         imageScale: _imageScale,
         imageOffsetX: _imageOffsetX,
         imageOffsetY: _imageOffsetY,
@@ -955,12 +953,10 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
               imageUrl: _imageUrl,
               imageBytes: _imageBytes,
               useTransparentBg: _useTransparentBg,
-              bgColor: _imageBgColor,
               scale: _imageScale,
               offsetX: _imageOffsetX,
               offsetY: _imageOffsetY,
               onToggle: (v) => setState(() => _useTransparentBg = v),
-              onColorChanged: (hex) => setState(() => _imageBgColor = hex),
               onScaleChanged: (v) => setState(() => _imageScale = v),
               onOffsetChanged: (x, y) => setState(() {
                 _imageOffsetX = x;
@@ -2366,16 +2362,14 @@ class _PickTemplateDialog extends StatelessWidget {
 
 // ── قسم إعدادات الخلفية الشفافة للصورة ───────────────────────────────────────
 
-class _ImageBgSection extends StatefulWidget {
+class _ImageBgSection extends ConsumerStatefulWidget {
   final String? imageUrl;
   final Uint8List? imageBytes;
   final bool useTransparentBg;
-  final String bgColor;
   final double scale;
   final double offsetX;
   final double offsetY;
   final ValueChanged<bool> onToggle;
-  final ValueChanged<String> onColorChanged;
   final ValueChanged<double> onScaleChanged;
   final void Function(double x, double y) onOffsetChanged;
 
@@ -2383,62 +2377,26 @@ class _ImageBgSection extends StatefulWidget {
     required this.imageUrl,
     required this.imageBytes,
     required this.useTransparentBg,
-    required this.bgColor,
     required this.scale,
     required this.offsetX,
     required this.offsetY,
     required this.onToggle,
-    required this.onColorChanged,
     required this.onScaleChanged,
     required this.onOffsetChanged,
   });
 
   @override
-  State<_ImageBgSection> createState() => _ImageBgSectionState();
+  ConsumerState<_ImageBgSection> createState() => _ImageBgSectionState();
 }
 
-class _ImageBgSectionState extends State<_ImageBgSection> {
+class _ImageBgSectionState extends ConsumerState<_ImageBgSection> {
   static const double _previewSize = 140.0;
-
-  Color get _bgColorObj {
-    try {
-      return Color(int.parse('FF${widget.bgColor.replaceAll("#", "")}', radix: 16));
-    } catch (_) {
-      return Colors.white;
-    }
-  }
-
-  void _pickColor() {
-    Color picked = _bgColorObj;
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('اختر لون الخلفية'),
-        content: SingleChildScrollView(
-          child: ColorPicker(
-            pickerColor: picked,
-            onColorChanged: (c) => picked = c,
-            enableAlpha: false,
-            labelTypes: const [],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              final hex = picked.value.toRadixString(16).substring(2).toUpperCase();
-              widget.onColorChanged(hex);
-            },
-            child: const Text('تأكيد'),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = ref.watch(appThemeProvider);
+    final bgColor = Color(theme.transparentItemBgColor);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -2453,7 +2411,7 @@ class _ImageBgSectionState extends State<_ImageBgSection> {
             children: [
               Icon(Icons.auto_fix_high, size: 16, color: AppColors.purple),
               const SizedBox(width: 6),
-              Text('إعدادات الصورة',
+              Text('خلفية شفافة',
                   style: TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 13,
@@ -2467,40 +2425,55 @@ class _ImageBgSectionState extends State<_ImageBgSection> {
             ],
           ),
           if (widget.useTransparentBg) ...[
-            const SizedBox(height: 10),
+            // تلميح: اللون يُعدَّل من شاشة المظهر
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: bgColor,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.textHint.withValues(alpha: 0.3)),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text('لون الخلفية يُضبط من شاشة المظهر (موحَّد لجميع الأصناف)',
+                      style: TextStyle(color: AppColors.textHint, fontSize: 10)),
+                ],
+              ),
+            ),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // معاينة تفاعلية
                 Column(
                   children: [
-                    Text('معاينة (اسحب لضبط الموضع)',
+                    Text('معاينة — اسحب لضبط الموضع',
                         style: TextStyle(color: AppColors.textHint, fontSize: 10)),
                     const SizedBox(height: 4),
                     GestureDetector(
-                      onPanUpdate: (d) {
-                        widget.onOffsetChanged(
-                          widget.offsetX + d.delta.dx,
-                          widget.offsetY + d.delta.dy,
-                        );
-                      },
+                      onPanUpdate: (d) => widget.onOffsetChanged(
+                        widget.offsetX + d.delta.dx,
+                        widget.offsetY + d.delta.dy,
+                      ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: SizedBox(
                           width: _previewSize,
                           height: _previewSize,
                           child: Container(
-                            color: _bgColorObj,
+                            color: bgColor,
                             child: ClipRect(
                               child: Transform.translate(
                                 offset: Offset(widget.offsetX, widget.offsetY),
                                 child: Transform.scale(
                                   scale: widget.scale,
                                   child: widget.imageBytes != null
-                                      ? Image.memory(widget.imageBytes!,
-                                          fit: BoxFit.contain)
-                                      : Image.network(widget.imageUrl!,
-                                          fit: BoxFit.contain),
+                                      ? Image.memory(widget.imageBytes!, fit: BoxFit.contain)
+                                      : Image.network(widget.imageUrl!, fit: BoxFit.contain),
                                 ),
                               ),
                             ),
@@ -2509,7 +2482,6 @@ class _ImageBgSectionState extends State<_ImageBgSection> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    // زر إعادة الضبط
                     TextButton.icon(
                       onPressed: () {
                         widget.onOffsetChanged(0, 0);
@@ -2524,40 +2496,11 @@ class _ImageBgSectionState extends State<_ImageBgSection> {
                   ],
                 ),
                 const SizedBox(width: 14),
-                // عناصر التحكم
+                // شريط التكبير
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // لون الخلفية
-                      Text('لون الخلفية',
-                          style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-                      const SizedBox(height: 4),
-                      GestureDetector(
-                        onTap: _pickColor,
-                        child: Container(
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: _bgColorObj,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.textHint.withValues(alpha: 0.4)),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '#${widget.bgColor.toUpperCase()}',
-                              style: TextStyle(
-                                color: _bgColorObj.computeLuminance() > 0.5
-                                    ? Colors.black87
-                                    : Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      // مقياس التكبير
                       Text('حجم الصورة  ×${widget.scale.toStringAsFixed(1)}',
                           style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
                       SliderTheme(

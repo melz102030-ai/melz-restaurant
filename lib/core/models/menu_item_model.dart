@@ -51,10 +51,8 @@ class MenuItemModel {
   final List<String> linkedTemplateIds;
 
   // ── إعدادات الصورة الشفافة ──────────────────────────────────────────────────
-  // يمكّن للأصناف ذات صور PNG شفافة وضع لون خلفية خلفها بدل الخلفية الافتراضية
+  // يمكّن وضع لون خلفية خلف صورة PNG شفافة — اللون نفسه عالمي من AppThemeSettings
   final bool useTransparentBg;
-  // اللون بصيغة hex بلا # (مثلاً: 'FFFFFF')
-  final String imageBgColor;
   // مقياس الصورة داخل الإطار (1.0 = الحجم الطبيعي)
   final double imageScale;
   // إزاحة أفقية (موجبة = يمين)
@@ -84,7 +82,6 @@ class MenuItemModel {
     this.showNutritionInfo = false,
     this.linkedTemplateIds = const [],
     this.useTransparentBg = false,
-    this.imageBgColor = 'FFFFFF',
     this.imageScale = 1.0,
     this.imageOffsetX = 0.0,
     this.imageOffsetY = 0.0,
@@ -132,7 +129,6 @@ class MenuItemModel {
       showNutritionInfo: map['showNutritionInfo'] ?? false,
       linkedTemplateIds: List<String>.from(map['linkedTemplateIds'] ?? []),
       useTransparentBg: map['useTransparentBg'] ?? false,
-      imageBgColor: map['imageBgColor'] ?? 'FFFFFF',
       imageScale: (map['imageScale'] as num?)?.toDouble() ?? 1.0,
       imageOffsetX: (map['imageOffsetX'] as num?)?.toDouble() ?? 0.0,
       imageOffsetY: (map['imageOffsetY'] as num?)?.toDouble() ?? 0.0,
@@ -161,7 +157,6 @@ class MenuItemModel {
       'showNutritionInfo': showNutritionInfo,
       'linkedTemplateIds': linkedTemplateIds,
       'useTransparentBg': useTransparentBg,
-      'imageBgColor': imageBgColor,
       'imageScale': imageScale,
       'imageOffsetX': imageOffsetX,
       'imageOffsetY': imageOffsetY,
@@ -190,7 +185,6 @@ class MenuItemModel {
     bool? showNutritionInfo,
     List<String>? linkedTemplateIds,
     bool? useTransparentBg,
-    String? imageBgColor,
     double? imageScale,
     double? imageOffsetX,
     double? imageOffsetY,
@@ -217,7 +211,6 @@ class MenuItemModel {
       showNutritionInfo: showNutritionInfo ?? this.showNutritionInfo,
       linkedTemplateIds: linkedTemplateIds ?? this.linkedTemplateIds,
       useTransparentBg: useTransparentBg ?? this.useTransparentBg,
-      imageBgColor: imageBgColor ?? this.imageBgColor,
       imageScale: imageScale ?? this.imageScale,
       imageOffsetX: imageOffsetX ?? this.imageOffsetX,
       imageOffsetY: imageOffsetY ?? this.imageOffsetY,

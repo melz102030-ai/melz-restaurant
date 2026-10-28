@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/models/menu_item_model.dart';
+import '../../core/providers/app_theme_provider.dart';
 import '../../core/services/cloudinary_service.dart';
 
-/// ويدجت موحَّد لعرض صورة الصنف مع دعم الخلفية الشفافة والتحريك والتكبير.
-/// يُستخدَم في بطاقة العميل، صفحة التفاصيل، ولوحة الإدارة على حدٍّ سواء.
-class MenuItemImage extends StatelessWidget {
+/// ويدجت موحَّد لعرض صورة الصنف.
+/// — عند تفعيل useTransparentBg: يضع خلفها اللون العالمي من AppThemeSettings
+///   مع تطبيق الإزاحة والمقياس المحدَّدَين لهذا الصنف تحديداً.
+/// — بدون تفعيل: يعرض الصورة بـ BoxFit.cover كالمعتاد.
+class MenuItemImage extends ConsumerWidget {
   final MenuItemModel item;
   final bool available;
-  // الحجم المطلوب لتحسين Cloudinary — يُرسَل إليه ليختار الدقة المناسبة
   final int optimizeWidth;
 
   const MenuItemImage({
@@ -19,14 +22,15 @@ class MenuItemImage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (item.imageUrl == null) return _placeholder();
 
     final url = CloudinaryService.optimized(item.imageUrl, width: optimizeWidth);
 
     Widget imageWidget;
     if (item.useTransparentBg) {
-      final bgColor = _hexToColor(item.imageBgColor);
+      final theme = ref.watch(appThemeProvider);
+      final bgColor = Color(theme.transparentItemBgColor);
       imageWidget = Container(
         color: bgColor,
         child: ClipRect(
@@ -70,13 +74,4 @@ class MenuItemImage extends StatelessWidget {
         color: AppColors.surfaceLight,
         child: Icon(Icons.restaurant, color: AppColors.textHint, size: 32),
       );
-}
-
-Color _hexToColor(String hex) {
-  final clean = hex.replaceAll('#', '').padLeft(6, '0');
-  try {
-    return Color(int.parse('FF$clean', radix: 16));
-  } catch (_) {
-    return Colors.white;
-  }
 }
