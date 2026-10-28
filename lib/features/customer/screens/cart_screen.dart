@@ -1664,7 +1664,7 @@ class _ComboCartTile extends ConsumerWidget {
                                   combo: entry.combo,
                                   subSelections: entry.subSelections,
                                 )),
-                            child: const SizedBox(
+                            child: SizedBox(
                               width: 34,
                               height: 34,
                               child: Icon(Icons.add, color: AppColors.textPrimary, size: 16),
