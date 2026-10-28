@@ -524,6 +524,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     final pricePendingLocation = isDelivery && settings.useDeliveryZones && locationMissing;
     final cashBlocked = _paymentMethod == PaymentMethod.cash &&
         !settings.cashAllowedFor(isDelivery: isDelivery);
+    // إذا أوقف الأدمن التحويل البنكي وكان مختاراً، نعود للنقد تلقائياً
+    if (_paymentMethod == PaymentMethod.manualBankTransfer &&
+        !(settings.bankTransferEnabled && settings.hasBankTransferInfo)) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => setState(() => _paymentMethod = PaymentMethod.cash));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -727,6 +733,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                     child: _PaymentMethodToggle(
                       method: _paymentMethod,
                       onChanged: (m) => setState(() => _paymentMethod = m),
+                      showBankTransfer: settings.bankTransferEnabled && settings.hasBankTransferInfo,
                     ),
                   ),
                   if (!settings.effectivelyOpen)
@@ -1403,8 +1410,13 @@ class _BankTransferSheetState extends ConsumerState<_BankTransferSheet> {
 class _PaymentMethodToggle extends StatelessWidget {
   final PaymentMethod method;
   final ValueChanged<PaymentMethod> onChanged;
+  final bool showBankTransfer;
 
-  const _PaymentMethodToggle({required this.method, required this.onChanged});
+  const _PaymentMethodToggle({
+    required this.method,
+    required this.onChanged,
+    this.showBankTransfer = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1424,14 +1436,15 @@ class _PaymentMethodToggle extends StatelessWidget {
               onTap: () => onChanged(PaymentMethod.cash),
             ),
           ),
-          Expanded(
-            child: _ToggleOption(
-              label: 'تحويل بنكي',
-              icon: Icons.account_balance_outlined,
-              isSelected: method == PaymentMethod.manualBankTransfer,
-              onTap: () => onChanged(PaymentMethod.manualBankTransfer),
+          if (showBankTransfer)
+            Expanded(
+              child: _ToggleOption(
+                label: 'تحويل بنكي',
+                icon: Icons.account_balance_outlined,
+                isSelected: method == PaymentMethod.manualBankTransfer,
+                onTap: () => onChanged(PaymentMethod.manualBankTransfer),
+              ),
             ),
-          ),
         ],
       ),
     );

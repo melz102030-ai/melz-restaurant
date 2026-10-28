@@ -56,6 +56,7 @@ class RestaurantSettings {
   final String? gameHeartImageUrl;
   final String? gameObstacleImageUrl;
   // بيانات التحويل البنكي اليدوي — تُعرض للعميل عند اختيار "تحويل بنكي"
+  final bool bankTransferEnabled;
   final String? bankIban;
   final String? bankAccountHolderName;
   final String? bankName;
@@ -96,6 +97,7 @@ class RestaurantSettings {
     this.cashPaymentPolicy = CashPaymentPolicy.both,
     this.gameHeartImageUrl,
     this.gameObstacleImageUrl,
+    this.bankTransferEnabled = true,
     this.bankIban,
     this.bankAccountHolderName,
     this.bankName,
@@ -310,6 +312,7 @@ class RestaurantSettings {
       cashPaymentPolicy: _cashPolicyFromMap(map['cashPaymentPolicy']),
       gameHeartImageUrl: map['gameHeartImageUrl'],
       gameObstacleImageUrl: map['gameObstacleImageUrl'],
+      bankTransferEnabled: map['bankTransferEnabled'] ?? true,
       bankIban: map['bankIban'],
       bankAccountHolderName: map['bankAccountHolderName'],
       bankName: map['bankName'],
@@ -345,6 +348,7 @@ class RestaurantSettings {
       'cashPaymentPolicy': cashPaymentPolicy.name,
       'gameHeartImageUrl': gameHeartImageUrl,
       'gameObstacleImageUrl': gameObstacleImageUrl,
+      'bankTransferEnabled': bankTransferEnabled,
       'bankIban': bankIban,
       'bankAccountHolderName': bankAccountHolderName,
       'bankName': bankName,
@@ -379,6 +383,7 @@ class RestaurantSettings {
     CashPaymentPolicy? cashPaymentPolicy,
     String? gameHeartImageUrl,
     String? gameObstacleImageUrl,
+    bool? bankTransferEnabled,
     String? bankIban,
     String? bankAccountHolderName,
     String? bankName,
@@ -411,6 +416,7 @@ class RestaurantSettings {
       cashPaymentPolicy: cashPaymentPolicy ?? this.cashPaymentPolicy,
       gameHeartImageUrl: gameHeartImageUrl ?? this.gameHeartImageUrl,
       gameObstacleImageUrl: gameObstacleImageUrl ?? this.gameObstacleImageUrl,
+      bankTransferEnabled: bankTransferEnabled ?? this.bankTransferEnabled,
       bankIban: bankIban ?? this.bankIban,
       bankAccountHolderName: bankAccountHolderName ?? this.bankAccountHolderName,
       bankName: bankName ?? this.bankName,

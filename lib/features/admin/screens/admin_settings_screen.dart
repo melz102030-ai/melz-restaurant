@@ -32,6 +32,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   final _bankNameCtrl = TextEditingController();
   final _supportWhatsappCtrl = TextEditingController();
   CashPaymentPolicy _cashPolicy = CashPaymentPolicy.both;
+  bool _bankTransferEnabled = true;
   String _driverSystemMode = 'full';
   String _supportMode = 'app';
   bool _isSaving = false;
@@ -55,6 +56,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         _reviewUrlCtrl.text = settings.googleReviewUrl ?? '';
         _addressCtrl.text = settings.address ?? '';
         _welcomeMsgCtrl.text = settings.welcomeMessage ?? '';
+        _bankTransferEnabled = settings.bankTransferEnabled;
         _bankIbanCtrl.text = settings.bankIban ?? '';
         _bankHolderCtrl.text = settings.bankAccountHolderName ?? '';
         _bankNameCtrl.text = settings.bankName ?? '';
@@ -119,6 +121,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         welcomeMessage: _welcomeMsgCtrl.text.trim().isEmpty
             ? null
             : _welcomeMsgCtrl.text.trim(),
+        bankTransferEnabled: _bankTransferEnabled,
         bankIban: _bankIbanCtrl.text.trim().isEmpty
             ? null
             : _bankIbanCtrl.text.trim().toUpperCase().replaceAll(' ', ''),
@@ -286,14 +289,29 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
             ),
 
             const SizedBox(height: 20),
-            Text(
-              'بيانات الحساب البنكي (تحويل يدوي)',
-              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 13.5),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'يختفي خيار "تحويل بنكي" من التطبيق تلقائياً طالما رقم الآيبان فارغ',
-              style: TextStyle(color: AppColors.textHint, fontSize: 11.5),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'التحويل البنكي اليدوي',
+                        style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 13.5),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'إيقافه يُخفي خيار التحويل البنكي من شاشة الدفع نهائياً',
+                        style: TextStyle(color: AppColors.textHint, fontSize: 11.5),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value: _bankTransferEnabled,
+                  onChanged: (v) => setState(() => _bankTransferEnabled = v),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
             _Field(
