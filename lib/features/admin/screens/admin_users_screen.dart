@@ -258,10 +258,13 @@ class _UserTile extends StatelessWidget {
             icon: Icon(Icons.more_vert, color: AppColors.textHint, size: 20),
             onSelected: (action) {
               if (action == 'edit') _showEditNameDialog(context);
+              if (action == 'password') _showChangePasswordDialog(context);
               if (action == 'delete') _confirmDelete(context);
             },
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'edit', child: Text('تعديل الاسم')),
+              if (user.role != UserRole.customer)
+                const PopupMenuItem(value: 'password', child: Text('تغيير كلمة المرور')),
               PopupMenuItem(
                 value: 'delete',
                 enabled: !isSelf,
@@ -302,6 +305,13 @@ class _UserTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => _ChangePasswordDialog(user: user),
     );
   }
 
@@ -404,6 +414,145 @@ class _UserTile extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ChangePasswordDialog extends StatefulWidget {
+  final UserModel user;
+  const _ChangePasswordDialog({required this.user});
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _currentCtrl = TextEditingController();
+  final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _obscureConfirm = true;
+  bool _isSaving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final current = _currentCtrl.text.trim();
+    final newPw = _newCtrl.text.trim();
+    final confirm = _confirmCtrl.text.trim();
+
+    if (current.isEmpty || newPw.isEmpty || confirm.isEmpty) {
+      setState(() => _error = 'جميع الحقول مطلوبة');
+      return;
+    }
+    if (newPw != confirm) {
+      setState(() => _error = 'كلمة المرور الجديدة غير متطابقة');
+      return;
+    }
+    if (newPw.length < 6) {
+      setState(() => _error = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      return;
+    }
+
+    setState(() { _isSaving = true; _error = null; });
+    try {
+      await AuthService.changeStaffPassword(widget.user.phone, current, newPw);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(children: [
+        Icon(Icons.lock_outline, color: AppColors.purple, size: 20),
+        const SizedBox(width: 8),
+        Expanded(child: Text('تغيير كلمة مرور ${widget.user.name}',
+            maxLines: 2, style: const TextStyle(fontSize: 16))),
+      ]),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _PasswordField(
+            controller: _currentCtrl,
+            label: 'كلمة المرور الحالية',
+            obscure: _obscureCurrent,
+            onToggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
+          ),
+          const SizedBox(height: 12),
+          _PasswordField(
+            controller: _newCtrl,
+            label: 'كلمة المرور الجديدة',
+            obscure: _obscureNew,
+            onToggle: () => setState(() => _obscureNew = !_obscureNew),
+          ),
+          const SizedBox(height: 12),
+          _PasswordField(
+            controller: _confirmCtrl,
+            label: 'تأكيد كلمة المرور الجديدة',
+            obscure: _obscureConfirm,
+            onToggle: () => setState(() => _obscureConfirm = !_obscureConfirm),
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(_error!, style: TextStyle(color: AppColors.error, fontSize: 13)),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: _isSaving ? null : () => Navigator.pop(context),
+            child: const Text('إلغاء')),
+        ElevatedButton(
+          onPressed: _isSaving ? null : _save,
+          child: _isSaving
+              ? const SizedBox(width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('حفظ'),
+        ),
+      ],
+    );
+  }
+}
+
+class _PasswordField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final bool obscure;
+  final VoidCallback onToggle;
+  const _PasswordField({
+    required this.controller,
+    required this.label,
+    required this.obscure,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: TextStyle(color: AppColors.textPrimary),
+      decoration: InputDecoration(
+        labelText: label,
+        suffixIcon: IconButton(
+          icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
+          onPressed: onToggle,
+        ),
       ),
     );
   }

@@ -223,6 +223,30 @@ class AuthService {
     return user;
   }
 
+  // ─── تغيير كلمة مرور موظف (مطبخ/إدارة/مندوب) من لوحة الأدمن ────────────
+  // نستخدم Firebase App مؤقتة (بنفس نمط createStaffUser) لتسجيل الدخول كالموظف
+  // ثم تغيير كلمته دون المساس بجلسة الأدمن الحالية.
+  // phone هو رقم الجوال كما خُزِّن لدى إنشاء الحساب (يُشكّل البريد الوهمي).
+  static Future<void> changeStaffPassword(
+      String phone, String currentPassword, String newPassword) async {
+    final tempApp = await Firebase.initializeApp(
+      name: 'pwChange_${DateTime.now().microsecondsSinceEpoch}',
+      options: Firebase.app().options,
+    );
+    try {
+      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
+      final cred = await tempAuth.signInWithEmailAndPassword(
+        email: _pseudoEmail(phone),
+        password: currentPassword,
+      );
+      await cred.user!.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw Exception(phonePasswordError(e.code));
+    } finally {
+      await tempApp.delete();
+    }
+  }
+
   // ─── المناديب ─────────────────────────────────────────────────────────────
   static Stream<List<UserModel>> streamDrivers() {
     return _db
