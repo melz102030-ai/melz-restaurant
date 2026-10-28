@@ -217,28 +217,22 @@ class _MenuItemsTabState extends ConsumerState<_MenuItemsTab> {
         ),
         if (categories.isNotEmpty)
           SizedBox(
-            height: 40,
+            height: 34,
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: ChoiceChip(
-                    label: const Text('الكل'),
-                    selected: _categoryFilter == null,
-                    onSelected: (_) => setState(() => _categoryFilter = null),
-                  ),
+                _CatChip(
+                  label: 'الكل',
+                  selected: _categoryFilter == null,
+                  onTap: () => setState(() => _categoryFilter = null),
                 ),
                 for (final cat in categories)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: ChoiceChip(
-                      label: Text(cat.name),
-                      selected: _categoryFilter == cat.id,
-                      onSelected: (_) =>
-                          setState(() => _categoryFilter = _categoryFilter == cat.id ? null : cat.id),
-                    ),
+                  _CatChip(
+                    label: cat.name,
+                    selected: _categoryFilter == cat.id,
+                    onTap: () => setState(
+                        () => _categoryFilter = _categoryFilter == cat.id ? null : cat.id),
                   ),
               ],
             ),
@@ -2329,6 +2323,56 @@ class _PickTemplateDialog extends StatelessWidget {
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('إلغاء')),
       ],
+    );
+  }
+}
+
+// ── شريحة فئة مدمجة وأنيقة ────────────────────────────────────────────────────
+
+class _CatChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _CatChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(left: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          gradient: selected
+              ? LinearGradient(
+                  colors: [AppColors.purpleDark, AppColors.purple],
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                )
+              : null,
+          color: selected ? null : AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.purple.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 }
