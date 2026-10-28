@@ -13,6 +13,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/providers/cart_provider.dart';
+import '../../../core/providers/combo_cart_provider.dart';
+import '../../../core/models/combo_model.dart';
 import '../../../core/providers/order_type_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/delivery_zone_provider.dart';
@@ -232,7 +234,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     if (_isPlacingOrder) return;
 
     final cart = ref.read(cartProvider);
-    if (cart.isEmpty) return;
+    final comboCart = ref.read(comboCartProvider);
+    if (cart.isEmpty && comboCart.isEmpty) return;
 
     // يُضبط فوراً عند أول ضغطة، قبل أي عملية غير متزامنة (بما فيها حواري
     // تأكيد الموقع/المسافة التي قد تنتظر عدة ثوانٍ لتحديد الموقع الجغرافي) —
@@ -241,7 +244,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     setState(() => _isPlacingOrder = true);
     try {
       final settings = ref.read(settingsProvider);
-      final cartTotal = ref.read(cartTotalProvider);
+      final cartTotal = ref.read(cartTotalProvider) + ref.read(comboCartTotalProvider);
 
       if (!settings.effectivelyOpen) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -320,7 +323,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         customerId: user.id,
         customerName: user.name,
         customerPhone: user.phone,
-        items: ref.read(cartProvider.notifier).toOrderItems(),
+        items: [
+          ...ref.read(cartProvider.notifier).toOrderItems(),
+          ...ref.read(comboCartProvider.notifier).state
+              .expand((e) => e.toOrderItems())
+              .toList(),
+        ],
         subtotal: cartTotal,
         deliveryFee: deliveryFee,
         total: cartTotal + deliveryFee,
@@ -339,6 +347,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
       final orderId = await OrderService.placeOrder(order);
       ref.read(cartProvider.notifier).clear();
+      ref.read(comboCartProvider.notifier).clear();
       if (!mounted) return;
       try {
         js.context.callMethod('requestNotifyPermission', []);
@@ -509,7 +518,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
-    final cartTotal = ref.watch(cartTotalProvider);
+    final comboCart = ref.watch(comboCartProvider);
+    final cartItemsTotal = ref.watch(cartTotalProvider);
+    final comboTotal = ref.watch(comboCartTotalProvider);
+    final cartTotal = cartItemsTotal + comboTotal;
     final settings = ref.watch(settingsProvider);
     final zones = ref.watch(deliveryZonesProvider).valueOrNull ?? const <DeliveryZone>[];
     final isDelivery =
@@ -539,7 +551,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
           onPressed: () => context.pop(),
         ),
         actions: [
-          if (cart.isNotEmpty)
+          if (cart.isNotEmpty || comboCart.isNotEmpty)
             TextButton.icon(
               onPressed: () {
                 showDialog(
@@ -555,6 +567,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       TextButton(
                         onPressed: () {
                           ref.read(cartProvider.notifier).clear();
+                          ref.read(comboCartProvider.notifier).clear();
                           Navigator.pop(context);
                         },
                         child: const Text(AppStrings.delete,
@@ -572,7 +585,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
             ),
         ],
       ),
-      body: cart.isEmpty
+      body: cart.isEmpty && comboCart.isEmpty
           ? const EmptyState(
               message: 'سلتك فارغة\nتصفح قائمتنا وأضف ما يعجبك!',
               icon: Icons.shopping_cart_outlined,
@@ -591,6 +604,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                           index: e.key,
                         );
                       }),
+
+                      // Combo cart items
+                      if (comboCart.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        ...comboCart.map((entry) => _ComboCartTile(entry: entry)),
+                      ],
 
                       const SizedBox(height: 16),
 
@@ -703,7 +722,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                 ),
               ],
             ),
-      bottomNavigationBar: cart.isEmpty
+      bottomNavigationBar: (cart.isEmpty && comboCart.isEmpty)
           ? Padding(
               padding: const EdgeInsets.all(16),
               child: AppButton(
@@ -1527,6 +1546,140 @@ class _PriceRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ComboCartTile extends ConsumerWidget {
+  final ComboCartEntry entry;
+  const _ComboCartTile({required this.entry});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(comboCartProvider.notifier);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.purple.withOpacity(0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.purple.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: entry.combo.imageUrl != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(entry.combo.imageUrl!, fit: BoxFit.cover))
+                : Icon(Icons.layers_outlined, color: AppColors.purple, size: 26),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.purple.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text('تركيبة',
+                          style: TextStyle(
+                              color: AppColors.purple,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(entry.combo.name,
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                              fontSize: 14)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                ...entry.subSelections.map((s) => Text(
+                      '• ${s.summary}',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    )),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text(
+                      '${entry.total.toStringAsFixed(2)} ر.س',
+                      style: TextStyle(
+                          color: AppColors.purple,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
+                    ),
+                    const Spacer(),
+                    // أزرار الكمية
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.divider),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => notifier.remove(entry.cartKey),
+                            child: SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: Icon(
+                                entry.quantity == 1
+                                    ? Icons.delete_outline
+                                    : Icons.remove,
+                                color: entry.quantity == 1
+                                    ? AppColors.error
+                                    : AppColors.textPrimary,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                          Text('${entry.quantity}',
+                              style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14)),
+                          InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => notifier.add(ComboCartEntry(
+                                  combo: entry.combo,
+                                  subSelections: entry.subSelections,
+                                )),
+                            child: const SizedBox(
+                              width: 34,
+                              height: 34,
+                              child: Icon(Icons.add, color: AppColors.textPrimary, size: 16),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

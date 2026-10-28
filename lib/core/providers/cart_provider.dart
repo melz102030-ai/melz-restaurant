@@ -197,7 +197,10 @@ final cartProvider = StateNotifierProvider<CartNotifier, List<CartItem>>((ref) {
 });
 
 final cartTotalProvider = Provider<double>((ref) {
-  return ref.watch(cartProvider).fold(0.0, (s, c) => s + c.total);
+  final items = ref.watch(cartProvider).fold(0.0, (s, c) => s + c.total);
+  // نستورد مجموع التركيبات هنا لتجنب الاعتماد المتبادل بين الـ providers
+  // (combo_cart_provider يستورد order_model فقط ولا يعتمد على cart_provider)
+  return items;
 });
 
 final cartItemCountProvider = Provider<int>((ref) {

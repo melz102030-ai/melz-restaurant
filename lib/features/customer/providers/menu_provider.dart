@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/category_model.dart';
+import '../../../core/models/combo_model.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_template_model.dart';
 import '../../../core/models/promo_banner_model.dart';
+import '../../../core/services/combo_service.dart';
 import '../../../core/services/menu_service.dart';
 import '../../../core/services/promo_banner_service.dart';
 
@@ -50,6 +52,10 @@ final menuItemByIdProvider = Provider.family<MenuItemModel?, String>((ref, id) {
     if (item.id == id) return item;
   }
   return null;
+});
+
+final activeCombosProvider = StreamProvider<List<ComboModel>>((ref) {
+  return ComboService.streamCombos(activeOnly: true);
 });
 
 final selectedCategoryProvider = StateProvider<String?>((ref) => null);

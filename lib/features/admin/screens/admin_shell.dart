@@ -66,6 +66,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     ]),
     (title: 'القائمة', items: [
       (icon: Icons.restaurant_menu_outlined, label: 'القائمة', route: '/admin/menu', perm: Perm.menu),
+      (icon: Icons.layers_outlined, label: 'التركيبات', route: '/admin/combos', perm: Perm.menu),
     ]),
     (title: 'المحتوى الترويجي', items: [
       (icon: Icons.view_carousel_outlined, label: 'البانرات',              route: '/admin/banners',    perm: Perm.content),

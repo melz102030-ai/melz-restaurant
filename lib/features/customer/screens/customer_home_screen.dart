@@ -24,10 +24,13 @@ import '../../../core/providers/popup_ad_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/providers/app_theme_provider.dart';
 import '../../../core/services/cloudinary_service.dart';
+import '../../../core/models/combo_model.dart';
+import '../../../core/providers/combo_cart_provider.dart';
 import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/menu_item_card.dart';
 import '../widgets/popup_ad_dialog.dart';
+import 'combo_detail_sheet.dart';
 
 class CustomerHomeScreen extends ConsumerStatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -325,6 +328,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         .toList();
     final banners = bannersAsync.valueOrNull ?? [];
     final bestSellers = allItems.where((i) => i.isBestSeller).toList();
+    final combos = ref.watch(activeCombosProvider).valueOrNull ?? const <ComboModel>[];
 
     // أول تحميل فقط (لا بيانات مخزّنة بعد) — نعرض هيكلاً نابضاً بدل فراغ مفاجئ
     final isInitialLoading = (categoriesAsync.isLoading && !categoriesAsync.hasValue) ||
@@ -497,6 +501,15 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               child: _BestSellersSection(items: bestSellers)
                   .animate()
                   .fadeIn(duration: 380.ms, delay: 80.ms)
+                  .slideY(begin: 0.05, curve: Curves.easeOut),
+            ),
+
+          // قسم التركيبات (وجبات مجمَّعة بسعر ثابت)
+          if (searchQuery.isEmpty && combos.isNotEmpty)
+            SliverToBoxAdapter(
+              child: _CombosSection(combos: combos)
+                  .animate()
+                  .fadeIn(duration: 380.ms, delay: 120.ms)
                   .slideY(begin: 0.05, curve: Curves.easeOut),
             ),
 
@@ -1353,6 +1366,139 @@ class _BestSellersSection extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Combos Section ────────────────────────────────────────────────────────────
+
+class _CombosSection extends StatelessWidget {
+  final List<ComboModel> combos;
+  const _CombosSection({required this.combos});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Icon(Icons.layers_outlined, color: AppColors.purple, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  'التركيبات',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 108,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: combos.length,
+              itemBuilder: (_, i) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: _ComboCard(combo: combos[i]),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ComboCard extends ConsumerWidget {
+  final ComboModel combo;
+  const _ComboCard({required this.combo});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final qty = ref.watch(comboCartProvider.notifier).getQuantity(combo.id);
+
+    return GestureDetector(
+      onTap: () => showComboSheet(context, combo),
+      child: Container(
+        width: 180,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: qty > 0
+                ? AppColors.purple.withOpacity(0.5)
+                : AppColors.divider,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.purple.withOpacity(qty > 0 ? 0.08 : 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    combo.name,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13.5,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (qty > 0)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.purple,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text('×$qty',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+            const Spacer(),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${combo.price.toStringAsFixed(2)} ر.س',
+                  style: TextStyle(
+                    color: AppColors.purple,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                Icon(Icons.add_circle_outline,
+                    color: AppColors.purple, size: 20),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
