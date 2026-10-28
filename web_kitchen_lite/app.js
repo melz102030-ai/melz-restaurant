@@ -251,6 +251,13 @@ auth.onAuthStateChanged(function (user) {
     $('#loginView').style.display = 'none';
     $('#appView').style.display = 'block';
     primeAudio();
+    // إذا فشل تفعيل الصوت (جلسة محفوظة بلا تفاعل مستخدم سابق) نعرض شاشة
+    // "ابدأ العمل" التي تضمن تفاعلاً حقيقياً قبل وصول أي طلب
+    setTimeout(function () {
+      if (kCtx && kCtx.state === 'suspended') {
+        $('#audioActivation').classList.remove('hidden');
+      }
+    }, 400);
     setupListeners();
   });
 });
@@ -337,9 +344,19 @@ function getCtx() {
 function primeAudio() {
   try {
     var ctx = getCtx();
-    if (ctx.state === 'suspended') ctx.resume().catch(function () {});
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(function () {
+        // تم التفعيل — أخفِ شاشة الـoverlay إن كانت ظاهرة
+        $('#audioActivation').classList.add('hidden');
+      }).catch(function () {});
+    }
   } catch (e) {}
 }
+$('#audioActivation').addEventListener('click', function () {
+  primeAudio();
+  // إخفاء فوري مع تأخير بسيط يكفي لانتهاء resume
+  setTimeout(function () { $('#audioActivation').classList.add('hidden'); }, 150);
+});
 function playAlarm() {
   try {
     var ctx = getCtx();
@@ -376,7 +393,8 @@ function playAlarm() {
 function stopAlarm() {
   kScheduled.forEach(function (o) { try { o.stop(); } catch (e) {} });
   kScheduled = [];
-  if (kCtx) try { kCtx.suspend(); } catch (e) {}
+  // لا نوقف kCtx.suspend() — إبقاء السياق "running" يضمن عمل التنبيه
+  // التالي بدون الحاجة لتفاعل مستخدم جديد لإعادة resume
   state.alarmPlaying = false;
   $('#stopAlarmBtn').classList.add('hidden');
   $('#alarmBanner').classList.add('hidden');
