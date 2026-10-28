@@ -134,7 +134,9 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
                     children: [
                       TextFormField(
                         controller: _phoneController,
+                        autofocus: true,
                         keyboardType: TextInputType.phone,
+                        textInputAction: TextInputAction.next,
                         style: TextStyle(color: AppColors.textPrimary),
                         decoration: const InputDecoration(
                           labelText: 'رقم الجوال',
@@ -147,6 +149,8 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: _obscurePassword,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _isLoading ? null : _login(),
                         style: TextStyle(color: AppColors.textPrimary),
                         decoration: InputDecoration(
                           labelText: 'كلمة المرور',
