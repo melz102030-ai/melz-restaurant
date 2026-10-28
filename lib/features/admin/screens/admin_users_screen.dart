@@ -186,7 +186,8 @@ class _UserTile extends StatelessWidget {
     };
     final color = roleColors[user.role] ?? AppColors.textSecondary;
     final canEdit = actor != null && user.canBeEditedBy(actor!);
-    final isLocked = user.isSuperAdmin; // لا أحد يعدّل مدير النظام
+    // مدير النظام محمي من التعديل من الآخرين، لكنه يعدّل صلاحياته الخاصة
+    final isLocked = user.isSuperAdmin && actor?.id != user.id;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),

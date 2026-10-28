@@ -58,7 +58,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   // القسم فقط عند التوسيع؛ في الوضع المطوي يفصل بينها خط رفيع فقط
   static const List<_NavSection> _navSections = [
     (title: null, items: [
-      (icon: Icons.dashboard_outlined, label: 'لوحة التحكم', route: '/admin', perm: null),
+      (icon: Icons.dashboard_outlined, label: 'لوحة التحكم', route: '/admin', perm: Perm.dashboard),
     ]),
     (title: 'التشغيل', items: [
       (icon: Icons.receipt_long_outlined,  label: 'الطلبات',     route: '/admin/orders',        perm: Perm.orders),

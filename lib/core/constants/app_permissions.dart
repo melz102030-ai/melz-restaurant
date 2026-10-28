@@ -1,5 +1,6 @@
 /// مفاتيح الصلاحيات — تُستخدم كأسماء للحقول في Firestore وكمعرِّفات داخلية
 abstract class Perm {
+  static const String dashboard  = 'dashboard';   // لوحة التحكم
   static const String orders     = 'orders';      // الطلبات
   static const String menu       = 'menu';         // القائمة
   static const String users      = 'users';        // الأعضاء والمناديب
@@ -13,11 +14,12 @@ abstract class Perm {
   static const String kitchen    = 'kitchen';      // الوصول لواجهة المطبخ
 
   static const List<String> all = [
-    orders, menu, users, reports, settings,
+    dashboard, orders, menu, users, reports, settings,
     delivery, workHours, appearance, content, support, kitchen,
   ];
 
   static const Map<String, String> labels = {
+    dashboard:  'لوحة التحكم',
     orders:     'الطلبات',
     menu:       'إدارة القائمة',
     users:      'الأعضاء والمناديب',
@@ -33,6 +35,7 @@ abstract class Perm {
 
   /// صلاحيات الأدمن الجديد الافتراضية — محدودة ويُفتح المطلوب يدوياً
   static const Map<String, bool> defaultAdmin = {
+    dashboard:  true,
     orders:     true,
     menu:       false,
     users:      false,

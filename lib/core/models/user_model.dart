@@ -66,11 +66,15 @@ class UserModel {
       hasPermission('kitchen');
 
   /// هل لهذا المستخدم صلاحية معيّنة؟
-  /// — مستخدمو النظام: دائماً نعم
+  /// — مستخدمو النظام: نعم افتراضاً، لكن يُحترم الإيقاف الصريح (false) إذا عدّلوا أنفسهم
   /// — الأدمن العادي بلا permissions مُعيَّنة: وصول كامل (تهيئة قديمة)
   /// — الأدمن العادي بـ permissions مُعيَّنة: حسب القيمة المخزَّنة
   bool hasPermission(String key) {
-    if (isSystemAdmin) return true;
+    if (isSystemAdmin) {
+      // يحترم الإيقاف الصريح حتى يتمكن المدير/المساعد من تخفيف زحمة الواجهة
+      if (permissions[key] == false) return false;
+      return true;
+    }
     if (role != UserRole.admin) return false;
     if (permissions.isEmpty) return true; // تهيئة قديمة — وصول كامل للمرحلة الانتقالية
     return permissions[key] == true;
@@ -78,7 +82,9 @@ class UserModel {
 
   /// هل يستطيع [actor] تعديل هذا المستخدم؟
   bool canBeEditedBy(UserModel actor) {
-    if (isSuperAdmin) return false;                    // المدير لا يعدّله أحد
+    // المدير/المساعد يعدّل صلاحياته الخاصة دائماً (لإخفاء/إظهار أقسام عن نفسه)
+    if (actor.isSystemAdmin && actor.id == id) return true;
+    if (isSuperAdmin) return false;                    // المدير لا يعدّله أحد سواه
     if (actor.isSuperAdmin) return true;              // المدير يعدّل الجميع
     if (actor.isAssistantAdmin && !isSystemAdmin) return true; // المساعد يعدّل غير مستخدمي النظام
     return false;
