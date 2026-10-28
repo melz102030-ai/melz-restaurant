@@ -33,6 +33,12 @@ class AuthService {
     }
   }
 
+  // stream وثيقة المستخدم الحالي — يُستخدم لمزامنة صلاحياته حياً
+  static Stream<UserModel?> streamUserById(String userId) {
+    return _db.collection(_colUsers).doc(userId).snapshots().map((doc) =>
+        doc.exists ? UserModel.fromMap(doc.data()!, doc.id) : null);
+  }
+
   // ─── الجلسة ───────────────────────────────────────────────────────────────
   static Future<void> saveSession(UserModel user) async {
     final prefs = await SharedPreferences.getInstance();
