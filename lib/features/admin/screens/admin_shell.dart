@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_permissions.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../shared/utils/kitchen_redirect.dart';
 
@@ -18,7 +20,8 @@ Color get _sidebarBg => AppColors.textPrimary;
 Color get _sidebarFg => AppColors.background;
 Color get _sidebarFgMuted => Color.lerp(_sidebarFg, _sidebarBg, 0.45)!;
 
-typedef _NavItem = ({IconData icon, String label, String route});
+/// perm == null → يُعرَض دائماً بصرف النظر عن الصلاحيات
+typedef _NavItem = ({IconData icon, String label, String route, String? perm});
 typedef _NavSection = ({String? title, List<_NavItem> items});
 
 class AdminShell extends ConsumerStatefulWidget {
@@ -55,39 +58,54 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   // القسم فقط عند التوسيع؛ في الوضع المطوي يفصل بينها خط رفيع فقط
   static const List<_NavSection> _navSections = [
     (title: null, items: [
-      (icon: Icons.dashboard_outlined, label: 'لوحة التحكم', route: '/admin'),
+      (icon: Icons.dashboard_outlined, label: 'لوحة التحكم', route: '/admin', perm: null),
     ]),
     (title: 'التشغيل', items: [
-      (icon: Icons.receipt_long_outlined, label: 'الطلبات', route: '/admin/orders'),
-      (icon: Icons.schedule_outlined, label: 'ساعات العمل', route: '/admin/working-hours'),
+      (icon: Icons.receipt_long_outlined,  label: 'الطلبات',     route: '/admin/orders',        perm: Perm.orders),
+      (icon: Icons.schedule_outlined,      label: 'ساعات العمل', route: '/admin/working-hours', perm: Perm.workHours),
     ]),
     (title: 'القائمة', items: [
-      (icon: Icons.restaurant_menu_outlined, label: 'القائمة', route: '/admin/menu'),
+      (icon: Icons.restaurant_menu_outlined, label: 'القائمة', route: '/admin/menu', perm: Perm.menu),
     ]),
     (title: 'المحتوى الترويجي', items: [
-      (icon: Icons.view_carousel_outlined, label: 'البانرات', route: '/admin/banners'),
-      (icon: Icons.campaign_outlined, label: 'الإعلانات المنبثقة', route: '/admin/popup-ads'),
-      (icon: Icons.auto_awesome_outlined, label: 'كولاج شاشة البداية', route: '/admin/splash'),
+      (icon: Icons.view_carousel_outlined, label: 'البانرات',              route: '/admin/banners',    perm: Perm.content),
+      (icon: Icons.campaign_outlined,      label: 'الإعلانات المنبثقة',    route: '/admin/popup-ads', perm: Perm.content),
+      (icon: Icons.auto_awesome_outlined,  label: 'كولاج شاشة البداية',   route: '/admin/splash',    perm: Perm.content),
     ]),
     (title: 'المظهر', items: [
-      (icon: Icons.palette_outlined, label: 'المظهر', route: '/admin/appearance'),
+      (icon: Icons.palette_outlined, label: 'المظهر', route: '/admin/appearance', perm: Perm.appearance),
     ]),
     (title: 'الفريق', items: [
-      (icon: Icons.people_outline, label: 'الأعضاء', route: '/admin/users'),
-      (icon: Icons.delivery_dining_outlined, label: 'المناديب', route: '/admin/drivers'),
+      (icon: Icons.people_outline,        label: 'الأعضاء',   route: '/admin/users',   perm: Perm.users),
+      (icon: Icons.delivery_dining_outlined, label: 'المناديب', route: '/admin/drivers', perm: Perm.users),
     ]),
     (title: 'التوصيل', items: [
-      (icon: Icons.map_outlined, label: 'مناطق التوصيل', route: '/admin/delivery-zones'),
+      (icon: Icons.map_outlined, label: 'مناطق التوصيل', route: '/admin/delivery-zones', perm: Perm.delivery),
     ]),
     (title: 'عام', items: [
-      (icon: Icons.bar_chart_outlined, label: 'التقارير', route: '/admin/reports'),
-      (icon: Icons.support_agent_outlined, label: 'الدعم الفني', route: '/admin/support'),
-      (icon: Icons.settings_outlined, label: 'الإعدادات', route: '/admin/settings'),
+      (icon: Icons.bar_chart_outlined,    label: 'التقارير',  route: '/admin/reports',  perm: Perm.reports),
+      (icon: Icons.support_agent_outlined, label: 'الدعم الفني', route: '/admin/support', perm: Perm.support),
+      (icon: Icons.settings_outlined,     label: 'الإعدادات', route: '/admin/settings', perm: Perm.settings),
     ]),
   ];
 
   static List<_NavItem> get _flatItems =>
       _navSections.expand((s) => s.items).toList();
+
+  /// الأقسام المرئية للمستخدم الحالي بعد تصفية الصلاحيات
+  List<_NavSection> _visibleSections(UserModel? user) {
+    return _navSections
+        .map((section) {
+          final visible = section.items
+              .where((item) =>
+                  item.perm == null ||
+                  (user != null && user.hasPermission(item.perm!)))
+              .toList();
+          return (title: section.title, items: visible);
+        })
+        .where((s) => s.items.isNotEmpty)
+        .toList();
+  }
 
   String _selectedRouteForLocation(String loc) {
     final exact = _flatItems.where((item) => loc == item.route);
@@ -110,10 +128,11 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     final loc = GoRouterState.of(context).uri.path;
     final selectedRoute = _selectedRouteForLocation(loc);
 
+    final visibleSections = _visibleSections(user);
+
     return Scaffold(
       body: Stack(
         children: [
-          // المحتوى: يترك مساحة ثابتة بعرض اللوحة المطوية فقط، فلا يتحرك عند التوسيع
           Positioned(
             top: 0,
             bottom: 0,
@@ -122,7 +141,6 @@ class _AdminShellState extends ConsumerState<AdminShell> {
             child: widget.child,
           ),
 
-          // اللوحة الجانبية: تطفو فوق المحتوى (تغطيه) بدل أن تدفعه عند التوسيع
           Positioned(
             top: 0,
             bottom: 0,
@@ -148,11 +166,21 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                       const SizedBox(height: 4),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Text(
-                          user?.name ?? 'الإدارة',
-                          style: TextStyle(color: _sidebarFgMuted, fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
+                        child: Column(
+                          children: [
+                            Text(
+                              user?.name ?? 'الإدارة',
+                              style: TextStyle(color: _sidebarFg, fontSize: 13,
+                                  fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                            if (user != null && user.isSuperAdmin)
+                              _SystemRoleBadge('مدير النظام', Colors.amber),
+                            if (user != null && !user.isSuperAdmin &&
+                                user.systemRole == SystemRole.assistantAdmin)
+                              _SystemRoleBadge('مساعد المدير', AppColors.purpleLight),
+                          ],
                         ),
                       ),
                     ],
@@ -161,7 +189,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
                       child: SingleChildScrollView(
                         child: Column(
                           children: [
-                            for (final section in _navSections)
+                            for (final section in visibleSections)
                               _NavSectionWidget(
                                 section: section,
                                 expanded: _expanded,
@@ -246,6 +274,29 @@ class _NavSectionWidget extends StatelessWidget {
             onTap: () => onSelect(item.route),
           ),
       ],
+    );
+  }
+}
+
+class _SystemRoleBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _SystemRoleBadge(this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.5)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w700),
+      ),
     );
   }
 }

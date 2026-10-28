@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_permissions.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/services/auth_service.dart';
@@ -24,7 +25,7 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
   @override
   Widget build(BuildContext context) {
     final usersAsync = ref.watch(allUsersProvider);
-    final currentUserId = ref.watch(authProvider)?.id;
+    final currentUser = ref.watch(authProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -78,17 +79,23 @@ class _AdminUsersScreenState extends ConsumerState<AdminUsersScreen> {
                     if (admins.isNotEmpty) ...[
                       _RoleHeader(role: UserRole.admin, count: admins.length),
                       ...admins.asMap().entries.map((e) => _UserTile(
-                          user: e.value, index: e.key, isSelf: e.value.id == currentUserId)),
+                          user: e.value, index: e.key,
+                          isSelf: e.value.id == currentUser?.id,
+                          actor: currentUser)),
                     ],
                     if (kitchen.isNotEmpty) ...[
                       _RoleHeader(role: UserRole.kitchen, count: kitchen.length),
                       ...kitchen.asMap().entries.map((e) => _UserTile(
-                          user: e.value, index: e.key, isSelf: e.value.id == currentUserId)),
+                          user: e.value, index: e.key,
+                          isSelf: e.value.id == currentUser?.id,
+                          actor: currentUser)),
                     ],
                     if (customers.isNotEmpty) ...[
                       _RoleHeader(role: UserRole.customer, count: customers.length),
                       ...customers.asMap().entries.map((e) => _UserTile(
-                          user: e.value, index: e.key, isSelf: e.value.id == currentUserId)),
+                          user: e.value, index: e.key,
+                          isSelf: e.value.id == currentUser?.id,
+                          actor: currentUser)),
                     ],
                     const SizedBox(height: 32),
                   ],
@@ -155,7 +162,13 @@ class _UserTile extends StatelessWidget {
   final UserModel user;
   final int index;
   final bool isSelf;
-  const _UserTile({required this.user, required this.index, required this.isSelf});
+  final UserModel? actor;
+  const _UserTile({
+    required this.user,
+    required this.index,
+    required this.isSelf,
+    this.actor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -172,6 +185,8 @@ class _UserTile extends StatelessWidget {
       UserRole.customer: 'عميل',
     };
     final color = roleColors[user.role] ?? AppColors.textSecondary;
+    final canEdit = actor != null && user.canBeEditedBy(actor!);
+    final isLocked = user.isSuperAdmin; // لا أحد يعدّل مدير النظام
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -179,7 +194,11 @@ class _UserTile extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(
+          color: isLocked
+              ? Colors.amber.withValues(alpha: 0.4)
+              : color.withOpacity(0.2),
+        ),
       ),
       child: Row(
         children: [
@@ -191,10 +210,12 @@ class _UserTile extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Center(
-              child: Text(
-                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18),
-              ),
+              child: isLocked
+                  ? Icon(Icons.shield, color: Colors.amber, size: 22)
+                  : Text(
+                      user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                      style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 18),
+                    ),
             ),
           ),
           const SizedBox(width: 12),
@@ -202,12 +223,25 @@ class _UserTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  user.name,
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        user.name,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    if (user.isSuperAdmin) ...[
+                      const SizedBox(width: 6),
+                      _SmallBadge('مدير النظام', Colors.amber),
+                    ] else if (user.systemRole == SystemRole.assistantAdmin) ...[
+                      const SizedBox(width: 6),
+                      _SmallBadge('مساعد المدير', AppColors.purpleLight),
+                    ],
+                  ],
                 ),
                 Text(
                   user.phone,
@@ -220,70 +254,104 @@ class _UserTile extends StatelessWidget {
               ],
             ),
           ),
-          // Role badge
-          PopupMenuButton<UserRole>(
-            color: AppColors.surface,
-            child: Container(
+          // زر تغيير الدور — مقيَّد
+          if (canEdit && !isLocked)
+            PopupMenuButton<UserRole>(
+              color: AppColors.surface,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      roleLabels[user.role] ?? '',
+                      style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_drop_down, color: color, size: 16),
+                  ],
+                ),
+              ),
+              onSelected: (role) => _confirmRoleChange(context, role, roleLabels),
+              itemBuilder: (_) => UserRole.values.map((r) {
+                return PopupMenuItem<UserRole>(
+                  value: r,
+                  child: Text(roleLabels[r] ?? '',
+                      style: TextStyle(color: AppColors.textPrimary)),
+                );
+              }).toList(),
+            )
+          else
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    roleLabels[user.role] ?? '',
-                    style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(Icons.arrow_drop_down, color: color, size: 16),
-                ],
+              child: Text(
+                roleLabels[user.role] ?? '',
+                style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ),
-            onSelected: (role) => _confirmRoleChange(context, role, roleLabels),
-            itemBuilder: (_) => UserRole.values.map((r) {
-              return PopupMenuItem<UserRole>(
-                value: r,
-                child: Text(
-                  roleLabels[r] ?? '',
-                  style: TextStyle(color: AppColors.textPrimary),
-                ),
-              );
-            }).toList(),
-          ),
           const SizedBox(width: 4),
-          PopupMenuButton<String>(
-            color: AppColors.surface,
-            icon: Icon(Icons.more_vert, color: AppColors.textHint, size: 20),
-            onSelected: (action) {
-              if (action == 'edit') _showEditNameDialog(context);
-              if (action == 'password') _showChangePasswordDialog(context);
-              if (action == 'kitchen_toggle') _toggleKitchenAccess(context);
-              if (action == 'delete') _confirmDelete(context);
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'edit', child: Text('تعديل الاسم')),
-              if (user.role != UserRole.customer)
-                const PopupMenuItem(value: 'password', child: Text('تغيير كلمة المرور')),
-              // وصول المطبخ — فقط للأدمن والمندوب (المطبخ لديه وصول افتراضياً)
-              if (user.role == UserRole.admin || user.role == UserRole.driver)
+          if (canEdit && !isLocked)
+            PopupMenuButton<String>(
+              color: AppColors.surface,
+              icon: Icon(Icons.more_vert, color: AppColors.textHint, size: 20),
+              onSelected: (action) {
+                if (action == 'edit') _showEditNameDialog(context);
+                if (action == 'password') _showChangePasswordDialog(context);
+                if (action == 'kitchen_toggle') _toggleKitchenAccess(context);
+                if (action == 'permissions') _showPermissionsDialog(context);
+                if (action == 'assistant_toggle') _toggleAssistantRole(context);
+                if (action == 'delete') _confirmDelete(context);
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'edit', child: Text('تعديل الاسم')),
+                if (user.role != UserRole.customer)
+                  const PopupMenuItem(value: 'password', child: Text('تغيير كلمة المرور')),
+                if (user.role == UserRole.admin || user.role == UserRole.driver)
+                  PopupMenuItem(
+                    value: 'kitchen_toggle',
+                    child: Text(user.extraRoles.contains('kitchen')
+                        ? 'إزالة وصول المطبخ'
+                        : 'منح وصول المطبخ'),
+                  ),
+                // صلاحيات تفصيلية — للأدمن فقط
+                if (user.role == UserRole.admin)
+                  const PopupMenuItem(
+                    value: 'permissions',
+                    child: Row(children: [
+                      Icon(Icons.lock_person_outlined, size: 16),
+                      SizedBox(width: 6),
+                      Text('تعديل الصلاحيات'),
+                    ]),
+                  ),
+                // تعيين/إلغاء مساعد المدير — للمدير الأساسي فقط
+                if (actor?.isSuperAdmin == true && user.role == UserRole.admin)
+                  PopupMenuItem(
+                    value: 'assistant_toggle',
+                    child: Text(user.systemRole == SystemRole.assistantAdmin
+                        ? 'إلغاء تعيين مساعد المدير'
+                        : 'تعيين كمساعد مدير'),
+                  ),
                 PopupMenuItem(
-                  value: 'kitchen_toggle',
-                  child: Text(user.extraRoles.contains('kitchen')
-                      ? 'إزالة وصول المطبخ'
-                      : 'منح وصول المطبخ'),
+                  value: 'delete',
+                  enabled: !isSelf,
+                  child: Text(
+                    isSelf ? 'حذف (لا يمكن حذف حسابك)' : 'حذف',
+                    style: TextStyle(
+                        color: isSelf ? AppColors.textHint : AppColors.error),
+                  ),
                 ),
-              PopupMenuItem(
-                value: 'delete',
-                enabled: !isSelf,
-                child: Text(
-                  isSelf ? 'حذف (لا يمكن حذف حسابك)' : 'حذف',
-                  style: TextStyle(color: isSelf ? AppColors.textHint : AppColors.error),
-                ),
-              ),
-            ],
-          ),
+              ],
+            )
+          else
+            const SizedBox(width: 20),
         ],
       ),
     ).animate(delay: Duration(milliseconds: index * 30)).fadeIn();
@@ -330,6 +398,44 @@ class _UserTile extends StatelessWidget {
         ? user.extraRoles.where((r) => r != 'kitchen').toList()
         : [...user.extraRoles, 'kitchen'];
     runOrShowError(context, () => AuthService.setExtraRoles(user.id, newRoles));
+  }
+
+  void _showPermissionsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => _PermissionsDialog(user: user),
+    );
+  }
+
+  void _toggleAssistantRole(BuildContext context) {
+    final isAssistant = user.systemRole == SystemRole.assistantAdmin;
+    final newRole = isAssistant ? 'none' : 'assistantAdmin';
+    final label = isAssistant ? 'إلغاء تعيين مساعد المدير' : 'تعيين كمساعد مدير';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(label),
+        content: Text(
+          isAssistant
+              ? 'هل تريد إلغاء صلاحيات مساعد المدير عن "${user.name}"؟ سيصبح أدمناً عادياً.'
+              : 'هل تريد تعيين "${user.name}" كمساعد مدير؟ سيحصل على وصول كامل للوحة إدارة ما عدا منح أدوار النظام.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              runOrShowError(context, () => AuthService.setSystemRole(user.id, newRole));
+            },
+            style: isAssistant
+                ? ElevatedButton.styleFrom(backgroundColor: AppColors.error)
+                : null,
+            child: Text(label),
+          ),
+        ],
+      ),
+    );
   }
 
   // حذف المستخدم لا رجعة فيه — يفقد الوصول للدخول فوراً (راجع ملاحظة
@@ -442,6 +548,136 @@ class _UserTile extends StatelessWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _SmallBadge extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _SmallBadge(this.label, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(label,
+          style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+class _PermissionsDialog extends StatefulWidget {
+  final UserModel user;
+  const _PermissionsDialog({required this.user});
+
+  @override
+  State<_PermissionsDialog> createState() => _PermissionsDialogState();
+}
+
+class _PermissionsDialogState extends State<_PermissionsDialog> {
+  late Map<String, bool> _perms;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // إذا كانت الخريطة فارغة (أدمن قديم)، نبدأ بـ defaultAdmin
+    _perms = widget.user.permissions.isEmpty
+        ? Map<String, bool>.from(Perm.defaultAdmin)
+        : Map<String, bool>.from(widget.user.permissions);
+  }
+
+  Future<void> _save() async {
+    setState(() => _isSaving = true);
+    try {
+      await AuthService.setPermissions(widget.user.id, _perms);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(children: [
+        Icon(Icons.lock_person_outlined, color: AppColors.purple, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text('صلاحيات ${widget.user.name}',
+              maxLines: 2, style: const TextStyle(fontSize: 15)),
+        ),
+      ]),
+      content: SizedBox(
+        width: 340,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'فعّل الأقسام التي يستطيع هذا الموظف الوصول إليها:',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            ...Perm.all.map((key) {
+              return SwitchListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(
+                  Perm.labels[key] ?? key,
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                ),
+                value: _perms[key] ?? false,
+                activeColor: AppColors.purple,
+                onChanged: (v) => setState(() => _perms[key] = v),
+              );
+            }),
+            const Divider(),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => setState(() {
+                    for (final k in Perm.all) _perms[k] = true;
+                  }),
+                  child: const Text('تفعيل الكل'),
+                ),
+                TextButton(
+                  onPressed: () => setState(() {
+                    for (final k in Perm.all) _perms[k] = false;
+                  }),
+                  child: Text('إلغاء الكل',
+                      style: TextStyle(color: AppColors.textHint)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: _isSaving ? null : () => Navigator.pop(context),
+            child: const Text('إلغاء')),
+        ElevatedButton(
+          onPressed: _isSaving ? null : _save,
+          child: _isSaving
+              ? const SizedBox(
+                  width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2))
+              : const Text('حفظ'),
+        ),
+      ],
     );
   }
 }

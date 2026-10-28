@@ -136,6 +136,21 @@ class AuthService {
         .update({'extraRoles': extraRoles});
   }
 
+  static Future<void> setSystemRole(String userId, String systemRole) async {
+    await _db
+        .collection(_colUsers)
+        .doc(userId)
+        .update({'systemRole': systemRole});
+  }
+
+  static Future<void> setPermissions(
+      String userId, Map<String, bool> permissions) async {
+    await _db
+        .collection(_colUsers)
+        .doc(userId)
+        .update({'permissions': permissions});
+  }
+
   // ترقية حساب عميل (مجهول) إلى موظف (مطبخ/إدارة/مندوب):
   // ينشئ حساب Firebase Auth جديداً بالجوال+كلمة مرور ثم يحذف مستند الفايرستور القديم.
   // الطلبات القديمة تبقى مرتبطة بالـUID القديم ولا يمكن ترحيلها بدون Admin SDK.
