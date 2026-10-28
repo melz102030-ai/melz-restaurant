@@ -865,17 +865,18 @@ class _OrderTypeSelector extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: AppColors.surfaceLight,
+            color: AppColors.purple.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.purple.withValues(alpha: 0.25)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.storefront, size: 16, color: AppColors.textSecondary),
+              Icon(Icons.storefront, size: 16, color: AppColors.purple),
               const SizedBox(width: 6),
-              Text('استلام من المطعم فقط',
+              Text('استلام من المطعم',
                   style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+                      color: AppColors.purple, fontSize: 12, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
