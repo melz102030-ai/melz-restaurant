@@ -72,6 +72,29 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
                 'نحتاج اسمك ورقم جوالك فقط لإتمام الطلب والتواصل معك',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
               ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.purple.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.purple.withOpacity(0.2)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.verified_user_outlined,
+                        color: AppColors.purple, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'سيتصل بك المطعم لتوثيق رقمك في أول طلب — لن يحتاج لذلك في طلباتك القادمة',
+                        style: TextStyle(color: AppColors.purple, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 20),
               TextFormField(
                 controller: _nameCtrl,

@@ -27,6 +27,8 @@ var state = {
   deliveredExpanded: false,
   unsubOrders: null,
   unsubSettings: null,
+  unsubVerified: null,
+  verifiedPhones: {},    // phone -> { verifiedAt, verifiedBy }
 };
 
 // ─── أدوات عامة ──────────────────────────────────────────────────────────────
@@ -280,6 +282,13 @@ function setupListeners() {
     renderOpenStatus();
   });
 
+  state.unsubVerified = db.collection('verified_phones').onSnapshot(function (snap) {
+    var map = {};
+    snap.docs.forEach(function (d) { map[d.id] = d.data(); });
+    state.verifiedPhones = map;
+    render();
+  });
+
   state.unsubOrders = db.collection('orders')
     .where('status', 'in', ['pending', 'confirmed', 'preparing', 'ready', 'outForDelivery', 'delivered'])
     .onSnapshot({ includeMetadataChanges: true }, function (snap) {
@@ -311,8 +320,10 @@ function setupListeners() {
 function teardownListeners() {
   if (state.unsubOrders) { state.unsubOrders(); state.unsubOrders = null; }
   if (state.unsubSettings) { state.unsubSettings(); state.unsubSettings = null; }
+  if (state.unsubVerified) { state.unsubVerified(); state.unsubVerified = null; }
   state.orders = [];
   state.knownPendingIds = null;
+  state.verifiedPhones = {};
 }
 
 function tsToDate(ts) { return ts && ts.toDate ? ts.toDate() : new Date(); }
@@ -530,6 +541,15 @@ function openUnavailableItemsModal(order) {
   openModal('أصناف غير متوفرة', body, [actions]);
 }
 
+function verifyPhone(phone) {
+  if (!phone) return;
+  var staffName = state.orders.length > 0 ? (auth.currentUser && auth.currentUser.email) : '';
+  db.collection('verified_phones').doc(phone).set({
+    verifiedAt: firebase.firestore.Timestamp.now(),
+    verifiedBy: staffName || 'kitchen',
+  }).catch(function (e) { console.warn('verify error', e); });
+}
+
 function buildOrderCard(order, index) {
   var isTerminal = order.status === 'delivered' || order.status === 'cancelled';
   var elapsedMin = Math.floor((Date.now() - order.createdAt.getTime()) / 60000);
@@ -549,9 +569,30 @@ function buildOrderCard(order, index) {
     badges.push(el('span', { class: 'badge accent' }, [STATUS_LABEL[order.status]]));
   }
 
+  var isVerified = !!state.verifiedPhones[order.customerPhone];
+
   var callBtn = el('button', { class: 'call-btn', title: 'اتصل بالعميل' });
   callBtn.appendChild(svgIcon('phone'));
   callBtn.addEventListener('click', function () { window.location.href = 'tel:' + order.customerPhone; });
+
+  // badge التوثيق
+  var verifyBadge;
+  if (isVerified) {
+    verifyBadge = el('div', { class: 'verify-badge verified', title: 'رقم موثق' }, [
+      el('span', { class: 'verify-icon' }, ['✓']),
+      el('span', {}, ['موثق']),
+    ]);
+  } else {
+    var verifyBtn = el('button', { class: 'verify-btn', title: 'وثّق الرقم بعد الاتصال' }, [
+      el('span', { class: 'verify-icon' }, ['⚠']),
+      el('span', {}, ['وثّق']),
+    ]);
+    verifyBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      verifyPhone(order.customerPhone);
+    });
+    verifyBadge = verifyBtn;
+  }
 
   var side = el('div', { class: 'order-side' }, [
     callBtn,
@@ -567,9 +608,12 @@ function buildOrderCard(order, index) {
     el('div', { class: 'order-id' }, ['#' + pad4(order.orderNumber)]),
     el('div', { class: 'order-info' }, [
       el('div', { class: 'order-name' }, [order.customerName]),
-      el('div', {
-        class: 'order-phone', onclick: function () { window.location.href = 'tel:' + order.customerPhone; },
-      }, [order.customerPhone]),
+      el('div', { class: 'order-phone-row' }, [
+        el('div', {
+          class: 'order-phone', onclick: function () { window.location.href = 'tel:' + order.customerPhone; },
+        }, [order.customerPhone]),
+        verifyBadge,
+      ]),
       el('div', { class: 'badges' }, badges),
     ]),
     side,
