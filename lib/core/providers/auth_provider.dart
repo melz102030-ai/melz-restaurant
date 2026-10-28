@@ -22,6 +22,11 @@ class AuthNotifier extends StateNotifier<UserModel?> {
     await AuthService.updateUserName(state!.id, name);
     state = state!.copyWith(name: name);
   }
+
+  void updatePermissions(Map<String, bool> permissions) {
+    if (state == null) return;
+    state = state!.copyWith(permissions: permissions);
+  }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, UserModel?>((ref) {

@@ -573,15 +573,15 @@ class _SmallBadge extends StatelessWidget {
   }
 }
 
-class _PermissionsDialog extends StatefulWidget {
+class _PermissionsDialog extends ConsumerStatefulWidget {
   final UserModel user;
   const _PermissionsDialog({required this.user});
 
   @override
-  State<_PermissionsDialog> createState() => _PermissionsDialogState();
+  ConsumerState<_PermissionsDialog> createState() => _PermissionsDialogState();
 }
 
-class _PermissionsDialogState extends State<_PermissionsDialog> {
+class _PermissionsDialogState extends ConsumerState<_PermissionsDialog> {
   late Map<String, bool> _perms;
   bool _isSaving = false;
 
@@ -589,15 +589,22 @@ class _PermissionsDialogState extends State<_PermissionsDialog> {
   void initState() {
     super.initState();
     // إذا كانت الخريطة فارغة (أدمن قديم)، نبدأ بـ defaultAdmin
-    _perms = widget.user.permissions.isEmpty
-        ? Map<String, bool>.from(Perm.defaultAdmin)
-        : Map<String, bool>.from(widget.user.permissions);
+    // نضمن وجود جميع المفاتيح الحالية (defaultAdmin كقاعدة ثم نغطي بما هو محفوظ)
+    _perms = {
+      ...Perm.defaultAdmin,
+      ...widget.user.permissions,
+    };
   }
 
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
       await AuthService.setPermissions(widget.user.id, _perms);
+      // تحديث state الذاكرة فوراً إذا كان المستخدم المحرَّر هو نفس المستخدم الحالي
+      final currentUser = ref.read(authProvider);
+      if (currentUser != null && currentUser.id == widget.user.id) {
+        ref.read(authProvider.notifier).updatePermissions(_perms);
+      }
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -621,47 +628,59 @@ class _PermissionsDialogState extends State<_PermissionsDialog> {
               maxLines: 2, style: const TextStyle(fontSize: 15)),
         ),
       ]),
+      contentPadding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
       content: SizedBox(
         width: 340,
+        // ارتفاع ثابت حتى تكون القائمة قابلة للتمرير بشكل مستقل
+        height: 420,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'فعّل الأقسام التي يستطيع هذا الموظف الوصول إليها:',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
             ),
-            const SizedBox(height: 8),
-            ...Perm.all.map((key) {
-              return SwitchListTile(
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  Perm.labels[key] ?? key,
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
-                ),
-                value: _perms[key] ?? false,
-                activeColor: AppColors.purple,
-                onChanged: (v) => setState(() => _perms[key] = v),
-              );
-            }),
-            const Divider(),
-            Row(
-              children: [
-                TextButton(
-                  onPressed: () => setState(() {
-                    for (final k in Perm.all) _perms[k] = true;
-                  }),
-                  child: const Text('تفعيل الكل'),
-                ),
-                TextButton(
-                  onPressed: () => setState(() {
-                    for (final k in Perm.all) _perms[k] = false;
-                  }),
-                  child: Text('إلغاء الكل',
-                      style: TextStyle(color: AppColors.textHint)),
-                ),
-              ],
+            const SizedBox(height: 6),
+            // القائمة قابلة للتمرير باستقلالية
+            Expanded(
+              child: ListView(
+                shrinkWrap: true,
+                children: Perm.all.map((key) {
+                  return SwitchListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      Perm.labels[key] ?? key,
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                    ),
+                    value: _perms[key] ?? false,
+                    activeColor: AppColors.purple,
+                    onChanged: (v) => setState(() => _perms[key] = v),
+                  );
+                }).toList(),
+              ),
+            ),
+            // أزرار خارج منطقة التمرير — دائماً مرئية
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  TextButton(
+                    onPressed: () => setState(() {
+                      for (final k in Perm.all) _perms[k] = true;
+                    }),
+                    child: const Text('تفعيل الكل'),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() {
+                      for (final k in Perm.all) _perms[k] = false;
+                    }),
+                    child: Text('إلغاء الكل',
+                        style: TextStyle(color: AppColors.textHint)),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
