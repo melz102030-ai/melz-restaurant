@@ -1,25 +1,11 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 
 class AuthNotifier extends StateNotifier<UserModel?> {
-  AuthNotifier() : super(null) {
-    _loadSession();
-  }
-
-  Future<void> _loadSession() async {
-    final user = await AuthService.loadSession();
-    state = user;
-
-    // زائر بلا حساب: نؤمّن جلسة مجهولة حتى تعمل قراءة القائمة إن كانت
-    // قواعد Firestore تتطلب تسجيل دخول، دون أن يظهر المستخدم كمسجّل دخول
-    if (user == null && FirebaseAuth.instance.currentUser == null) {
-      try {
-        await FirebaseAuth.instance.signInAnonymously();
-      } catch (_) {}
-    }
-  }
+  // المستخدم المبدئي يُمرَّر من main() بعد تحميل الجلسة قبل runApp،
+  // لذا لا حاجة لـ _loadSession() هنا — التهيئة تتمّ مرة واحدة فقط
+  AuthNotifier([UserModel? initialUser]) : super(initialUser);
 
   Future<void> login(UserModel user) async {
     await AuthService.saveSession(user);
