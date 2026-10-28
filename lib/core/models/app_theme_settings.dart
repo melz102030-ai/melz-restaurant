@@ -1,3 +1,11 @@
+// اللون الكئيب القديم → يُحوَّل تلقائياً للأفتح عند القراءة من Firestore
+int _migrateInputColor(dynamic stored) {
+  const _old = 0xFFEADFC8;
+  const _new = 0xFFF5F0E6;
+  if (stored == null || stored == _old) return _new;
+  return stored as int;
+}
+
 enum MenuDisplayStyle { list, grid, horizontal }
 
 enum CardStyle { rounded, sharp }
@@ -24,7 +32,7 @@ class AppThemeSettings {
     this.backgroundColor = 0xFFF5EEDC,
     this.cardColor = 0xFFFFFFFF,
     this.textColor = 0xFF1A0030,
-    this.inputFieldColor = 0xFFEADFC8,
+    this.inputFieldColor = 0xFFF5F0E6,
     this.fontFamily = 'Cairo',
     this.cardStyle = CardStyle.rounded,
     this.menuDisplayStyle = MenuDisplayStyle.list,
@@ -50,7 +58,8 @@ class AppThemeSettings {
       backgroundColor: map['backgroundColor'] ?? 0xFFF5EEDC,
       cardColor: map['cardColor'] ?? 0xFFFFFFFF,
       textColor: map['textColor'] ?? 0xFF1A0030,
-      inputFieldColor: map['inputFieldColor'] ?? 0xFFEADFC8,
+      // ترقية تلقائية: اللون الكئيب القديم 0xFFEADFC8 يُستبدل بالأفتح
+      inputFieldColor: _migrateInputColor(map['inputFieldColor']),
       transparentItemBgColor: map['transparentItemBgColor'] ?? 0xFFFFFFFF,
       fontFamily: map['fontFamily'] ?? 'Cairo',
       cardStyle: CardStyle.values.firstWhere(
