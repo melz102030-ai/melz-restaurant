@@ -30,6 +30,11 @@
        المطبخ، رغم أن لوحة الإدارة الفعلية جزء من نفس حزمة فلاتر الرئيسية.
        بعد التثبيت، فتح الأيقونة يذهب مباشرة لـ /#/staff-login عبر
        start_url في manifest.json، بلا المرور بهذه الصفحة الوسيطة مرة ثانية -->
-  <script>window.location.replace('/#/staff-login');</script>
+  <script>
+    // نحفظ السياق (إدارة) في localStorage قبل التحويل حتى يقرأه التطبيق الرئيسي
+    // ويُبدِّل manifest التثبيت لـ "إدارة Meals" بدل "Meals"
+    try { localStorage.setItem('mlz_ctx', 'admin'); } catch(e) {}
+    window.location.replace('/#/staff-login');
+  </script>
 </body>
 </html>

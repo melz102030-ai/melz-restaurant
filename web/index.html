@@ -31,7 +31,33 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
   <title>Meals - برجر . ساندوتشات . كلوب</title>
-  <link rel="manifest" href="manifest.json">
+  <link rel="manifest" href="manifest.json" id="pwa-manifest">
+
+  <!-- تبديل manifest التثبيت حسب سياق المستخدم (عميل/إدارة) قبل تحميل Flutter
+       حتى يعرض المتصفح الاسم الصحيح في نافذة "تثبيت التطبيق" -->
+  <script>
+    (function () {
+      var hash = window.location.hash || '';
+      var stored = '';
+      try { stored = localStorage.getItem('mlz_ctx') || ''; } catch (e) {}
+
+      // سياق الإدارة: قادم من /a/ (stored=admin) أو مباشرة للمسار الإداري
+      var isAdmin = stored === 'admin'
+        || hash.startsWith('#/admin')
+        || hash.startsWith('#/staff-login')
+        || hash.startsWith('#/driver');
+
+      if (isAdmin) {
+        var el = document.getElementById('pwa-manifest');
+        if (el) el.href = '/a/manifest.json';
+        document.title = 'إدارة Meals';
+        try { localStorage.setItem('mlz_ctx', 'admin'); } catch (e) {}
+      } else {
+        // سياق العميل — نمسح أي context قديم
+        try { localStorage.removeItem('mlz_ctx'); } catch (e) {}
+      }
+    })();
+  </script>
 
   <!-- Preconnect to speed up external resources -->
   <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
