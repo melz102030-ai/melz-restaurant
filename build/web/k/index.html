@@ -15,7 +15,7 @@
     --purple-soft: rgba(106,13,173,.12);
     --bg: #F5EEDC;
     --surface: #FFFFFF;
-    --surface-light: #EADFC8;
+    --surface-light: #F8F4EC;
     --text-primary: #1A0030;
     --text-secondary: #5B4A75;
     --text-hint: #9B8BAD;
@@ -142,7 +142,22 @@
   }
   .order-info { flex: 1; min-width: 0; }
   .order-name { font-weight: bold; font-size: 14.5px; }
+  .order-phone-row { display: flex; align-items: center; gap: 8px; margin-top: 2px; flex-wrap: wrap; }
   .order-phone { font-size: 13.5px; color: var(--text-primary); font-weight: bold; direction: ltr; display: inline-block; cursor: pointer; }
+  .verify-badge, .verify-btn {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10.5px; font-weight: bold; padding: 2px 8px; border-radius: 20px;
+    white-space: nowrap; border: none; cursor: default;
+  }
+  .verify-badge.verified {
+    background: rgba(34,197,94,.13); color: #16a34a;
+  }
+  .verify-btn {
+    background: rgba(234,179,8,.13); color: #b45309;
+    cursor: pointer; transition: background .15s;
+  }
+  .verify-btn:hover { background: rgba(234,179,8,.25); }
+  .verify-icon { font-size: 12px; }
   .badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
   .badge {
     font-size: 9.5px; font-weight: bold; padding: 2px 7px; border-radius: 6px;
