@@ -235,6 +235,10 @@ $('#logoutBtn').addEventListener('click', function () {
   auth.signOut();
 });
 
+$('#adminBackBtn').addEventListener('click', function () {
+  window.location.href = '/#/admin';
+});
+
 // ─── مراقبة حالة الدخول ──────────────────────────────────────────────────────
 auth.onAuthStateChanged(function (user) {
   $('#initView').style.display = 'none';
@@ -253,6 +257,9 @@ auth.onAuthStateChanged(function (user) {
     }
     $('#loginView').style.display = 'none';
     $('#appView').style.display = 'block';
+    if (role === 'admin') {
+      $('#adminBackBtn').classList.remove('hidden');
+    }
     primeAudio();
     // إذا فشل تفعيل الصوت (جلسة محفوظة بلا تفاعل مستخدم سابق) نعرض شاشة
     // "ابدأ العمل" التي تضمن تفاعلاً حقيقياً قبل وصول أي طلب
