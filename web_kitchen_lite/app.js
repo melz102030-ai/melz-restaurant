@@ -421,7 +421,7 @@ var STATUS_COLOR = {
 
 // ─── العرض الرئيسي ───────────────────────────────────────────────────────────
 function render() {
-  var total = state.orders.length;
+  var total = state.orders.filter(function (o) { return o.status !== 'delivered'; }).length;
   $('#activeCount').textContent = 'مجموع النشط: ' + total + ' طلب';
   $('#offlineBanner').classList.toggle('hidden', !state.isOffline);
 
@@ -442,16 +442,16 @@ function render() {
   root.appendChild(buildSection('قيد التنفيذ', groups.inProgress, 'var(--st-preparing)', 'لا توجد طلبات قيد التنفيذ'));
   root.appendChild(buildSection('جاهزة', groups.ready, 'var(--st-ready)', 'لا توجد طلبات جاهزة'));
   root.appendChild(buildSection('التوصيل', groups.outForDelivery, 'var(--st-delivery)', 'لا توجد طلبات في الطريق حالياً'));
-  root.appendChild(buildSection('مُسلَّمة', groups.delivered, 'var(--st-delivered)', 'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات', true));
+  root.appendChild(buildSection('مُسلَّمة', groups.delivered, 'var(--st-delivered)', 'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات', true, true));
 }
 
-function buildSection(label, orders, color, emptyMsg, collapsible) {
+function buildSection(label, orders, color, emptyMsg, collapsible, hideCount) {
   var wrap = el('div', { class: 'section' });
   var expanded = collapsible ? state.deliveredExpanded : true;
   var head = el('div', { class: 'section-head' }, [
     el('div', { class: 'dot', style: 'background:' + color }),
     el('h2', {}, [label]),
-    orders.length ? el('span', { class: 'count-pill' }, [String(orders.length)]) : null,
+    (!hideCount && orders.length) ? el('span', { class: 'count-pill' }, [String(orders.length)]) : null,
     collapsible ? el('span', { class: 'chev' }, [expanded ? '▲' : '▼']) : null,
   ]);
   if (collapsible) {
