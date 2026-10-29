@@ -798,7 +798,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   // إلغاء أي "بدون*" → إلغاء "سادة/ساده" تلقائياً
   // كل شيء/كل شي ↔ سادة/ساده لا يجتمعان
   void _applySmartLogic(OptionGroup group, Set<String> sel, String tappedId) {
-    if (group.type != OptionGroupType.multi) return;
+    if (group.type != OptionGroupType.multiple) return;
 
     bool isSada(String n) {
       final t = n.trim();
