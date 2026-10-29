@@ -769,6 +769,7 @@ class ItemOptionsView extends ConsumerStatefulWidget {
 class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   final Map<String, Set<String>> _selections = {};
   final Map<String, GlobalKey> _groupKeys = {};
+  final _noteCtrl = TextEditingController();
   int _qty = 1;
   // مجموعة إجبارية ناقصة يُشار إليها بالأحمر بعد محاولة إضافة فاشلة — تُمسح
   // تلقائياً بمجرد أي اختيار جديد من المستخدم
@@ -784,6 +785,12 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
       _groupKeys[group.id] = GlobalKey();
       _selections[group.id] = _defaultSelectionFor(group);
     }
+  }
+
+  @override
+  void dispose() {
+    _noteCtrl.dispose();
+    super.dispose();
   }
 
   Set<String> _defaultSelectionFor(OptionGroup group) {
@@ -869,8 +876,9 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     }
 
     final notifier = ref.read(cartProvider.notifier);
+    final note = _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim();
     for (int i = 0; i < _qty; i++) {
-      notifier.addItem(widget.item, selectedGroups);
+      notifier.addItem(widget.item, selectedGroups, note);
     }
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1194,6 +1202,40 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
           ),
         );
         }),
+        // ── حقل الملاحظة ──────────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.only(top: 8, bottom: 4),
+          child: TextField(
+            controller: _noteCtrl,
+            maxLines: 2,
+            maxLength: 120,
+            textDirection: TextDirection.rtl,
+            decoration: InputDecoration(
+              hintText: 'ملاحظة خاصة (اختياري)...',
+              prefixIcon: Icon(Icons.edit_note_outlined,
+                  color: AppColors.textHint, size: 20),
+              filled: true,
+              fillColor: AppColors.inputField,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.inputFieldBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.inputFieldBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide:
+                    BorderSide(color: AppColors.purple, width: 1.5),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              counterStyle:
+                  TextStyle(color: AppColors.textHint, fontSize: 11),
+            ),
+          ),
+        ),
         if (widget.item.suggestedItemIds.isNotEmpty) _buildSuggestedItems(),
       ],
     );

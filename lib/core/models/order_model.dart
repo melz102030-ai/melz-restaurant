@@ -157,6 +157,7 @@ class OrderItem {
   final int quantity;
   final String? imageUrl;
   final List<OrderItemOption> selectedOptions;
+  final String? note;
 
   const OrderItem({
     required this.menuItemId,
@@ -165,6 +166,7 @@ class OrderItem {
     required this.quantity,
     this.imageUrl,
     this.selectedOptions = const [],
+    this.note,
   });
 
   double get total => price * quantity;
@@ -184,6 +186,7 @@ class OrderItem {
       selectedOptions: (map['selectedOptions'] as List? ?? [])
           .map((o) => OrderItemOption.fromMap(o as Map<String, dynamic>))
           .toList(),
+      note: map['note'] as String?,
     );
   }
 
@@ -195,6 +198,7 @@ class OrderItem {
       'quantity': quantity,
       'imageUrl': imageUrl,
       'selectedOptions': selectedOptions.map((o) => o.toMap()).toList(),
+      if (note != null && note!.isNotEmpty) 'note': note,
     };
   }
 }
