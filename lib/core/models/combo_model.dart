@@ -19,6 +19,8 @@ class ComboModel {
   final bool isActive;
   final int sortOrder;
   final List<ComboItemRef> items;
+  // الصنف الرئيسي الذي تظهر عليه هذه التركيبة (كزر "خليها وجبة!")
+  final String? linkedItemId;
 
   const ComboModel({
     required this.id,
@@ -29,6 +31,7 @@ class ComboModel {
     this.isActive = true,
     this.sortOrder = 0,
     this.items = const [],
+    this.linkedItemId,
   });
 
   factory ComboModel.fromMap(Map<String, dynamic> map, String id) => ComboModel(
@@ -42,6 +45,7 @@ class ComboModel {
         items: (map['items'] as List? ?? [])
             .map((e) => ComboItemRef.fromMap(Map<String, dynamic>.from(e as Map)))
             .toList(),
+        linkedItemId: map['linkedItemId'] as String?,
       );
 
   Map<String, dynamic> toMap() => {
@@ -52,6 +56,7 @@ class ComboModel {
         'isActive': isActive,
         'sortOrder': sortOrder,
         'items': items.map((e) => e.toMap()).toList(),
+        'linkedItemId': linkedItemId,
       };
 
   ComboModel copyWith({
@@ -62,6 +67,7 @@ class ComboModel {
     bool? isActive,
     int? sortOrder,
     List<ComboItemRef>? items,
+    Object? linkedItemId = _sentinel,
   }) =>
       ComboModel(
         id: id,
@@ -72,5 +78,10 @@ class ComboModel {
         isActive: isActive ?? this.isActive,
         sortOrder: sortOrder ?? this.sortOrder,
         items: items ?? this.items,
+        linkedItemId: linkedItemId == _sentinel
+            ? this.linkedItemId
+            : linkedItemId as String?,
       );
 }
+
+const _sentinel = Object();

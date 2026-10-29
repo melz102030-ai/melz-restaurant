@@ -2762,6 +2762,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
   final _priceCtrl = TextEditingController();
   bool _isActive = true;
   List<ComboItemRef> _items = [];
+  String? _linkedItemId;
   bool _saving = false;
 
   @override
@@ -2774,6 +2775,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
       _priceCtrl.text = c.price.toStringAsFixed(2);
       _isActive = c.isActive;
       _items = List.from(c.items);
+      _linkedItemId = c.linkedItemId;
     }
   }
 
@@ -2800,6 +2802,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
         isActive: _isActive,
         sortOrder: widget.combo?.sortOrder ?? 0,
         items: _items,
+        linkedItemId: _linkedItemId,
       ));
       if (mounted) Navigator.pop(context);
     } finally {
@@ -2837,6 +2840,25 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
                 decoration: const InputDecoration(labelText: 'السعر (ر.س)', suffixText: 'ر.س'),
               ),
               const SizedBox(height: 10),
+              const SizedBox(height: 10),
+              // الصنف الرئيسي: التركيبة ستظهر كزر "خليها وجبة!" على كرت هذا الصنف
+              DropdownButtonFormField<String?>(
+                value: _linkedItemId,
+                decoration: InputDecoration(
+                  labelText: 'يظهر على صنف',
+                  helperText: 'الصنف الذي ستظهر عليه هذه التركيبة للعميل',
+                  prefixIcon: Icon(Icons.link, color: AppColors.purple, size: 20),
+                ),
+                items: [
+                  const DropdownMenuItem<String?>(value: null, child: Text('— بدون ربط —')),
+                  ...allItems.map((i) => DropdownMenuItem<String?>(
+                        value: i.id,
+                        child: Text(i.name, overflow: TextOverflow.ellipsis),
+                      )),
+                ],
+                onChanged: (v) => setState(() => _linkedItemId = v),
+              ),
+              const SizedBox(height: 4),
               SwitchListTile(
                 value: _isActive,
                 onChanged: (v) => setState(() => _isActive = v),

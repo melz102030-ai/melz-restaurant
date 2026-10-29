@@ -1,5 +1,8 @@
 {
   "outputDirectory": "build/web",
+  "redirects": [
+    { "source": "/k", "destination": "/k/", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],

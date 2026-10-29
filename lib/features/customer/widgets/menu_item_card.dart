@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/models/combo_model.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/models/option_group_model.dart';
 import '../../../core/providers/cart_provider.dart';
 import '../../../core/services/cloudinary_service.dart';
 import '../../../shared/widgets/menu_item_image.dart';
 import '../providers/menu_provider.dart';
+import '../screens/combo_detail_sheet.dart';
 
 // إضافة سريعة (صنف بلا خيارات، أول قطعة) مع تغذية راجعة موحّدة — بنفس رسالة
 // النجاح المستخدمة عند الإضافة عبر نافذة الخيارات، بدل الاعتماد فقط على
@@ -248,11 +250,41 @@ class MenuItemListCard extends ConsumerWidget {
       ),
     );
 
+    // التركيبات المرتبطة بهذا الصنف
+    final linkedCombos = ref
+        .watch(activeCombosProvider)
+        .valueOrNull
+        ?.where((c) => c.linkedItemId == item.id)
+        .toList() ?? const <ComboModel>[];
+
+    final mainCard = glowColor != null
+        ? _GlowBorder(color: glowColor, borderRadius: 20, child: card)
+        : card;
+
+    if (linkedCombos.isEmpty) {
+      return Container(
+        margin: const EdgeInsets.symmetric(vertical: 5),
+        child: mainCard,
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 5),
-      child: glowColor != null
-          ? _GlowBorder(color: glowColor, borderRadius: 20, child: card)
-          : card,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          mainCard,
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: linkedCombos.map((combo) => _ComboChip(combo: combo)).toList(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1168,6 +1200,51 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
         widget.asPage ? Expanded(child: optionsList) : Flexible(child: optionsList),
         footer,
       ],
+    );
+  }
+}
+
+// ── زر التركيبة (يظهر تحت كرت الصنف المرتبط به) ────────────────────────────
+
+class _ComboChip extends StatelessWidget {
+  final ComboModel combo;
+  const _ComboChip({required this.combo});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => showComboSheet(context, combo),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.purple.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.purple.withOpacity(0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.local_offer_outlined, color: AppColors.purple, size: 14),
+            const SizedBox(width: 5),
+            Text(
+              combo.name,
+              style: TextStyle(
+                color: AppColors.purple,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Text(
+              '· ${combo.price.toStringAsFixed(0)} ${AppStrings.sar}',
+              style: TextStyle(
+                color: AppColors.purple.withOpacity(0.7),
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

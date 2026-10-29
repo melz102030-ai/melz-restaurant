@@ -504,14 +504,19 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
                   .slideY(begin: 0.05, curve: Curves.easeOut),
             ),
 
-          // قسم التركيبات (وجبات مجمَّعة بسعر ثابت)
-          if (searchQuery.isEmpty && combos.isNotEmpty)
-            SliverToBoxAdapter(
-              child: _CombosSection(combos: combos)
-                  .animate()
-                  .fadeIn(duration: 380.ms, delay: 120.ms)
-                  .slideY(begin: 0.05, curve: Curves.easeOut),
-            ),
+          // تركيبات عامة (غير مرتبطة بصنف معين) — التركيبات المرتبطة بصنف
+          // تظهر مباشرة على كرت ذلك الصنف في القائمة
+          if (searchQuery.isEmpty)
+            Builder(builder: (_) {
+              final global = combos.where((c) => c.linkedItemId == null).toList();
+              if (global.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+              return SliverToBoxAdapter(
+                child: _CombosSection(combos: global)
+                    .animate()
+                    .fadeIn(duration: 380.ms, delay: 120.ms)
+                    .slideY(begin: 0.05, curve: Curves.easeOut),
+              );
+            }),
 
           // Sticky search bar + category chips — stay at top after cover scrolls away
           SliverPersistentHeader(
