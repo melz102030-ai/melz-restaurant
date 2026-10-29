@@ -106,7 +106,12 @@ function loadSettings() {
       $('logoInner').innerHTML = '';
       $('logoInner').appendChild(img);
     }
-    if (d.googleMapsUrl)   { $('btnMaps').href = d.googleMapsUrl;     $('btnMaps').classList.remove('dim'); }
+    // بناء رابط الخريطة من الإحداثيات المخزّنة
+    var lat = d.restaurantLat, lng = d.restaurantLng;
+    if (lat && lng) {
+      $('btnMaps').href = 'https://www.google.com/maps/search/?api=1&query=' + lat + ',' + lng;
+      $('btnMaps').classList.remove('dim');
+    }
     if (d.googleReviewUrl) { $('btnReview').href = d.googleReviewUrl; $('btnReview').classList.remove('dim'); }
   }).catch(function(){});
 }
@@ -187,7 +192,10 @@ function buildCard(item, idx) {
   var imgWrap = qel('div','item-img-wrap');
   if (item.imageUrl) {
     var img = document.createElement('img');
-    img.className = 'item-img'; img.src = item.imageUrl; img.alt = item.name; img.loading = 'lazy';
+    img.className = 'item-img'; img.alt = item.name;
+    img.onload = function() { img.classList.add('loaded'); };
+    img.src = item.imageUrl;
+    if (img.complete) img.classList.add('loaded');
     imgWrap.appendChild(img);
   } else {
     imgWrap.appendChild(qel('div','item-img-ph'));

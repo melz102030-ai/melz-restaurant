@@ -174,13 +174,20 @@ body {
 
 .item-img-wrap {
   width: 100%; aspect-ratio: 1/1;
-  overflow: hidden; background: var(--p10); position: relative;
+  overflow: hidden; background: #ebebeb; position: relative;
 }
-.item-img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .35s; }
+/* fade-in عند تحميل الصورة */
+.item-img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  opacity: 0; transition: opacity .35s ease, transform .35s;
+}
+.item-img.loaded { opacity: 1; }
 .item-card:hover .item-img { transform: scale(1.04); }
 .item-img-ph {
   width: 100%; height: 100%;
-  background: linear-gradient(135deg, var(--p10) 0%, var(--p20) 100%);
+  background: linear-gradient(135deg, #ebebeb 0%, #d8d8d8 100%);
+  animation: shimmer 1.4s infinite;
+  background-size: 200% 100%;
 }
 
 .item-best-badge {
@@ -190,20 +197,17 @@ body {
   box-shadow: 0 2px 8px rgba(0,0,0,.25);
 }
 
-.item-info { padding: 14px 16px 16px; }
+.item-info { padding: 14px 16px 18px; text-align: center; }
 .item-name {
-  font-size: 17px; font-weight: 900; color: var(--text);
-  line-height: 1.35; margin-bottom: 5px;
+  font-size: 19px; font-weight: 900; color: var(--text);
+  line-height: 1.35; margin-bottom: 6px;
 }
 .item-desc {
-  font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 12px;
+  font-size: 14px; color: var(--text2); line-height: 1.6; margin-bottom: 12px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.item-footer { display: flex; align-items: center; justify-content: space-between; }
-.item-price {
-  font-size: 18px; font-weight: 900; color: var(--primary);
-}
-.item-price-label { font-size: 12px; font-weight: 600; color: var(--text3); margin-right: 2px; }
+.item-footer { display: flex; align-items: center; justify-content: center; }
+.item-price { font-size: 20px; font-weight: 900; color: var(--primary); }
 
 /* ── Modal ── */
 .modal-bd {
@@ -264,7 +268,7 @@ body {
       <span class="btn-arrow">‹</span>
     </a>
 
-    <button id="btnMenu" class="link-btn featured" onclick="showMenu()">
+    <button id="btnMenu" class="link-btn" onclick="showMenu()">
       <div class="btn-icon">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </div>
