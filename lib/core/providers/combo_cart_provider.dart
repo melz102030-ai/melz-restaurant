@@ -29,7 +29,13 @@ class ComboCartEntry {
     this.quantity = 1,
   });
 
-  String get cartKey => 'combo_${combo.id}';
+  String get cartKey {
+    final optId = subSelections
+        .where((s) => combo.optionItemIds.contains(s.item.id))
+        .map((s) => s.item.id)
+        .join(',');
+    return optId.isEmpty ? 'combo_${combo.id}' : 'combo_${combo.id}_opt_$optId';
+  }
   double get unitPrice => combo.price;
   double get total => unitPrice * quantity;
 

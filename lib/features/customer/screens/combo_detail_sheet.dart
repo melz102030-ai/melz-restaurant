@@ -17,37 +17,71 @@ Future<void> showComboSheet(BuildContext context, ComboModel combo) {
   );
 }
 
-class _ComboSheet extends ConsumerWidget {
+class _ComboSheet extends ConsumerStatefulWidget {
   final ComboModel combo;
   const _ComboSheet({required this.combo});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final allItems = ref.watch(menuItemsStreamProvider(null)).valueOrNull ?? const <MenuItemModel>[];
+  ConsumerState<_ComboSheet> createState() => _ComboSheetState();
+}
+
+class _ComboSheetState extends ConsumerState<_ComboSheet> {
+  String? _selectedOptionId;
+
+  void _addToCart(List<MenuItemModel> allItems) {
+    final combo = widget.combo;
+    final fixedItems = combo.items
+        .map((r) => allItems.where((i) => i.id == r.itemId).firstOrNull)
+        .whereType<MenuItemModel>()
+        .map((item) => ComboSubSelection(item: item, selectedOptions: const []))
+        .toList();
+
+    // إضافة الخيار المختار كـ sub-selection إضافي
+    final List<ComboSubSelection> allSubs;
+    if (_selectedOptionId != null) {
+      final optItem =
+          allItems.where((i) => i.id == _selectedOptionId).firstOrNull;
+      allSubs = [
+        ...fixedItems,
+        if (optItem != null)
+          ComboSubSelection(item: optItem, selectedOptions: const []),
+      ];
+    } else {
+      allSubs = fixedItems;
+    }
+
+    ref.read(comboCartProvider.notifier).add(ComboCartEntry(
+          combo: combo,
+          subSelections: allSubs,
+        ));
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text('تمت إضافة ${combo.name} للسلة'),
+        backgroundColor: AppColors.success,
+        duration: const Duration(seconds: 2),
+      ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final combo = widget.combo;
+    final allItems =
+        ref.watch(menuItemsStreamProvider(null)).valueOrNull ?? const <MenuItemModel>[];
+
     final resolvedItems = combo.items
         .map((r) => allItems.where((i) => i.id == r.itemId).firstOrNull)
         .whereType<MenuItemModel>()
         .toList();
 
-    void addToCart() {
-      // تُضاف التركيبة للسلة كـ header بالسعر الكامل + sub-items بسعر صفر
-      final subSelections = resolvedItems.map((item) => ComboSubSelection(
-            item: item,
-            selectedOptions: const [],
-          )).toList();
-      ref.read(comboCartProvider.notifier).add(ComboCartEntry(
-            combo: combo,
-            subSelections: subSelections,
-          ));
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(SnackBar(
-          content: Text('تمت إضافة ${combo.name} للسلة'),
-          backgroundColor: AppColors.success,
-          duration: const Duration(seconds: 2),
-        ));
-    }
+    final optionItems = combo.optionItemIds
+        .map((id) => allItems.where((i) => i.id == id).firstOrNull)
+        .whereType<MenuItemModel>()
+        .toList();
+
+    final hasOptions = optionItems.isNotEmpty;
+    final canAdd = !hasOptions || _selectedOptionId != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -97,7 +131,8 @@ class _ComboSheet extends ConsumerWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                 decoration: BoxDecoration(
                   color: AppColors.purple.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
@@ -115,45 +150,122 @@ class _ComboSheet extends ConsumerWidget {
           const SizedBox(height: 16),
           Divider(color: AppColors.divider),
           const SizedBox(height: 10),
-          // عناوين "ما تشمله الوجبة"
-          Text('الوجبة تشمل:',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: AppColors.textSecondary)),
-          const SizedBox(height: 10),
-          ...resolvedItems.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Icon(Icons.check_circle_outline,
-                        color: AppColors.purple, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(item.name,
-                          style: TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500)),
-                    ),
-                  ],
+          // الأصناف الثابتة
+          if (resolvedItems.isNotEmpty) ...[
+            Text('الوجبة تشمل:',
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: AppColors.textSecondary)),
+            const SizedBox(height: 8),
+            ...resolvedItems.map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle_outline,
+                          color: AppColors.purple, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(item.name,
+                            style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500)),
+                      ),
+                    ],
+                  ),
+                )),
+          ],
+          // خيارات الاختيار الإجباري
+          if (hasOptions) ...[
+            const SizedBox(height: 12),
+            Divider(color: AppColors.divider),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.tune, size: 16, color: AppColors.purple),
+                const SizedBox(width: 6),
+                Text('اختر واحداً:',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.textPrimary)),
+                const SizedBox(width: 6),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text('إجباري',
+                      style: TextStyle(
+                          color: AppColors.error,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold)),
                 ),
-              )),
-          if (resolvedItems.isEmpty)
-            Text('لا توجد أصناف مضافة',
-                style:
-                    TextStyle(color: AppColors.textHint, fontSize: 13)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...optionItems.map((item) => InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: () => setState(() => _selectedOptionId = item.id),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: _selectedOptionId == item.id
+                          ? AppColors.purple.withOpacity(0.1)
+                          : AppColors.inputField,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: _selectedOptionId == item.id
+                            ? AppColors.purple
+                            : AppColors.divider,
+                        width: _selectedOptionId == item.id ? 1.5 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _selectedOptionId == item.id
+                              ? Icons.radio_button_checked
+                              : Icons.radio_button_off,
+                          color: _selectedOptionId == item.id
+                              ? AppColors.purple
+                              : AppColors.textHint,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(item.name,
+                              style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: _selectedOptionId == item.id
+                                      ? FontWeight.w600
+                                      : FontWeight.normal)),
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
+          ],
           const SizedBox(height: 20),
           FilledButton(
-            onPressed: addToCart,
+            onPressed: canAdd ? () => _addToCart(allItems) : null,
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.purple,
+              disabledBackgroundColor: AppColors.purple.withOpacity(0.35),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
-              'أضف للسلة · ${combo.price.toStringAsFixed(2)} ${AppStrings.sar}',
+              hasOptions && _selectedOptionId == null
+                  ? 'اختر خياراً أولاً'
+                  : 'أضف للسلة · ${combo.price.toStringAsFixed(2)} ${AppStrings.sar}',
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),

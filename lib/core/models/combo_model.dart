@@ -21,6 +21,8 @@ class ComboModel {
   final List<ComboItemRef> items;
   // الصنف الرئيسي الذي تظهر عليه هذه التركيبة (كزر "خليها وجبة!")
   final String? linkedItemId;
+  // أصناف يختار العميل واحداً منها إجبارياً عند طلب التركيبة
+  final List<String> optionItemIds;
 
   const ComboModel({
     required this.id,
@@ -32,6 +34,7 @@ class ComboModel {
     this.sortOrder = 0,
     this.items = const [],
     this.linkedItemId,
+    this.optionItemIds = const [],
   });
 
   factory ComboModel.fromMap(Map<String, dynamic> map, String id) => ComboModel(
@@ -46,6 +49,7 @@ class ComboModel {
             .map((e) => ComboItemRef.fromMap(Map<String, dynamic>.from(e as Map)))
             .toList(),
         linkedItemId: map['linkedItemId'] as String?,
+        optionItemIds: List<String>.from(map['optionItemIds'] ?? const []),
       );
 
   Map<String, dynamic> toMap() => {
@@ -57,6 +61,7 @@ class ComboModel {
         'sortOrder': sortOrder,
         'items': items.map((e) => e.toMap()).toList(),
         'linkedItemId': linkedItemId,
+        'optionItemIds': optionItemIds,
       };
 
   ComboModel copyWith({
@@ -68,6 +73,7 @@ class ComboModel {
     int? sortOrder,
     List<ComboItemRef>? items,
     Object? linkedItemId = _sentinel,
+    List<String>? optionItemIds,
   }) =>
       ComboModel(
         id: id,
@@ -81,6 +87,7 @@ class ComboModel {
         linkedItemId: linkedItemId == _sentinel
             ? this.linkedItemId
             : linkedItemId as String?,
+        optionItemIds: optionItemIds ?? this.optionItemIds,
       );
 }
 

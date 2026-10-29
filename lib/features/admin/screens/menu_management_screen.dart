@@ -2762,6 +2762,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
   final _priceCtrl = TextEditingController();
   bool _isActive = true;
   List<ComboItemRef> _items = [];
+  List<String> _optionItemIds = [];
   String? _linkedItemId;
   bool _saving = false;
 
@@ -2775,6 +2776,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
       _priceCtrl.text = c.price.toStringAsFixed(2);
       _isActive = c.isActive;
       _items = List.from(c.items);
+      _optionItemIds = List.from(c.optionItemIds);
       _linkedItemId = c.linkedItemId;
     }
   }
@@ -2802,6 +2804,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
         isActive: _isActive,
         sortOrder: widget.combo?.sortOrder ?? 0,
         items: _items,
+        optionItemIds: _optionItemIds,
         linkedItemId: _linkedItemId,
       ));
       if (mounted) Navigator.pop(context);
@@ -2894,6 +2897,59 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
                 onChanged: (i) {
                   if (i != null && !_items.any((r) => r.itemId == i.id)) {
                     setState(() => _items.add(ComboItemRef(itemId: i.id)));
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              const Divider(),
+              Row(
+                children: [
+                  Icon(Icons.tune, size: 16, color: AppColors.purple),
+                  const SizedBox(width: 6),
+                  const Text('خيارات التركيبة',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 3, bottom: 8),
+                child: Text(
+                  'العميل يختار واحداً منها إجبارياً عند الطلب',
+                  style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                ),
+              ),
+              ..._optionItemIds.map((id) {
+                final item = allItems.where((i) => i.id == id).firstOrNull;
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.radio_button_checked,
+                      color: AppColors.purple, size: 18),
+                  title: Text(item?.name ?? id,
+                      style: TextStyle(
+                          color: AppColors.textPrimary, fontSize: 13)),
+                  trailing: IconButton(
+                    icon: Icon(Icons.remove_circle_outline,
+                        color: AppColors.error, size: 20),
+                    onPressed: () =>
+                        setState(() => _optionItemIds.remove(id)),
+                  ),
+                );
+              }),
+              const SizedBox(height: 4),
+              DropdownButtonFormField<MenuItemModel>(
+                value: null,
+                decoration: const InputDecoration(
+                    labelText: 'أضف خياراً', isDense: true),
+                items: allItems
+                    .where((i) => !_optionItemIds.contains(i.id))
+                    .map((i) => DropdownMenuItem(
+                        value: i,
+                        child: Text(i.name,
+                            overflow: TextOverflow.ellipsis)))
+                    .toList(),
+                onChanged: (i) {
+                  if (i != null && !_optionItemIds.contains(i.id)) {
+                    setState(() => _optionItemIds.add(i.id));
                   }
                 },
               ),
