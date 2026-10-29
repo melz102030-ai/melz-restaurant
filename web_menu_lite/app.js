@@ -12,72 +12,101 @@ firebase.initializeApp({
 var db = firebase.firestore();
 
 // ─── State ────────────────────────────────────────────────────────────────────
-var state = {
-  categories: [],   // [{id, name, sortOrder}]
-  items: [],        // [{id, name, description, price, imageUrl, categoryId, isAvailable, isBestSeller}]
-  openCats: {},     // catId -> bool
+var s = {
+  cats: [],
+  items: [],
+  openCats: {},
+  menuLoaded: false,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function $(id) { return document.getElementById(id); }
-function el(tag, attrs, html) {
+function qel(tag, cls, html) {
   var e = document.createElement(tag);
-  if (attrs) Object.keys(attrs).forEach(function(k) {
-    if (k === 'class') e.className = attrs[k];
-    else if (k === 'style') e.style.cssText = attrs[k];
-    else e.setAttribute(k, attrs[k]);
-  });
+  if (cls) e.className = cls;
   if (html !== undefined) e.innerHTML = html;
   return e;
 }
-function sar(price) {
-  return price.toFixed(2) + ' ر.س';
+function sar(p) { return p.toFixed(2) + ' ر.س'; }
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ─── Load data ────────────────────────────────────────────────────────────────
-function loadAll() {
-  // Settings
-  db.collection('settings').doc('main').get().then(function(doc) {
-    if (!doc.exists) return;
-    var d = doc.data();
-    var name = d.restaurantName || d.name || 'ميلز';
-    $('siteName').textContent = name;
-    $('siteTagline').textContent = d.tagline || d.description || '';
-    $('footerName').textContent = name;
-    document.title = 'منيو ' + name;
+// ─── Views ────────────────────────────────────────────────────────────────────
+function showMenu() {
+  $('landing').classList.remove('active');
+  $('menu').classList.add('active');
+  window.scrollTo(0, 0);
+  if (!s.menuLoaded) loadMenu();
+}
+
+function showLanding() {
+  $('menu').classList.remove('active');
+  $('landing').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ─── Load settings (landing page) ─────────────────────────────────────────────
+function loadSettings() {
+  db.doc('settings/restaurant').get().then(function(doc) {
+    var d = doc.exists ? doc.data() : {};
+    var name = d.restaurantName || 'ميلز';
+
+    $('landName').textContent = name;
+    $('menuTitle').textContent = name + ' · المنيو';
+    $('landTagline').textContent = d.tagline || d.address || 'وجبات التوفير';
+    $('landFooter').textContent = name;
+    document.title = name;
 
     if (d.logoUrl) {
-      var img = el('img', { src: d.logoUrl, alt: name });
-      $('logoWrap').innerHTML = '';
-      $('logoWrap').appendChild(img);
+      var img = document.createElement('img');
+      img.src = d.logoUrl;
+      img.alt = name;
+      $('logoInner').innerHTML = '';
+      $('logoInner').appendChild(img);
+    }
+
+    var mapsBtn = $('btnMaps');
+    if (d.googleMapsUrl) {
+      mapsBtn.href = d.googleMapsUrl;
+    } else {
+      mapsBtn.style.opacity = '.45';
+      mapsBtn.style.pointerEvents = 'none';
+    }
+
+    var reviewBtn = $('btnReview');
+    if (d.googleReviewUrl) {
+      reviewBtn.href = d.googleReviewUrl;
+    } else {
+      reviewBtn.style.opacity = '.45';
+      reviewBtn.style.pointerEvents = 'none';
     }
   }).catch(function() {});
+}
 
-  // Categories + items in parallel
-  var catPromise = db.collection('categories')
-    .orderBy('sortOrder')
-    .get()
+// ─── Load menu ────────────────────────────────────────────────────────────────
+function loadMenu() {
+  s.menuLoaded = true;
+
+  var catP = db.collection('categories')
+    .orderBy('sortOrder').get()
     .then(function(snap) {
-      state.categories = snap.docs
-        .map(function(d) {
-          var data = d.data();
-          return { id: d.id, name: data.name || '', sortOrder: data.sortOrder || 0, isVisible: data.isVisible !== false };
-        })
-        .filter(function(c) { return c.isVisible; });
+      s.cats = snap.docs
+        .map(function(d) { var data = d.data(); return { id: d.id, name: data.name || '', isActive: data.isActive !== false }; })
+        .filter(function(c) { return c.isActive; });
     });
 
-  var itemsPromise = db.collection('menuItems')
-    .orderBy('sortOrder')
-    .get()
+  var itemP = db.collection('menu_items')
+    .orderBy('sortOrder').get()
     .then(function(snap) {
-      state.items = snap.docs
+      s.items = snap.docs
         .map(function(d) {
           var data = d.data();
           return {
             id: d.id,
             name: data.name || '',
             description: data.description || '',
-            price: (data.price || data.finalPrice || 0),
+            price: parseFloat(data.price || data.finalPrice || 0),
             imageUrl: data.imageUrl || null,
             categoryId: data.categoryId || '',
             isAvailable: data.isAvailable !== false,
@@ -87,231 +116,201 @@ function loadAll() {
         .filter(function(i) { return i.isAvailable; });
     });
 
-  Promise.all([catPromise, itemsPromise])
-    .then(function() { render(); })
-    .catch(function(err) {
-      $('loadingMsg').innerHTML = '<div style="font-size:32px;margin-bottom:12px">⚠️</div>تعذّر تحميل القائمة';
+  Promise.all([catP, itemP])
+    .then(function() { renderMenu(); })
+    .catch(function() {
+      $('menuLoading').innerHTML = '<div style="font-size:28px;margin-bottom:10px">⚠️</div>تعذّر تحميل القائمة';
     });
 }
 
-// ─── Render ───────────────────────────────────────────────────────────────────
-function render() {
-  $('loadingMsg').classList.add('hidden');
+// ─── Render menu ──────────────────────────────────────────────────────────────
+function renderMenu() {
+  $('menuLoading').classList.add('hidden');
 
-  var cats = state.categories;
-  if (!cats.length) {
-    $('loadingMsg').textContent = 'القائمة فارغة حالياً';
-    $('loadingMsg').classList.remove('hidden');
-    return;
-  }
-
-  // Build tabs
+  // Build category tabs
   var tabsEl = $('catTabs');
   tabsEl.innerHTML = '';
-  cats.forEach(function(cat, i) {
-    var itemsInCat = state.items.filter(function(x) { return x.categoryId === cat.id; });
-    if (!itemsInCat.length) return;
-    var tab = el('button', { class: 'cat-tab' + (i === 0 ? ' active' : ''), 'data-catid': cat.id });
+  var firstCatId = null;
+  s.cats.forEach(function(cat, i) {
+    var count = s.items.filter(function(x) { return x.categoryId === cat.id; }).length;
+    if (!count) return;
+    if (!firstCatId) firstCatId = cat.id;
+    var tab = document.createElement('button');
+    tab.className = 'cat-tab' + (i === 0 ? ' active' : '');
+    tab.setAttribute('data-catid', cat.id);
     tab.textContent = cat.name;
     tab.addEventListener('click', function() {
       document.querySelectorAll('.cat-tab').forEach(function(t) { t.classList.remove('active'); });
       tab.classList.add('active');
-      scrollToCategory(cat.id);
+      jumpToSection(cat.id);
     });
     tabsEl.appendChild(tab);
   });
   $('catTabsWrap').classList.remove('hidden');
 
   // Build sections
-  var content = $('mainContent');
-  content.innerHTML = '';
-  cats.forEach(function(cat) {
-    var itemsInCat = state.items.filter(function(x) { return x.categoryId === cat.id; });
-    if (!itemsInCat.length) return;
+  var body = $('menuBody');
+  body.innerHTML = '';
+  s.cats.forEach(function(cat) {
+    var catItems = s.items.filter(function(x) { return x.categoryId === cat.id; });
+    if (!catItems.length) return;
 
-    var section = el('div', { class: 'category-section', 'data-section': cat.id });
+    var section = document.createElement('div');
+    section.className = 'cat-section';
+    section.setAttribute('data-sec', cat.id);
 
     // Header
-    var header = el('div', { class: 'category-header', role: 'button', 'aria-expanded': 'false' });
-    var left = el('div', { class: 'cat-header-left' });
-    left.appendChild(el('div', { class: 'cat-dot' }));
-    var nameEl = el('span', { class: 'cat-name' }, cat.name);
-    var countEl = el('span', { class: 'cat-count' }, itemsInCat.length.toString());
-    left.appendChild(nameEl);
-    left.appendChild(countEl);
-    var arrow = el('svg', { class: 'cat-arrow', width: '20', height: '20', viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '2.5' });
-    arrow.innerHTML = '<polyline points="6 9 12 15 18 9"/>';
-    header.appendChild(left);
-    header.appendChild(arrow);
+    var head = document.createElement('div');
+    head.className = 'cat-head';
+    head.innerHTML =
+      '<div class="cat-head-left"><div class="cat-dot"></div>' +
+      '<span class="cat-title">' + esc(cat.name) + '</span>' +
+      '<span class="cat-count">' + catItems.length + '</span></div>' +
+      '<svg class="cat-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
 
     // Panel
-    var panel = el('div', { class: 'items-panel', 'data-panel': cat.id });
-    var grid = el('div', { class: 'items-grid' });
-    itemsInCat.forEach(function(item) {
-      grid.appendChild(buildItemCard(item));
-    });
+    var panel = document.createElement('div');
+    panel.className = 'items-panel';
+    panel.setAttribute('data-panel', cat.id);
+
+    var grid = document.createElement('div');
+    grid.className = 'items-grid';
+    catItems.forEach(function(item) { grid.appendChild(buildCard(item)); });
     panel.appendChild(grid);
 
-    header.addEventListener('click', function() { toggleCategory(cat.id, header, panel); });
-
-    section.appendChild(header);
+    head.addEventListener('click', function() { toggleCat(cat.id, head, panel); });
+    section.appendChild(head);
     section.appendChild(panel);
-    content.appendChild(section);
+    body.appendChild(section);
   });
 
-  content.classList.remove('hidden');
+  body.classList.remove('hidden');
 
-  // Open first category by default
-  var first = cats.find(function(c) { return state.items.some(function(i) { return i.categoryId === c.id; }); });
-  if (first) {
-    var fh = content.querySelector('[data-section="' + first.id + '"] .category-header');
-    var fp = content.querySelector('[data-panel="' + first.id + '"]');
-    if (fh && fp) openCategory(first.id, fh, fp);
+  // Open first category
+  if (firstCatId) {
+    var fh = body.querySelector('[data-sec="' + firstCatId + '"] .cat-head');
+    var fp = body.querySelector('[data-panel="' + firstCatId + '"]');
+    if (fh && fp) openCat(firstCatId, fh, fp);
   }
 }
 
-function buildItemCard(item) {
-  var card = el('div', { class: 'item-card', role: 'button', 'aria-label': item.name });
+function buildCard(item) {
+  var card = document.createElement('div');
+  card.className = 'item-card';
   card.addEventListener('click', function() { openModal(item); });
 
-  // Image
-  var imgWrap = el('div', { class: 'item-img-wrap' });
+  var imgWrap = qel('div', 'item-img-wrap');
   if (item.imageUrl) {
-    var img = el('img', { class: 'item-img', src: item.imageUrl, alt: item.name, loading: 'lazy' });
+    var img = document.createElement('img');
+    img.className = 'item-img';
+    img.src = item.imageUrl;
+    img.alt = item.name;
+    img.loading = 'lazy';
     imgWrap.appendChild(img);
   } else {
-    imgWrap.appendChild(el('div', { class: 'item-img-placeholder' }, '🍽️'));
+    imgWrap.appendChild(qel('div', 'item-img-ph', '🍽️'));
   }
-  if (item.isBestSeller) {
-    imgWrap.appendChild(el('span', { class: 'item-badge' }, '⭐ الأكثر طلباً'));
-  }
+  if (item.isBestSeller) imgWrap.appendChild(qel('span', 'item-best', '⭐ الأكثر طلباً'));
   card.appendChild(imgWrap);
 
-  // Info
-  var info = el('div', { class: 'item-info' });
-  info.appendChild(el('div', { class: 'item-name' }, escHtml(item.name)));
-  info.appendChild(el('div', { class: 'item-price' }, sar(item.price)));
+  var info = qel('div', 'item-info');
+  info.appendChild(qel('div', 'item-name', esc(item.name)));
+  info.appendChild(qel('div', 'item-price', sar(item.price)));
   card.appendChild(info);
-
   return card;
 }
 
-// ─── Category toggle ──────────────────────────────────────────────────────────
-function openCategory(catId, header, panel) {
-  state.openCats[catId] = true;
-  header.classList.add('open');
-  header.setAttribute('aria-expanded', 'true');
+// ─── Category open/close ──────────────────────────────────────────────────────
+function openCat(id, head, panel) {
+  s.openCats[id] = true;
+  head.classList.add('open');
   panel.classList.add('open');
-  // Smooth height animation
-  panel.style.maxHeight = panel.scrollHeight + 'px';
 }
-
-function closeCategory(catId, header, panel) {
-  state.openCats[catId] = false;
-  header.classList.remove('open');
-  header.setAttribute('aria-expanded', 'false');
+function closeCat(id, head, panel) {
+  s.openCats[id] = false;
+  head.classList.remove('open');
   panel.classList.remove('open');
-  panel.style.maxHeight = '';
 }
-
-function toggleCategory(catId, header, panel) {
-  if (state.openCats[catId]) {
-    closeCategory(catId, header, panel);
-  } else {
-    openCategory(catId, header, panel);
-  }
+function toggleCat(id, head, panel) {
+  if (s.openCats[id]) closeCat(id, head, panel);
+  else openCat(id, head, panel);
 }
-
-function scrollToCategory(catId) {
-  var section = document.querySelector('[data-section="' + catId + '"]');
-  if (!section) return;
-  var header = section.querySelector('.category-header');
-  var panel  = section.querySelector('[data-panel="' + catId + '"]');
-  if (header && panel && !state.openCats[catId]) {
-    openCategory(catId, header, panel);
-  }
-  setTimeout(function() {
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 50);
+function jumpToSection(id) {
+  var sec = document.querySelector('[data-sec="' + id + '"]');
+  if (!sec) return;
+  var head = sec.querySelector('.cat-head');
+  var panel = sec.querySelector('[data-panel="' + id + '"]');
+  if (head && panel && !s.openCats[id]) openCat(id, head, panel);
+  setTimeout(function() { sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 40);
 }
 
 // ─── Modal ────────────────────────────────────────────────────────────────────
 function openModal(item) {
-  $('modalTitle').textContent = item.name;
-  $('modalDesc').textContent = item.description || '';
-  $('modalPrice').textContent = sar(item.price);
+  $('mdName').textContent = item.name;
+  $('mdDesc').textContent = item.description;
+  $('mdPrice').textContent = sar(item.price);
+  if (item.isBestSeller) $('mdBest').classList.remove('hidden');
+  else $('mdBest').classList.add('hidden');
 
-  if (item.isBestSeller) $('modalBest').classList.remove('hidden');
-  else $('modalBest').classList.add('hidden');
-
-  var imgWrap = $('modalImgWrap');
-  imgWrap.innerHTML = '';
+  var wrap = $('mdImg');
+  wrap.innerHTML = '';
   if (item.imageUrl) {
-    var img = el('img', { class: 'modal-img', src: item.imageUrl, alt: item.name });
-    imgWrap.appendChild(img);
+    var img = document.createElement('img');
+    img.className = 'modal-img'; img.src = item.imageUrl; img.alt = item.name;
+    wrap.appendChild(img);
   } else {
-    imgWrap.appendChild(el('div', { class: 'modal-img-placeholder' }, '🍽️'));
+    wrap.appendChild(qel('div', 'modal-img-ph', '🍽️'));
   }
 
-  $('modalBackdrop').classList.add('open');
+  $('modalBd').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
-
-function closeModal(e) {
-  if (e && e.target !== $('modalBackdrop')) return;
-  closeModalDirect();
-}
-
-function closeModalDirect() {
-  $('modalBackdrop').classList.remove('open');
-  document.body.style.overflow = '';
-}
-
-// Close on ESC
-document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModalDirect(); });
+function closeMd(e) { if (e.target === $('modalBd')) closeMdNow(); }
+function closeMdNow() { $('modalBd').classList.remove('open'); document.body.style.overflow = ''; }
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeMdNow(); });
 
 // ─── Search ───────────────────────────────────────────────────────────────────
-var searchTimer = null;
-
+var searchTimer;
 $('searchInput').addEventListener('input', function() {
   clearTimeout(searchTimer);
-  searchTimer = setTimeout(function() { doSearch($('searchInput').value.trim()); }, 180);
+  searchTimer = setTimeout(function() { doSearch($('searchInput').value.trim()); }, 200);
 });
 
 function doSearch(q) {
   var clearBtn = $('searchClear');
   if (!q) {
     clearBtn.classList.add('hidden');
-    $('mainContent').classList.remove('hidden');
+    $('menuBody').classList.remove('hidden');
     $('catTabsWrap').classList.remove('hidden');
     $('searchResults').classList.add('hidden');
     $('noResults').classList.add('hidden');
     return;
   }
   clearBtn.classList.remove('hidden');
-  $('mainContent').classList.add('hidden');
+  $('menuBody').classList.add('hidden');
   $('catTabsWrap').classList.add('hidden');
 
-  var lower = q.toLowerCase();
-  var matches = state.items.filter(function(i) {
-    return i.name.toLowerCase().indexOf(lower) >= 0 ||
-           (i.description && i.description.toLowerCase().indexOf(lower) >= 0);
+  var low = q.toLowerCase();
+  var matches = s.items.filter(function(i) {
+    return i.name.toLowerCase().indexOf(low) >= 0 || i.description.toLowerCase().indexOf(low) >= 0;
   });
 
-  var resEl = $('searchResults');
   if (!matches.length) {
-    resEl.classList.add('hidden');
-    $('noResultsQuery').textContent = q;
+    $('searchResults').classList.add('hidden');
+    $('noQ').textContent = q;
     $('noResults').classList.remove('hidden');
     return;
   }
   $('noResults').classList.add('hidden');
-
-  var grid = el('div', { class: 'items-grid' });
-  matches.forEach(function(item) { grid.appendChild(buildItemCard(item)); });
-  resEl.innerHTML = '';
-  resEl.appendChild(grid);
-  resEl.classList.remove('hidden');
+  var grid = qel('div', 'items-grid');
+  matches.forEach(function(item) { grid.appendChild(buildCard(item)); });
+  var res = $('searchResults');
+  res.innerHTML = '';
+  var wrap = qel('div', 'cat-section');
+  wrap.style.marginBottom = '0';
+  wrap.appendChild(grid);
+  res.appendChild(wrap);
+  res.classList.remove('hidden');
 }
 
 function clearSearch() {
@@ -319,26 +318,18 @@ function clearSearch() {
   doSearch('');
 }
 
-// ─── Escape HTML ──────────────────────────────────────────────────────────────
-function escHtml(str) {
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ─── Tab highlight on scroll ──────────────────────────────────────────────────
+// ─── Tab sync on scroll ───────────────────────────────────────────────────────
 window.addEventListener('scroll', function() {
   if ($('searchInput').value.trim()) return;
-  var sections = document.querySelectorAll('[data-section]');
-  var bestId = null;
-  sections.forEach(function(s) {
-    var rect = s.getBoundingClientRect();
-    if (rect.top <= 160) bestId = s.getAttribute('data-section');
-  });
-  if (bestId) {
+  var secs = document.querySelectorAll('[data-sec]');
+  var active = null;
+  secs.forEach(function(s) { if (s.getBoundingClientRect().top <= 130) active = s.getAttribute('data-sec'); });
+  if (active) {
     document.querySelectorAll('.cat-tab').forEach(function(t) {
-      t.classList.toggle('active', t.getAttribute('data-catid') === bestId);
+      t.classList.toggle('active', t.getAttribute('data-catid') === active);
     });
   }
 }, { passive: true });
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
-loadAll();
+loadSettings();
