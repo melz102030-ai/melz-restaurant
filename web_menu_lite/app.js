@@ -32,6 +32,96 @@ function esc(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ─── Theme ────────────────────────────────────────────────────────────────────
+// Flutter يخزّن الألوان كـ ARGB integers (مثلاً 0xFF6A0DAD)
+// نحوّلها إلى hex string مقبول في CSS: نأخذ 3 bytes السفلية (RGB) فقط
+function argbToHex(n) {
+  if (!n && n !== 0) return null;
+  var r = (n >> 16) & 0xFF;
+  var g = (n >> 8) & 0xFF;
+  var b = n & 0xFF;
+  return '#' + [r, g, b].map(function(c) { return c.toString(16).padStart(2, '0'); }).join('');
+}
+
+// لوّن يبدو فاتحاً أم داكناً؟ نستخدمه لتحديد لون النص على خلفية ملوّنة
+function isLight(hex) {
+  if (!hex) return true;
+  var c = parseInt(hex.slice(1), 16);
+  var r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 155;
+}
+
+// نسخة شفافة من لون hex (CSS rgba)
+function hexAlpha(hex, alpha) {
+  if (!hex) return 'transparent';
+  var c = parseInt(hex.slice(1), 16);
+  var r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+}
+
+// الخطوط المدعومة من Google Fonts (نفس قائمة AppThemeSettings في Flutter)
+var FONT_MAP = {
+  'Cairo': 'Cairo',
+  'Tajawal': 'Tajawal',
+  'Almarai': 'Almarai',
+  'Changa': 'Changa',
+  'ElMessiri': 'El+Messiri',
+  'El Messiri': 'El+Messiri',
+  'El+Messiri': 'El+Messiri',
+  'Markazi Text': 'Markazi+Text',
+  'MarkaziText': 'Markazi+Text',
+  'Reem Kufi': 'Reem+Kufi',
+  'ReemKufi': 'Reem+Kufi',
+  'IBM Plex Sans Arabic': 'IBM+Plex+Sans+Arabic',
+  'IBMPlexSansArabic': 'IBM+Plex+Sans+Arabic',
+};
+
+function loadTheme() {
+  return db.doc('settings/theme').get().then(function(doc) {
+    var d = doc.exists ? doc.data() : {};
+
+    var primary    = argbToHex(d.primaryColor)    || '#6A0DAD';
+    var secondary  = argbToHex(d.secondaryColor)  || '#800040';
+    var bg         = argbToHex(d.backgroundColor) || '#F5EEDC';
+    var card       = argbToHex(d.cardColor)        || '#FFFFFF';
+    var textCol    = argbToHex(d.textColor)        || '#1A0030';
+    var font       = d.fontFamily || 'Cairo';
+
+    // CSS variables
+    var root = document.documentElement;
+    root.style.setProperty('--primary',   primary);
+    root.style.setProperty('--secondary', secondary);
+    root.style.setProperty('--bg',        bg);
+    root.style.setProperty('--card',      card);
+    root.style.setProperty('--text',      textCol);
+    root.style.setProperty('--text2',     hexAlpha(textCol, 0.6));
+    root.style.setProperty('--text3',     hexAlpha(textCol, 0.35));
+    root.style.setProperty('--p10',       hexAlpha(primary, 0.1));
+    root.style.setProperty('--p20',       hexAlpha(primary, 0.2));
+    root.style.setProperty('--border',    hexAlpha(primary, 0.15));
+    root.style.setProperty('--shadow-p',  '0 6px 24px ' + hexAlpha(primary, 0.25));
+    root.style.setProperty('--font',      "'" + font + "', sans-serif");
+
+    // تحديث theme-color meta
+    var meta = document.getElementById('metaTheme');
+    if (meta) meta.setAttribute('content', primary);
+
+    // تحميل الخط من Google Fonts
+    var gfName = FONT_MAP[font] || font.replace(/ /g, '+');
+    var linkId = 'gfont-link';
+    var existing = document.getElementById(linkId);
+    if (existing) existing.remove();
+    var link = document.createElement('link');
+    link.id = linkId;
+    link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=' + gfName + ':wght@400;600;700;800;900&display=swap';
+    document.head.appendChild(link);
+
+  }).catch(function() {
+    // إذا فشل تحميل الثيم نبقى على الألوان الافتراضية
+  });
+}
+
 // ─── Views ────────────────────────────────────────────────────────────────────
 function showMenu() {
   $('landing').classList.remove('active');
@@ -69,17 +159,13 @@ function loadSettings() {
     var mapsBtn = $('btnMaps');
     if (d.googleMapsUrl) {
       mapsBtn.href = d.googleMapsUrl;
-    } else {
-      mapsBtn.style.opacity = '.45';
-      mapsBtn.style.pointerEvents = 'none';
+      mapsBtn.classList.remove('disabled-btn');
     }
 
     var reviewBtn = $('btnReview');
     if (d.googleReviewUrl) {
       reviewBtn.href = d.googleReviewUrl;
-    } else {
-      reviewBtn.style.opacity = '.45';
-      reviewBtn.style.pointerEvents = 'none';
+      reviewBtn.classList.remove('disabled-btn');
     }
   }).catch(function() {});
 }
@@ -127,7 +213,6 @@ function loadMenu() {
 function renderMenu() {
   $('menuLoading').classList.add('hidden');
 
-  // Build category tabs
   var tabsEl = $('catTabs');
   tabsEl.innerHTML = '';
   var firstCatId = null;
@@ -148,7 +233,6 @@ function renderMenu() {
   });
   $('catTabsWrap').classList.remove('hidden');
 
-  // Build sections
   var body = $('menuBody');
   body.innerHTML = '';
   s.cats.forEach(function(cat) {
@@ -159,7 +243,6 @@ function renderMenu() {
     section.className = 'cat-section';
     section.setAttribute('data-sec', cat.id);
 
-    // Header
     var head = document.createElement('div');
     head.className = 'cat-head';
     head.innerHTML =
@@ -168,7 +251,6 @@ function renderMenu() {
       '<span class="cat-count">' + catItems.length + '</span></div>' +
       '<svg class="cat-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>';
 
-    // Panel
     var panel = document.createElement('div');
     panel.className = 'items-panel';
     panel.setAttribute('data-panel', cat.id);
@@ -186,7 +268,6 @@ function renderMenu() {
 
   body.classList.remove('hidden');
 
-  // Open first category
   if (firstCatId) {
     var fh = body.querySelector('[data-sec="' + firstCatId + '"] .cat-head');
     var fp = body.querySelector('[data-panel="' + firstCatId + '"]');
@@ -323,7 +404,7 @@ window.addEventListener('scroll', function() {
   if ($('searchInput').value.trim()) return;
   var secs = document.querySelectorAll('[data-sec]');
   var active = null;
-  secs.forEach(function(s) { if (s.getBoundingClientRect().top <= 130) active = s.getAttribute('data-sec'); });
+  secs.forEach(function(sec) { if (sec.getBoundingClientRect().top <= 130) active = sec.getAttribute('data-sec'); });
   if (active) {
     document.querySelectorAll('.cat-tab').forEach(function(t) {
       t.classList.toggle('active', t.getAttribute('data-catid') === active);
@@ -332,4 +413,7 @@ window.addEventListener('scroll', function() {
 }, { passive: true });
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
-loadSettings();
+// نحمّل الثيم أولاً ثم بيانات الصفحة بالتوازي
+loadTheme().then(function() {
+  loadSettings();
+});
