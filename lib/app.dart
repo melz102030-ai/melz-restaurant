@@ -248,12 +248,12 @@ final _routerProvider = Provider<GoRouter>((ref) {
 });
 
 String _getInitialRoute(UserModel? user) {
-  if (user == null) return '/home';
-  if (user.role == UserRole.kitchen) {
+  // الرابط الجذر "/" يُظهر دائماً واجهة العميل — الأدمن يُوجَّه لـ /admin
+  // فقط بعد تسجيل الدخول عبر /staff-login، لا عند فتح الموقع مباشرة
+  if (user?.role == UserRole.kitchen) {
     redirectToKitchenLite();
-    return '/home'; // لن يُعرَض فعلياً — المتصفح يغادر الصفحة فوراً أعلاه
   }
-  return _getHomeRoute(user.role);
+  return '/home';
 }
 
 String _getHomeRoute(UserRole role) {
