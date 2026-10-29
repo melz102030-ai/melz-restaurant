@@ -179,12 +179,11 @@ function renderMenu() {
 
 function buildCard(item, idx) {
   var card = qel('div','item-card');
-  // تأخير بسيط حسب ترتيب الصنف لتأثير متتالٍ أنيق
-  var delay = Math.min(idx * 40, 400);
+  var delay = Math.min(idx * 50, 500);
   card.style.transitionDelay = delay + 'ms';
   card.addEventListener('click', function(){ openModal(item); });
 
-  // صورة
+  // صورة كبيرة في الأعلى
   var imgWrap = qel('div','item-img-wrap');
   if (item.imageUrl) {
     var img = document.createElement('img');
@@ -193,9 +192,13 @@ function buildCard(item, idx) {
   } else {
     imgWrap.appendChild(qel('div','item-img-ph'));
   }
+  if (item.isBestSeller) {
+    var badge = qel('span','item-best-badge'); badge.textContent = '⭐ الأكثر طلباً';
+    imgWrap.appendChild(badge);
+  }
   card.appendChild(imgWrap);
 
-  // معلومات
+  // نص أسفل الصورة
   var info = qel('div','item-info');
   var nameEl = qel('div','item-name'); nameEl.textContent = item.name; info.appendChild(nameEl);
   if (item.description) {
@@ -203,9 +206,6 @@ function buildCard(item, idx) {
   }
   var footer = qel('div','item-footer');
   var price = qel('span','item-price'); price.textContent = sar(item.price); footer.appendChild(price);
-  if (item.isBestSeller) {
-    var best = qel('span','item-best'); best.textContent = '⭐ الأكثر طلباً'; footer.appendChild(best);
-  }
   info.appendChild(footer);
   card.appendChild(info);
   return card;
