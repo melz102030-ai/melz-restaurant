@@ -793,6 +793,51 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     return {};
   }
 
+  // ─── منطق الخيارات الذكية ────────────────────────────────────────────────────
+  // سادة/ساده → تحديد كل "بدون*" تلقائياً + إلغاء "كل شيء/كل شي"
+  // إلغاء أي "بدون*" → إلغاء "سادة/ساده" تلقائياً
+  // كل شيء/كل شي ↔ سادة/ساده لا يجتمعان
+  void _applySmartLogic(OptionGroup group, Set<String> sel, String tappedId) {
+    if (group.type != OptionGroupType.multi) return;
+
+    bool isSada(String n) {
+      final t = n.trim();
+      return t == 'سادة' || t == 'ساده';
+    }
+    bool isBadoun(String n) => n.trimLeft().startsWith('بدون');
+    bool isKullShay(String n) {
+      final t = n.trim();
+      return t == 'كل شيء' || t == 'كل شي';
+    }
+
+    final tappedOpt = group.availableOptions.firstWhere((o) => o.id == tappedId, orElse: () => group.availableOptions.first);
+    final nowSelected = sel.contains(tappedId);
+
+    if (nowSelected && isSada(tappedOpt.name)) {
+      for (final o in group.availableOptions) {
+        if (isBadoun(o.name)) sel.add(o.id);
+        if (isKullShay(o.name)) sel.remove(o.id);
+      }
+    } else if (!nowSelected && isSada(tappedOpt.name)) {
+      for (final o in group.availableOptions) {
+        if (isBadoun(o.name)) sel.remove(o.id);
+      }
+    } else if (!nowSelected && isBadoun(tappedOpt.name)) {
+      for (final o in group.availableOptions) {
+        if (isSada(o.name)) sel.remove(o.id);
+      }
+    } else if (nowSelected && isKullShay(tappedOpt.name)) {
+      for (final o in group.availableOptions) {
+        if (isSada(o.name) || isBadoun(o.name)) sel.remove(o.id);
+      }
+    } else if (nowSelected && isBadoun(tappedOpt.name)) {
+      // اختيار "كل شيء" لا يجتمع مع "بدون*" — أزل "كل شيء" إن كان محدداً
+      for (final o in group.availableOptions) {
+        if (isKullShay(o.name)) sel.remove(o.id);
+      }
+    }
+  }
+
   double get _extraTotal {
     double extra = 0;
     for (final group in widget.item.optionGroups) {
@@ -1082,6 +1127,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                   } else {
                     final s = Set<String>.from(_selections[group.id] ?? {});
                     selected ? s.remove(opt.id) : s.add(opt.id);
+                    _applySmartLogic(group, s, opt.id);
                     _selections[group.id] = s;
                   }
                   if (_invalidGroupId == group.id) _invalidGroupId = null;
