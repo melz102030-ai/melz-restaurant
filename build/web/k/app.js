@@ -632,11 +632,15 @@ function buildOrderCard(order, index) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
         return o.groupName + ': ' + (o.selectedNames || []).join('، ') + extra;
       });
+    var itemChildren = [
+      el('div', { class: 'item-name' }, [item.name]),
+    ].concat(optLines.map(function (line) { return el('div', { class: 'item-opts' }, [line]); }));
+    if (item.note && item.note.trim()) {
+      itemChildren.push(el('div', { class: 'item-note' }, ['📝 ' + item.note]));
+    }
     itemsWrap.appendChild(el('div', { class: 'order-item-row' }, [
       el('div', { class: 'qty-box' }, ['×' + item.quantity]),
-      el('div', {}, [
-        el('div', { class: 'item-name' }, [item.name]),
-      ].concat(optLines.map(function (line) { return el('div', { class: 'item-opts' }, [line]); }))),
+      el('div', {}, itemChildren),
     ]));
   });
   card.appendChild(itemsWrap);
@@ -784,6 +788,7 @@ function buildDriverCopyText(order) {
         return o.groupName + ': ' + o.selectedNames.join('، ') + extra;
       }).join(' | ');
     if (opts) lines.push('   ' + opts);
+    if (item.note && item.note.trim()) lines.push('   📝 ' + item.note);
   });
   lines.push('---');
   lines.push('الإجمالي: ' + order.total.toFixed(2) + ' ر.س');
@@ -979,6 +984,7 @@ function buildReceiptPlainText(order) {
         lines.push(o.groupName + ':' + extra);
         o.selectedNames.forEach(function (name) { lines.push('- ' + name); });
       });
+    if (item.note && item.note.trim()) lines.push('ملاحظة: ' + item.note);
   });
   lines.push(sep);
   lines.push('الإجمالي الفرعي: ' + order.subtotal.toFixed(2));
