@@ -96,7 +96,7 @@ function loadSettings() {
     var name = d.restaurantName || 'ميلز';
     $('landName').textContent = name;
     $('menuTitle').textContent = name + ' · المنيو';
-    $('landTagline').textContent = d.tagline || d.address || 'وجبات التوفير';
+    $('landTagline').textContent = d.tagline || 'وجبات التوفير';
     $('landFooter').textContent = name;
     document.title = name;
 
