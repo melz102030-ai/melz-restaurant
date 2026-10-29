@@ -263,13 +263,16 @@ auth.onAuthStateChanged(function (user) {
       $('#adminBackBtn').classList.remove('hidden');
     }
     primeAudio();
-    // إذا فشل تفعيل الصوت (جلسة محفوظة بلا تفاعل مستخدم سابق) نعرض شاشة
-    // "ابدأ العمل" التي تضمن تفاعلاً حقيقياً قبل وصول أي طلب
-    setTimeout(function () {
-      if (kCtx && kCtx.state === 'suspended') {
-        $('#audioActivation').classList.remove('hidden');
-      }
-    }, 400);
+    // إذا سبق أن فعَّل المستخدم الصوت نتجاهل الـoverlay تماماً — الصوت
+    // سيُفعَّل تلقائياً عند أول تفاعل (pointerdown) مع الصفحة.
+    // إذا لم يفعله بعد، نعرض الشاشة بعد 600ms لضمان تفاعل حقيقي
+    if (!localStorage.getItem('kitchen_audio_ok')) {
+      setTimeout(function () {
+        if (kCtx && kCtx.state === 'suspended') {
+          $('#audioActivation').classList.remove('hidden');
+        }
+      }, 600);
+    }
     setupListeners();
   });
 });
@@ -375,7 +378,7 @@ function primeAudio() {
 }
 $('#audioActivation').addEventListener('click', function () {
   primeAudio();
-  // إخفاء فوري مع تأخير بسيط يكفي لانتهاء resume
+  localStorage.setItem('kitchen_audio_ok', '1');
   setTimeout(function () { $('#audioActivation').classList.add('hidden'); }, 150);
 });
 function playAlarm() {
