@@ -181,6 +181,8 @@ class _ComboDialogState extends ConsumerState<_ComboDialog> {
   final _priceCtrl = TextEditingController();
   bool _isActive = true;
   List<ComboItemRef> _items = [];
+  List<String> _linkedItemIds = [];
+  List<String> _optionItemIds = [];
   bool _saving = false;
 
   @override
@@ -193,6 +195,8 @@ class _ComboDialogState extends ConsumerState<_ComboDialog> {
       _priceCtrl.text = c.price.toStringAsFixed(2);
       _isActive = c.isActive;
       _items = List.from(c.items);
+      _linkedItemIds = List.from(c.linkedItemIds);
+      _optionItemIds = List.from(c.optionItemIds);
     }
   }
 
@@ -221,6 +225,8 @@ class _ComboDialogState extends ConsumerState<_ComboDialog> {
         isActive: _isActive,
         sortOrder: widget.combo?.sortOrder ?? 0,
         items: _items,
+        linkedItemIds: _linkedItemIds,
+        optionItemIds: _optionItemIds,
       );
       await ComboService.save(combo);
     });
@@ -307,6 +313,114 @@ class _ComboDialogState extends ConsumerState<_ComboDialog> {
                     .map((i) => DropdownMenuItem(value: i, child: Text(i.name, overflow: TextOverflow.ellipsis)))
                     .toList(),
                 onChanged: (i) { if (i != null) _addItem(i); },
+              ),
+              const SizedBox(height: 12),
+              const Divider(),
+              // ── يظهر على صنف ──────────────────────────────────────────────
+              InputDecorator(
+                decoration: InputDecoration(
+                  labelText: 'يظهر على صنف',
+                  helperText: 'الصنف الذي ستظهر عليه هذه التركيبة للعميل',
+                  prefixIcon: Icon(Icons.link, color: AppColors.purple, size: 20),
+                  isDense: true,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_linkedItemIds.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: _linkedItemIds.map((id) {
+                          final item = allItems.where((i) => i.id == id).firstOrNull;
+                          return Chip(
+                            label: Text(item?.name ?? id,
+                                style: const TextStyle(fontSize: 12)),
+                            deleteIcon: const Icon(Icons.close, size: 15),
+                            onDeleted: () => setState(() => _linkedItemIds.remove(id)),
+                            backgroundColor: AppColors.purple.withOpacity(0.1),
+                            side: BorderSide(color: AppColors.purple.withOpacity(0.4)),
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: null,
+                        hint: Text(
+                          _linkedItemIds.isEmpty ? '— اختر صنفاً —' : '+ أضف صنفاً آخر',
+                          style: TextStyle(fontSize: 13, color: AppColors.textHint),
+                        ),
+                        isDense: true,
+                        isExpanded: true,
+                        items: allItems
+                            .where((i) => !_linkedItemIds.contains(i.id))
+                            .map((i) => DropdownMenuItem(
+                                  value: i.id,
+                                  child: Text(i.name, overflow: TextOverflow.ellipsis),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null && !_linkedItemIds.contains(v)) {
+                            setState(() => _linkedItemIds.add(v));
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(),
+              // ── خيارات التركيبة ───────────────────────────────────────────
+              Row(
+                children: [
+                  Icon(Icons.tune, size: 16, color: AppColors.purple),
+                  const SizedBox(width: 6),
+                  const Text('خيارات التركيبة',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 3, bottom: 8),
+                child: Text('العميل يختار واحداً منها إجبارياً عند الطلب',
+                    style: TextStyle(color: AppColors.textHint, fontSize: 11)),
+              ),
+              ..._optionItemIds.map((id) {
+                final item = allItems.where((i) => i.id == id).firstOrNull;
+                return ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.radio_button_checked,
+                      color: AppColors.purple, size: 18),
+                  title: Text(item?.name ?? id,
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+                  trailing: IconButton(
+                    icon: Icon(Icons.remove_circle_outline,
+                        color: AppColors.red, size: 20),
+                    onPressed: () => setState(() => _optionItemIds.remove(id)),
+                  ),
+                );
+              }),
+              const SizedBox(height: 4),
+              DropdownButtonFormField<MenuItemModel>(
+                value: null,
+                decoration: const InputDecoration(labelText: 'أضف خياراً', isDense: true),
+                items: allItems
+                    .where((i) => !_optionItemIds.contains(i.id))
+                    .map((i) => DropdownMenuItem(
+                          value: i,
+                          child: Text(i.name, overflow: TextOverflow.ellipsis),
+                        ))
+                    .toList(),
+                onChanged: (i) {
+                  if (i != null && !_optionItemIds.contains(i.id)) {
+                    setState(() => _optionItemIds.add(i.id));
+                  }
+                },
               ),
             ],
           ),
