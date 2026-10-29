@@ -206,3 +206,6 @@ final cartTotalProvider = Provider<double>((ref) {
 final cartItemCountProvider = Provider<int>((ref) {
   return ref.watch(cartProvider).fold(0, (s, c) => s + c.quantity);
 });
+
+// ملاحظة الطلب العامة — تبقى محفوظة أثناء التنقل بين الشاشات
+final cartOrderNoteProvider = StateProvider<String>((ref) => '');

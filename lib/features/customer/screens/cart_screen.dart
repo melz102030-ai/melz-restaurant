@@ -57,6 +57,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     // يبدأ بنفس طريقة الاستلام التي اختارها العميل من الشاشة الرئيسية
     _orderType = ref.read(orderTypeProvider);
 
+    // استعادة نص الملاحظة المحفوظ من الـ provider
+    _notesController.text = ref.read(cartOrderNoteProvider);
+    _notesController.addListener(() {
+      ref.read(cartOrderNoteProvider.notifier).state = _notesController.text;
+    });
+
     // تحميل موقع التوصيل الافتراضي المحفوظ للعميل تلقائياً إن وُجد
     final user = ref.read(authProvider);
     if (user != null && user.hasSavedLocation) {
@@ -348,6 +354,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       final orderId = await OrderService.placeOrder(order);
       ref.read(cartProvider.notifier).clear();
       ref.read(comboCartProvider.notifier).clear();
+      ref.read(cartOrderNoteProvider.notifier).state = '';
+      _notesController.clear();
       if (!mounted) return;
       try {
         js.context.callMethod('requestNotifyPermission', []);
@@ -568,6 +576,8 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                         onPressed: () {
                           ref.read(cartProvider.notifier).clear();
                           ref.read(comboCartProvider.notifier).clear();
+                          ref.read(cartOrderNoteProvider.notifier).state = '';
+                          _notesController.clear();
                           Navigator.pop(context);
                         },
                         child: const Text(AppStrings.delete,
