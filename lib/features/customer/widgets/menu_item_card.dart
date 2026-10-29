@@ -254,7 +254,7 @@ class MenuItemListCard extends ConsumerWidget {
     final linkedCombos = ref
         .watch(activeCombosProvider)
         .valueOrNull
-        ?.where((c) => c.linkedItemId == item.id)
+        ?.where((c) => c.linkedItemIds.contains(item.id))
         .toList() ?? const <ComboModel>[];
 
     final mainCard = glowColor != null

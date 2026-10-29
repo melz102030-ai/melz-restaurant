@@ -2763,7 +2763,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
   bool _isActive = true;
   List<ComboItemRef> _items = [];
   List<String> _optionItemIds = [];
-  String? _linkedItemId;
+  List<String> _linkedItemIds = [];
   bool _saving = false;
 
   @override
@@ -2777,7 +2777,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
       _isActive = c.isActive;
       _items = List.from(c.items);
       _optionItemIds = List.from(c.optionItemIds);
-      _linkedItemId = c.linkedItemId;
+      _linkedItemIds = List.from(c.linkedItemIds);
     }
   }
 
@@ -2805,7 +2805,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
         sortOrder: widget.combo?.sortOrder ?? 0,
         items: _items,
         optionItemIds: _optionItemIds,
-        linkedItemId: _linkedItemId,
+        linkedItemIds: _linkedItemIds,
       ));
       if (mounted) Navigator.pop(context);
     } finally {
@@ -2844,22 +2844,69 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
               ),
               const SizedBox(height: 10),
               const SizedBox(height: 10),
-              // الصنف الرئيسي: التركيبة ستظهر كزر "خليها وجبة!" على كرت هذا الصنف
-              DropdownButtonFormField<String?>(
-                value: _linkedItemId,
+              // الأصناف التي تظهر عليها التركيبة
+              InputDecorator(
                 decoration: InputDecoration(
                   labelText: 'يظهر على صنف',
                   helperText: 'الصنف الذي ستظهر عليه هذه التركيبة للعميل',
                   prefixIcon: Icon(Icons.link, color: AppColors.purple, size: 20),
+                  isDense: true,
                 ),
-                items: [
-                  const DropdownMenuItem<String?>(value: null, child: Text('— بدون ربط —')),
-                  ...allItems.map((i) => DropdownMenuItem<String?>(
-                        value: i.id,
-                        child: Text(i.name, overflow: TextOverflow.ellipsis),
-                      )),
-                ],
-                onChanged: (v) => setState(() => _linkedItemId = v),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_linkedItemIds.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: _linkedItemIds.map((id) {
+                          final item =
+                              allItems.where((i) => i.id == id).firstOrNull;
+                          return Chip(
+                            label: Text(item?.name ?? id,
+                                style: const TextStyle(fontSize: 12)),
+                            deleteIcon: const Icon(Icons.close, size: 15),
+                            onDeleted: () =>
+                                setState(() => _linkedItemIds.remove(id)),
+                            backgroundColor:
+                                AppColors.purple.withOpacity(0.1),
+                            side: BorderSide(
+                                color: AppColors.purple.withOpacity(0.4)),
+                            padding: EdgeInsets.zero,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: null,
+                        hint: Text(
+                          _linkedItemIds.isEmpty ? '— اختر صنفاً —' : '+ أضف صنفاً آخر',
+                          style: TextStyle(
+                              fontSize: 13, color: AppColors.textHint),
+                        ),
+                        isDense: true,
+                        isExpanded: true,
+                        items: allItems
+                            .where((i) => !_linkedItemIds.contains(i.id))
+                            .map((i) => DropdownMenuItem(
+                                  value: i.id,
+                                  child: Text(i.name,
+                                      overflow: TextOverflow.ellipsis),
+                                ))
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null && !_linkedItemIds.contains(v)) {
+                            setState(() => _linkedItemIds.add(v));
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 4),
               SwitchListTile(

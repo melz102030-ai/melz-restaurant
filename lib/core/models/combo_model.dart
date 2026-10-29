@@ -19,8 +19,8 @@ class ComboModel {
   final bool isActive;
   final int sortOrder;
   final List<ComboItemRef> items;
-  // الصنف الرئيسي الذي تظهر عليه هذه التركيبة (كزر "خليها وجبة!")
-  final String? linkedItemId;
+  // الأصناف التي تظهر عليها هذه التركيبة (كزر "خليها وجبة!")
+  final List<String> linkedItemIds;
   // أصناف يختار العميل واحداً منها إجبارياً عند طلب التركيبة
   final List<String> optionItemIds;
 
@@ -33,7 +33,7 @@ class ComboModel {
     this.isActive = true,
     this.sortOrder = 0,
     this.items = const [],
-    this.linkedItemId,
+    this.linkedItemIds = const [],
     this.optionItemIds = const [],
   });
 
@@ -48,7 +48,7 @@ class ComboModel {
         items: (map['items'] as List? ?? [])
             .map((e) => ComboItemRef.fromMap(Map<String, dynamic>.from(e as Map)))
             .toList(),
-        linkedItemId: map['linkedItemId'] as String?,
+        linkedItemIds: _parseLinkedItemIds(map),
         optionItemIds: List<String>.from(map['optionItemIds'] ?? const []),
       );
 
@@ -60,7 +60,7 @@ class ComboModel {
         'isActive': isActive,
         'sortOrder': sortOrder,
         'items': items.map((e) => e.toMap()).toList(),
-        'linkedItemId': linkedItemId,
+        'linkedItemIds': linkedItemIds,
         'optionItemIds': optionItemIds,
       };
 
@@ -72,7 +72,7 @@ class ComboModel {
     bool? isActive,
     int? sortOrder,
     List<ComboItemRef>? items,
-    Object? linkedItemId = _sentinel,
+    List<String>? linkedItemIds,
     List<String>? optionItemIds,
   }) =>
       ComboModel(
@@ -84,11 +84,16 @@ class ComboModel {
         isActive: isActive ?? this.isActive,
         sortOrder: sortOrder ?? this.sortOrder,
         items: items ?? this.items,
-        linkedItemId: linkedItemId == _sentinel
-            ? this.linkedItemId
-            : linkedItemId as String?,
+        linkedItemIds: linkedItemIds ?? this.linkedItemIds,
         optionItemIds: optionItemIds ?? this.optionItemIds,
       );
 }
 
-const _sentinel = Object();
+// هجرة من linkedItemId (string قديم) إلى linkedItemIds (list جديد)
+List<String> _parseLinkedItemIds(Map<String, dynamic> map) {
+  final newList = map['linkedItemIds'];
+  if (newList is List) return List<String>.from(newList);
+  final oldId = map['linkedItemId'] as String?;
+  if (oldId != null && oldId.isNotEmpty) return [oldId];
+  return const [];
+}

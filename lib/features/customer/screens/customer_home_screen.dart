@@ -508,7 +508,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
           // تظهر مباشرة على كرت ذلك الصنف في القائمة
           if (searchQuery.isEmpty)
             Builder(builder: (_) {
-              final global = combos.where((c) => c.linkedItemId == null).toList();
+              final global = combos.where((c) => c.linkedItemIds.isEmpty).toList();
               if (global.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
               return SliverToBoxAdapter(
                 child: _CombosSection(combos: global)
