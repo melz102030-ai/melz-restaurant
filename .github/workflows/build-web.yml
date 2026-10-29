@@ -58,6 +58,14 @@ jobs:
           mkdir -p build/web/a
           cp -r web_admin_entry/* build/web/a/
 
+      # صفحة عرض المنيو التفاعلية — HTML/JS خالصة تقرأ من Firestore مباشرة
+      # تُنشر على /m/ (menu — رابط قصير للمشاركة مع العملاء والزوار)
+      - name: Publish menu-lite web
+        run: |
+          rm -rf build/web/m
+          mkdir -p build/web/m
+          cp -r web_menu_lite/* build/web/m/
+
       # يُنشر مباشرة بعد البناء (قبل الالتزام بالمخرجات) بدل الاعتماد على
       # تشغيل منفصل يُحفَّز بتعديل build/web — التزام البناء يحمل [skip ci]
       # فيُعطَّل أي تشغيل جديد لأي workflow أصلاً على ذلك الالتزام

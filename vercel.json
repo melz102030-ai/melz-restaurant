@@ -1,7 +1,8 @@
 {
   "outputDirectory": "build/web",
   "redirects": [
-    { "source": "/k", "destination": "/k/", "permanent": false }
+    { "source": "/k", "destination": "/k/", "permanent": false },
+    { "source": "/m", "destination": "/m/", "permanent": false }
   ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
@@ -49,6 +50,18 @@
       "source": "/a/index.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/m/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/m/app.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
       ]
     }
   ]
