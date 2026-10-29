@@ -11,20 +11,22 @@ class CartItem {
   final MenuItemModel item;
   final int quantity;
   final List<SelectedOptionGroup> selectedOptions;
+  final String? note;
 
   const CartItem({
     required this.item,
     required this.quantity,
     this.selectedOptions = const [],
+    this.note,
   });
 
-  // Unique key: item id + selected option ids (so same item with different options = separate entries)
+  // نفس الصنف بنفس الخيارات لكن ملاحظات مختلفة = عنصران منفصلان في السلة
   String get cartKey {
-    if (selectedOptions.isEmpty) return item.id;
-    final optStr = selectedOptions
-        .map((g) => '${g.groupId}:${g.selectedIds.join(',')}')
-        .join('|');
-    return '${item.id}_$optStr';
+    final optStr = selectedOptions.isEmpty
+        ? ''
+        : '_' + selectedOptions.map((g) => '${g.groupId}:${g.selectedIds.join(',')}').join('|');
+    final noteStr = (note != null && note!.isNotEmpty) ? '_n:$note' : '';
+    return '${item.id}$optStr$noteStr';
   }
 
   double get optionsExtra =>
@@ -39,10 +41,8 @@ class CartItem {
       .join(' · ');
 
   CartItem copyWith({int? quantity}) =>
-      CartItem(item: item, quantity: quantity ?? this.quantity, selectedOptions: selectedOptions);
+      CartItem(item: item, quantity: quantity ?? this.quantity, selectedOptions: selectedOptions, note: note);
 
-  // تخزين محلي (SharedPreferences) — لا علاقة له بتنسيق Firestore المستخدم
-  // في toMap()/fromMap() الأصليين للنموذج (ذاك مخصص لحقول الطلب النهائي)
   Map<String, dynamic> _toLocalJson() => {
         'itemId': item.id,
         'item': item.toMap(),
@@ -56,6 +56,7 @@ class CartItem {
                   'totalExtra': g.totalExtra,
                 })
             .toList(),
+        if (note != null && note!.isNotEmpty) 'note': note,
       };
 
   static CartItem? _fromLocalJson(Map<String, dynamic> json) {
@@ -79,9 +80,9 @@ class CartItem {
         item: item,
         quantity: json['quantity'] as int,
         selectedOptions: options,
+        note: json['note'] as String?,
       );
     } catch (_) {
-      // عنصر تالف/بصيغة قديمة — يُتجاهل بدل تعطيل استرجاع بقية السلة
       return null;
     }
   }
@@ -120,9 +121,9 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     } catch (_) {}
   }
 
-  void addItem(MenuItemModel item, [List<SelectedOptionGroup> options = const []]) {
-    final key = _keyFor(item.id, options);
-    final idx = state.indexWhere((c) => c.cartKey == key);
+  void addItem(MenuItemModel item, [List<SelectedOptionGroup> options = const [], String? note]) {
+    final entry = CartItem(item: item, quantity: 1, selectedOptions: options, note: note);
+    final idx = state.indexWhere((c) => c.cartKey == entry.cartKey);
     if (idx >= 0) {
       state = [
         ...state.sublist(0, idx),
@@ -130,10 +131,7 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
         ...state.sublist(idx + 1),
       ];
     } else {
-      state = [
-        ...state,
-        CartItem(item: item, quantity: 1, selectedOptions: options),
-      ];
+      state = [...state, entry];
     }
     _persist();
   }
@@ -180,9 +178,11 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
                     extra: g.totalExtra,
                   ))
               .toList(),
+          note: c.note,
         )).toList();
   }
 
+  // محذوف — cartKey الآن داخل CartItem مباشرة
   String _keyFor(String itemId, List<SelectedOptionGroup> options) {
     if (options.isEmpty) return itemId;
     final optStr = options

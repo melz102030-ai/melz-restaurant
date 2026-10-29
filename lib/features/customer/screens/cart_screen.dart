@@ -890,6 +890,27 @@ class _CartItemTile extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
+                if (cartItem.note != null && cartItem.note!.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Icon(Icons.edit_note_outlined,
+                          size: 13, color: AppColors.purple.withOpacity(0.7)),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          cartItem.note!,
+                          style: TextStyle(
+                              color: AppColors.purple.withOpacity(0.8),
+                              fontSize: 11,
+                              fontStyle: FontStyle.italic),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 4),
                 Text(
                   '${cartItem.unitPrice.toStringAsFixed(2)} ${AppStrings.sar}',
