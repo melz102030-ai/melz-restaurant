@@ -624,8 +624,10 @@ function buildOrderCard(order, index) {
   card.appendChild(head);
 
   // Items
+  var unavailSet = new Set(order.unavailableItemIds || []);
   var itemsWrap = el('div', { class: 'order-items' });
   order.items.forEach(function (item) {
+    var isUnavail = unavailSet.has(item.menuItemId);
     var optLines = (item.selectedOptions || [])
       .filter(function (o) { return (o.selectedNames || []).length; })
       .map(function (o) {
@@ -633,12 +635,15 @@ function buildOrderCard(order, index) {
         return o.groupName + ': ' + (o.selectedNames || []).join('، ') + extra;
       });
     var itemChildren = [
-      el('div', { class: 'item-name' }, [item.name]),
+      el('div', { class: 'item-name' + (isUnavail ? ' unavail-name' : '') }, [item.name]),
     ].concat(optLines.map(function (line) { return el('div', { class: 'item-opts' }, [line]); }));
+    if (isUnavail) {
+      itemChildren.push(el('div', { class: 'item-unavail-badge' }, ['نفد • ينتظر رد العميل']));
+    }
     if (item.note && item.note.trim()) {
       itemChildren.push(el('div', { class: 'item-note' }, ['📝 ' + item.note]));
     }
-    itemsWrap.appendChild(el('div', { class: 'order-item-row' }, [
+    itemsWrap.appendChild(el('div', { class: 'order-item-row' + (isUnavail ? ' unavail-row' : '') }, [
       el('div', { class: 'qty-box' }, ['×' + item.quantity]),
       el('div', {}, itemChildren),
     ]));
