@@ -77,6 +77,11 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
   @override
   void initState() {
     super.initState();
+    if (widget.order.unavailableItemIds.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showUnavailableDialog(widget.order);
+      });
+    }
     if (widget.order.estimatedMinutes != null && !_isTerminal) {
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() {});
@@ -172,9 +177,10 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
+                OrderService.acknowledgeUnavailableItems(order);
                 context.go('/home');
               },
-              child: const Text('إضافة أصناف بديلة'),
+              child: const Text('أكمل وأضف طلباً جديداً'),
             ),
           ElevatedButton(
             onPressed: remaining > 0
