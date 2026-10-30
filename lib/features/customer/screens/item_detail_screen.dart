@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/models/combo_model.dart';
 import '../../../core/models/menu_item_model.dart';
 import '../../../core/services/cloudinary_service.dart';
 import '../../../shared/widgets/menu_item_image.dart';
 import '../providers/menu_provider.dart';
+import 'combo_detail_sheet.dart';
 import '../widgets/menu_item_card.dart';
 
 // صفحة صنف كاملة — تُفتح من بطاقات العرض المضغوطة (شبكي/أفقي) التي لا تتّسع
@@ -35,7 +37,13 @@ class ItemDetailScreen extends ConsumerWidget {
     }
 
     final available = item.isAvailable;
-    final header = _ItemHeader(item: item);
+    final linkedCombos = ref
+        .watch(activeCombosProvider)
+        .valueOrNull
+        ?.where((c) => c.linkedItemIds.contains(itemId))
+        .toList() ?? const <ComboModel>[];
+
+    final header = _ItemHeader(item: item, linkedCombos: linkedCombos);
 
     return Scaffold(
       body: available
@@ -58,7 +66,8 @@ class ItemDetailScreen extends ConsumerWidget {
 // صورة الصنف بعرض الشاشة الكامل (بلا فراغ جانبي) + الاسم والوصف والسعر
 class _ItemHeader extends StatelessWidget {
   final MenuItemModel item;
-  const _ItemHeader({required this.item});
+  final List<ComboModel> linkedCombos;
+  const _ItemHeader({required this.item, this.linkedCombos = const []});
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +175,29 @@ class _ItemHeader extends StatelessWidget {
                 const SizedBox(height: 12),
                 _NutritionInfo(item: item),
               ],
+              if (linkedCombos.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Icon(Icons.local_offer_outlined, color: AppColors.purple, size: 15),
+                    const SizedBox(width: 6),
+                    Text(
+                      'أضف تركيبة',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: linkedCombos.map((combo) => _ComboDetailChip(combo: combo)).toList(),
+                ),
+              ],
             ],
           ),
         ),
@@ -246,6 +278,50 @@ class _NutritionInfo extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+// chip التركيبة في صفحة التفاصيل — أكبر من نظيرتها في البطاقة المضغوطة
+class _ComboDetailChip extends StatelessWidget {
+  final ComboModel combo;
+  const _ComboDetailChip({required this.combo});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => showComboSheet(context, combo),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.purple.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.purple.withOpacity(0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add_circle_outline, color: AppColors.purple, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              combo.name,
+              style: TextStyle(
+                color: AppColors.purple,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              '${combo.price.toStringAsFixed(0)} ${AppStrings.sar}',
+              style: TextStyle(
+                color: AppColors.purple.withOpacity(0.7),
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
