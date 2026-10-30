@@ -345,7 +345,8 @@ class MenuItemGridCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
+            AspectRatio(
+              aspectRatio: 1.0,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                 child: Stack(
@@ -1070,7 +1071,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
               // وارتفاع 190) المستخدَم أيضاً في قسم "الأكثر مبيعاً" بالصفحة
               // الرئيسية، بدل بطاقة مصغّرة مخصَّصة بحجم مختلف عن بقية التطبيق
               SizedBox(
-                height: 190,
+                height: 216,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   itemCount: suggested.length,

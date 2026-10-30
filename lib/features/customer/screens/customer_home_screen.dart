@@ -598,7 +598,7 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     if (style == MenuDisplayStyle.horizontal) {
       return SliverToBoxAdapter(
         child: SizedBox(
-          height: 190,
+          height: 216,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1375,7 +1375,7 @@ class _BestSellersSection extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           SizedBox(
-            height: 190,
+            height: 216,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 12),
