@@ -612,16 +612,32 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
       );
     }
     if (style == MenuDisplayStyle.grid) {
-      return SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 0.72,
-        ),
+      // SliverList بصفّين بدل SliverGrid لأن التركيبات (chips) تجعل ارتفاع
+      // كل كرت متغيّراً ولا يتناسب مع childAspectRatio الثابت
+      final rowCount = (items.length / 2).ceil();
+      return SliverList(
         delegate: SliverChildBuilderDelegate(
-          (_, i) => MenuItemGridCard(item: items[i]),
-          childCount: items.length,
+          (_, row) {
+            final left = items[row * 2];
+            final rightIdx = row * 2 + 1;
+            final right = rightIdx < items.length ? items[rightIdx] : null;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: MenuItemGridCard(item: left)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: right != null
+                        ? MenuItemGridCard(item: right)
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            );
+          },
+          childCount: rowCount,
         ),
       );
     }
