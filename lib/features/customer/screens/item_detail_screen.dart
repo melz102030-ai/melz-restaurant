@@ -177,26 +177,35 @@ class _ItemHeader extends StatelessWidget {
               ],
               if (linkedCombos.isNotEmpty) ...[
                 const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Icon(Icons.local_offer_outlined, color: AppColors.purple, size: 15),
-                    const SizedBox(width: 6),
-                    Text(
-                      'أضف تركيبة',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  children: linkedCombos.map((combo) => _ComboDetailChip(combo: combo)).toList(),
-                ),
+                ...linkedCombos.map((combo) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ComboDetailChip(combo: combo),
+                      if (combo.includedNames.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 4,
+                          children: combo.includedNames.map((name) => Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_outline,
+                                  color: AppColors.purple, size: 14),
+                              const SizedBox(width: 4),
+                              Text(name,
+                                  style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12.5)),
+                            ],
+                          )).toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                )),
               ],
             ],
           ),

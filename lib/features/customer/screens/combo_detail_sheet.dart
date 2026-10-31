@@ -150,8 +150,8 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
           const SizedBox(height: 16),
           Divider(color: AppColors.divider),
           const SizedBox(height: 10),
-          // الأصناف الثابتة
-          if (resolvedItems.isNotEmpty) ...[
+          // الأصناف الثابتة والأسماء اليدوية
+          if (resolvedItems.isNotEmpty || combo.includedNames.isNotEmpty) ...[
             Text('الوجبة تشمل:',
                 style: TextStyle(
                     fontWeight: FontWeight.bold,
@@ -167,6 +167,23 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(item.name,
+                            style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500)),
+                      ),
+                    ],
+                  ),
+                )),
+            ...combo.includedNames.map((name) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle_outline,
+                          color: AppColors.purple, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(name,
                             style: TextStyle(
                                 color: AppColors.textPrimary,
                                 fontSize: 14,

@@ -23,6 +23,8 @@ class ComboModel {
   final List<String> linkedItemIds;
   // أصناف يختار العميل واحداً منها إجبارياً عند طلب التركيبة
   final List<String> optionItemIds;
+  // أسماء عناصر الوجبة (نص حر يدخله الأدمن) — تظهر في صفحة الصنف وشيت التركيبة
+  final List<String> includedNames;
 
   const ComboModel({
     required this.id,
@@ -35,6 +37,7 @@ class ComboModel {
     this.items = const [],
     this.linkedItemIds = const [],
     this.optionItemIds = const [],
+    this.includedNames = const [],
   });
 
   factory ComboModel.fromMap(Map<String, dynamic> map, String id) => ComboModel(
@@ -50,6 +53,7 @@ class ComboModel {
             .toList(),
         linkedItemIds: _parseLinkedItemIds(map),
         optionItemIds: List<String>.from(map['optionItemIds'] ?? const []),
+        includedNames: List<String>.from(map['includedNames'] ?? const []),
       );
 
   Map<String, dynamic> toMap() => {
@@ -62,6 +66,7 @@ class ComboModel {
         'items': items.map((e) => e.toMap()).toList(),
         'linkedItemIds': linkedItemIds,
         'optionItemIds': optionItemIds,
+        'includedNames': includedNames,
       };
 
   ComboModel copyWith({
@@ -74,6 +79,7 @@ class ComboModel {
     List<ComboItemRef>? items,
     List<String>? linkedItemIds,
     List<String>? optionItemIds,
+    List<String>? includedNames,
   }) =>
       ComboModel(
         id: id,
@@ -86,6 +92,7 @@ class ComboModel {
         items: items ?? this.items,
         linkedItemIds: linkedItemIds ?? this.linkedItemIds,
         optionItemIds: optionItemIds ?? this.optionItemIds,
+        includedNames: includedNames ?? this.includedNames,
       );
 }
 
