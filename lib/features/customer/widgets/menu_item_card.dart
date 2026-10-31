@@ -250,41 +250,13 @@ class MenuItemListCard extends ConsumerWidget {
       ),
     );
 
-    // التركيبات المرتبطة بهذا الصنف
-    final linkedCombos = ref
-        .watch(activeCombosProvider)
-        .valueOrNull
-        ?.where((c) => c.linkedItemIds.contains(item.id))
-        .toList() ?? const <ComboModel>[];
-
     final mainCard = glowColor != null
         ? _GlowBorder(color: glowColor, borderRadius: 20, child: card)
         : card;
 
-    if (linkedCombos.isEmpty) {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        child: mainCard,
-      );
-    }
-
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 5),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          mainCard,
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: linkedCombos.map((combo) => _ComboChip(combo: combo)).toList(),
-            ),
-          ),
-        ],
-      ),
+      child: mainCard,
     );
   }
 
@@ -426,35 +398,11 @@ class MenuItemGridCard extends ConsumerWidget {
       ),
     );
 
-    // التركيبات المرتبطة بهذا الصنف
-    final linkedCombos = ref
-        .watch(activeCombosProvider)
-        .valueOrNull
-        ?.where((c) => c.linkedItemIds.contains(item.id))
-        .toList() ?? const <ComboModel>[];
-
     final mainCard = glowColor != null
         ? _GlowBorder(color: glowColor, borderRadius: 18, child: card)
         : card;
 
-    if (linkedCombos.isEmpty) return mainCard;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        mainCard,
-        const SizedBox(height: 4),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            children: linkedCombos.map((combo) => _ComboChip(combo: combo)).toList(),
-          ),
-        ),
-      ],
-    );
+    return mainCard;
   }
 
   void _openItemDetail(BuildContext context) {
