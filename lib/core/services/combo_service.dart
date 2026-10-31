@@ -5,11 +5,14 @@ class ComboService {
   static final _col = FirebaseFirestore.instance.collection('combos');
 
   static Stream<List<ComboModel>> streamCombos({bool activeOnly = false}) {
-    Query q = _col.orderBy('sortOrder');
-    if (activeOnly) q = q.where('isActive', isEqualTo: true);
-    return q.snapshots().map((s) => s.docs
-        .map((d) => ComboModel.fromMap(d.data() as Map<String, dynamic>, d.id))
-        .toList());
+    return _col.snapshots().map((s) {
+      final list = s.docs
+          .map((d) => ComboModel.fromMap(d.data() as Map<String, dynamic>, d.id))
+          .toList();
+      list.sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      if (activeOnly) return list.where((c) => c.isActive).toList();
+      return list;
+    });
   }
 
   static Future<void> save(ComboModel combo) async {
