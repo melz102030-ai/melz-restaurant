@@ -2760,10 +2760,12 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
+  final _newNameCtrl = TextEditingController();
   bool _isActive = true;
   List<ComboItemRef> _items = [];
   List<String> _optionItemIds = [];
   List<String> _linkedItemIds = [];
+  List<String> _includedNames = [];
   bool _saving = false;
 
   @override
@@ -2778,6 +2780,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
       _items = List.from(c.items);
       _optionItemIds = List.from(c.optionItemIds);
       _linkedItemIds = List.from(c.linkedItemIds);
+      _includedNames = List.from(c.includedNames);
     }
   }
 
@@ -2786,7 +2789,17 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
     _nameCtrl.dispose();
     _descCtrl.dispose();
     _priceCtrl.dispose();
+    _newNameCtrl.dispose();
     super.dispose();
+  }
+
+  void _addIncludedName() {
+    final name = _newNameCtrl.text.trim();
+    if (name.isEmpty || _includedNames.contains(name)) return;
+    setState(() {
+      _includedNames.add(name);
+      _newNameCtrl.clear();
+    });
   }
 
   Future<void> _save() async {
@@ -2806,6 +2819,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
         items: _items,
         optionItemIds: _optionItemIds,
         linkedItemIds: _linkedItemIds,
+        includedNames: _includedNames,
       ));
       if (mounted) Navigator.pop(context);
     } finally {
@@ -2835,6 +2849,52 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
                 controller: _descCtrl,
                 decoration: const InputDecoration(labelText: 'وصف (اختياري)'),
                 maxLines: 2,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.check_circle_outline, size: 15, color: AppColors.purple),
+                  const SizedBox(width: 6),
+                  const Text('محتوى الوجبة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 2, bottom: 6),
+                child: Text('تظهر في صفحة الصنف قبل الضغط على التركيبة',
+                    style: TextStyle(color: AppColors.textHint, fontSize: 11)),
+              ),
+              if (_includedNames.isNotEmpty)
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: _includedNames.map((name) => Chip(
+                    label: Text(name, style: const TextStyle(fontSize: 12)),
+                    deleteIcon: const Icon(Icons.close, size: 15),
+                    onDeleted: () => setState(() => _includedNames.remove(name)),
+                    backgroundColor: AppColors.purple.withOpacity(0.1),
+                    side: BorderSide(color: AppColors.purple.withOpacity(0.4)),
+                    padding: EdgeInsets.zero,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  )).toList(),
+                ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _newNameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم عنصر (مثال: بطاطس)',
+                        isDense: true,
+                      ),
+                      onFieldSubmitted: (_) => _addIncludedName(),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.add_circle, color: AppColors.purple),
+                    onPressed: _addIncludedName,
+                  ),
+                ],
               ),
               const SizedBox(height: 10),
               TextFormField(
