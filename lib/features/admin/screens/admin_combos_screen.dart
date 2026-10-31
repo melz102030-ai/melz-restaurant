@@ -282,6 +282,56 @@ class _ComboDialogState extends ConsumerState<_ComboDialog> {
                 maxLines: 2,
               ),
               const SizedBox(height: 10),
+              // ── محتوى الوجبة (أسماء نصية) ─────────────────────────────────
+              Row(
+                children: [
+                  Icon(Icons.check_circle_outline, size: 16, color: AppColors.purple),
+                  const SizedBox(width: 6),
+                  const Text('محتوى الوجبة',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 3, bottom: 8),
+                child: Text('تظهر في صفحة الصنف وداخل التركيبة',
+                    style: TextStyle(color: AppColors.textHint, fontSize: 11)),
+              ),
+              if (_includedNames.isNotEmpty)
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: _includedNames.map((name) => Chip(
+                    label: Text(name, style: const TextStyle(fontSize: 12)),
+                    deleteIcon: const Icon(Icons.close, size: 15),
+                    onDeleted: () => setState(() => _includedNames.remove(name)),
+                    backgroundColor: AppColors.purple.withOpacity(0.1),
+                    side: BorderSide(color: AppColors.purple.withOpacity(0.4)),
+                    padding: EdgeInsets.zero,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  )).toList(),
+                ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _newNameCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'اسم عنصر (مثال: بطاطس)',
+                        isDense: true,
+                      ),
+                      onFieldSubmitted: (_) => _addIncludedName(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(Icons.add_circle, color: AppColors.purple),
+                    onPressed: _addIncludedName,
+                    tooltip: 'إضافة',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               TextFormField(
                 controller: _priceCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -435,57 +485,6 @@ class _ComboDialogState extends ConsumerState<_ComboDialog> {
                     setState(() => _optionItemIds.add(i.id));
                   }
                 },
-              ),
-              const SizedBox(height: 12),
-              const Divider(),
-              // ── محتوى الوجبة (أسماء نصية) ─────────────────────────────────
-              Row(
-                children: [
-                  Icon(Icons.check_circle_outline, size: 16, color: AppColors.purple),
-                  const SizedBox(width: 6),
-                  const Text('محتوى الوجبة',
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: 3, bottom: 8),
-                child: Text('تظهر في صفحة الصنف وداخل التركيبة قبل الإضافة للسلة',
-                    style: TextStyle(color: AppColors.textHint, fontSize: 11)),
-              ),
-              if (_includedNames.isNotEmpty)
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: _includedNames.map((name) => Chip(
-                    label: Text(name, style: const TextStyle(fontSize: 12)),
-                    deleteIcon: const Icon(Icons.close, size: 15),
-                    onDeleted: () => setState(() => _includedNames.remove(name)),
-                    backgroundColor: AppColors.purple.withOpacity(0.1),
-                    side: BorderSide(color: AppColors.purple.withOpacity(0.4)),
-                    padding: EdgeInsets.zero,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  )).toList(),
-                ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _newNameCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'اسم عنصر (مثال: بطاطس)',
-                        isDense: true,
-                      ),
-                      onFieldSubmitted: (_) => _addIncludedName(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: Icon(Icons.add_circle, color: AppColors.purple),
-                    onPressed: _addIncludedName,
-                    tooltip: 'إضافة',
-                  ),
-                ],
               ),
             ],
           ),
