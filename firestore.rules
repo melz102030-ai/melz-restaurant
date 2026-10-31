@@ -123,6 +123,7 @@ service cloud.firestore {
     // والإعلانات وصور شاشة التحميل — يحتاج الزوّار غير المسجَّلين لقراءتها
     // لتصفّح القائمة والسعر قبل تسجيل الدخول.
     match /categories/{id}       { allow read: if true; allow write: if isAdmin(); }
+    match /combos/{id}           { allow read: if true; allow write: if isAdmin(); }
     match /menu_items/{id} {
       allow read: if true;
       allow write: if isAdmin();
