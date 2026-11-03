@@ -88,8 +88,11 @@ final _routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
+      // جلسة الضيف (دور "عميل" تُنشأ تلقائياً عند أول طلب) لا تمنع فتح شاشة
+      // دخول الموظفين — كانت تُحوِّل رابط الإدارة /a/ لواجهة العميل في أي
+      // متصفح سبق أن أُرسل منه طلب
       if (isStaffAuthRoute) {
-        return _getHomeRoute(user.role);
+        return user.role == UserRole.customer ? null : _getHomeRoute(user.role);
       }
 
       // Role-based redirect — كل دور يُحصر ضمن قسمه الخاص، إلا المسارات
