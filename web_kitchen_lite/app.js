@@ -628,9 +628,12 @@ function buildOrderCard(order, index) {
   var itemsWrap = el('div', { class: 'order-items' });
   order.items.forEach(function (item) {
     var isUnavail = unavailSet.has(item.menuItemId);
-    var optLines = (item.selectedOptions || [])
-      .filter(function (o) { return (o.selectedNames || []).length; })
-      .map(function (o) {
+    var optGroups = (item.selectedOptions || [])
+      .filter(function (o) { return (o.selectedNames || []).length; });
+    // صنف لا يُحتسب سعره: كل خيار بسطر مع عدده، فهو محتوى الصنف الفعلي
+    var optLines = item.displayQuantity
+      ? optGroups.reduce(function (all, o) { return all.concat(o.selectedNames); }, [])
+      : optGroups.map(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
         return o.groupName + ': ' + (o.selectedNames || []).join('، ') + extra;
       });
@@ -787,12 +790,18 @@ function buildDriverCopyText(order) {
   lines.push('---');
   order.items.forEach(function (item) {
     lines.push('×' + (item.displayQuantity || item.quantity) + ' ' + item.name);
-    var opts = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
-      .map(function (o) {
+    var optGroups = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; });
+    if (item.displayQuantity) {
+      optGroups.forEach(function (o) {
+        o.selectedNames.forEach(function (name) { lines.push('   ' + name); });
+      });
+    } else {
+      var opts = optGroups.map(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
         return o.groupName + ': ' + o.selectedNames.join('، ') + extra;
       }).join(' | ');
-    if (opts) lines.push('   ' + opts);
+      if (opts) lines.push('   ' + opts);
+    }
     if (item.note && item.note.trim()) lines.push('   📝 ' + item.note);
   });
   lines.push('---');

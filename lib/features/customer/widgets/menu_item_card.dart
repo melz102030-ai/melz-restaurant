@@ -1328,14 +1328,17 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _QtyRow(
-              qty: _qty,
-              onRemove: () {
-                if (_qty > 1) setState(() => _qty--);
-              },
-              onAdd: () => setState(() => _qty++),
-            ),
-            const SizedBox(width: 12),
+            // صنف لا يُحتسب سعره: الكمية هي عدد كل خيار أعلاه، فلا عدّاد عام له
+            if (!widget.item.excludeBasePrice) ...[
+              _QtyRow(
+                qty: _qty,
+                onRemove: () {
+                  if (_qty > 1) setState(() => _qty--);
+                },
+                onAdd: () => setState(() => _qty++),
+              ),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               child: ElevatedButton(
                 onPressed: _attemptAddToCart,

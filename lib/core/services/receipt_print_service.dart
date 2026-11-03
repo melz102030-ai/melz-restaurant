@@ -42,9 +42,8 @@ class ReceiptPrintService {
     b.writeln(sep);
     for (final item in order.items) {
       b.writeln('×${item.shownQuantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
-      final optsLine = _optionsReceiptLine(item);
-      if (optsLine.isNotEmpty) {
-        b.writeln('   $optsLine');
+      for (final line in _optionsReceiptLines(item)) {
+        b.writeln('   $line');
       }
     }
     b.writeln(sep);
@@ -66,10 +65,10 @@ class ReceiptPrintService {
     final df = DateFormat('dd/MM/yyyy - hh:mm a');
 
     final itemsRows = order.items.map((item) {
-      final optsLine = _optionsReceiptLine(item);
-      final optionsLine = optsLine.isNotEmpty
-          ? '<div style="font-size:14px;font-weight:bold;color:#000;padding-right:14px">${_esc(optsLine)}</div>'
-          : '';
+      final optionsLine = _optionsReceiptLines(item)
+          .map((line) =>
+              '<div style="font-size:14px;font-weight:bold;color:#000;padding-right:14px">${_esc(line)}</div>')
+          .join();
       return '''
         <tr>
           <td style="width:28px;font-weight:bold">×${item.shownQuantity}</td>
@@ -129,14 +128,18 @@ class ReceiptPrintService {
   // نسخة من ملخّص خيارات الصنف مخصّصة للطباعة فقط — تضيف سعر كل مجموعة
   // خيارات مدفوعة (مثل "مشروب: بيبسي (+3.00)") غير الظاهر في optionsSummary
   // العادي (المستخدم في شاشات العميل حيث يكفي الإجمالي الكلي للصنف)
-  static String _optionsReceiptLine(OrderItem item) {
-    return item.selectedOptions
-        .where((o) => o.selectedNames.isNotEmpty)
-        .map((o) {
-          final extra = o.extra > 0 ? ' (+${o.extra.toStringAsFixed(2)})' : '';
-          return '${o.groupName}: ${o.summary}$extra';
-        })
-        .join(' | ');
+  // صنف لا يُحتسب سعره (displayQuantity): كل خيار بسطر مستقل مع عدده، لأنه هو
+  // محتوى الصنف الفعلي؛ وباقي الأصناف سطر واحد كما هي
+  static List<String> _optionsReceiptLines(OrderItem item) {
+    final groups = item.selectedOptions.where((o) => o.selectedNames.isNotEmpty);
+    if (item.displayQuantity != null) {
+      return groups.expand((o) => o.selectedNames).toList();
+    }
+    final line = groups.map((o) {
+      final extra = o.extra > 0 ? ' (+${o.extra.toStringAsFixed(2)})' : '';
+      return '${o.groupName}: ${o.summary}$extra';
+    }).join(' | ');
+    return line.isEmpty ? const [] : [line];
   }
 
   static String _esc(String s) => s

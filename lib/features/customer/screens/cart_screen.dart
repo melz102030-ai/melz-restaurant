@@ -886,7 +886,22 @@ class _CartItemTile extends ConsumerWidget {
                     fontSize: 14,
                   ),
                 ),
-                if (cartItem.optionsSummary.isNotEmpty) ...[
+                if (cartItem.item.excludeBasePrice) ...[
+                  const SizedBox(height: 4),
+                  ...cartItem.optionLines.map(
+                    (line) => Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        line,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ] else if (cartItem.optionsSummary.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     cartItem.optionsSummary,
@@ -918,7 +933,8 @@ class _CartItemTile extends ConsumerWidget {
                 ],
                 const SizedBox(height: 4),
                 Text(
-                  '${cartItem.unitPrice.toStringAsFixed(2)} ${AppStrings.sar}',
+                  // بلا عدّاد كمية: السعر المعروض هو إجمالي الصنف، لا سعر الوحدة
+                  '${(cartItem.item.excludeBasePrice ? cartItem.total : cartItem.unitPrice).toStringAsFixed(2)} ${AppStrings.sar}',
                   style: TextStyle(color: AppColors.purple, fontSize: 13),
                 ),
               ],

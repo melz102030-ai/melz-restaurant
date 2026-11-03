@@ -76,6 +76,17 @@ test("صنف لا يُحتسب سعره: المبلغ من الخيارات وع
   assert.equal(r.items[0].quantity, 1, "كمية الحساب لا تتغير");
 });
 
+test("نفس تركيبة صنف لا يُحتسب سعره مرتين: العدد المعروض يتضاعف والإجمالي صحيح", () => {
+  const r = price({
+    items: [{ itemId: "sauces", quantity: 2, options: [{ groupId: "g1", selectedIds: ["garlic*2", "hot"] }] }],
+  });
+  assert.equal(r.total, 18);
+  assert.equal(r.items[0].price, 9);
+  assert.equal(r.items[0].quantity, 2);
+  assert.equal(r.items[0].displayQuantity, 6);
+  assert.deepEqual(r.items[0].selectedOptions[0].selectedNames, ["ثوم ×4", "حار ×2"]);
+});
+
 test("الخصم والخيار والكمية تدخل في السعر، وتجاهل أي سعر يرسله العميل", () => {
   const r = price({
     items: [{ itemId: "burger", quantity: 2, price: 1, total: 1, options: [{ groupId: "size", selectedIds: ["l"] }] }],

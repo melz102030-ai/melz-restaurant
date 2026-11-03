@@ -54,7 +54,7 @@ function itemBasePrice(item) {
 }
 
 // يتحقق من خيارات صنف واحد ويعيد فرق سعرها وشكلها المحفوظ في الطلب
-function priceOptions(item, requested) {
+function priceOptions(item, requested, displayMultiplier = 1) {
   const groups = Array.isArray(item.optionGroups) ? item.optionGroups : [];
   const byGroup = new Map();
   for (const entry of Array.isArray(requested) ? requested : []) {
@@ -104,7 +104,8 @@ function priceOptions(item, requested) {
       }
       groupExtra += Number(opt.priceAdjustment ?? 0) * sel.qty;
       optionsCount += sel.qty;
-      names.push(sel.qty > 1 ? `${opt.name} ×${sel.qty}` : opt.name);
+      const shown = sel.qty * displayMultiplier;
+      names.push(shown > 1 ? `${opt.name} ×${shown}` : opt.name);
     }
     if (names.length !== parsed.length) {
       throw new OrderRejected(
@@ -114,7 +115,11 @@ function priceOptions(item, requested) {
       );
     }
     extra += groupExtra;
-    selectedOptions.push({ groupName: group.name, selectedNames: names, extra: groupExtra });
+    selectedOptions.push({
+      groupName: group.name,
+      selectedNames: names,
+      extra: groupExtra * displayMultiplier,
+    });
   }
   return { extra, optionsCount, selectedOptions };
 }
@@ -155,7 +160,11 @@ export function buildOrderLines(request, itemsById, combosById) {
     if (item.isAvailable === false) {
       throw new OrderRejected("item-unavailable", `"${item.name}" غير متوفر حالياً، احذفه من السلة`, 409);
     }
-    const { extra, optionsCount, selectedOptions } = priceOptions(item, req.options);
+    const { extra, optionsCount, selectedOptions } = priceOptions(
+      item,
+      req.options,
+      item.excludeBasePrice === true ? quantity : 1
+    );
     const unit = itemBasePrice(item) + extra;
     subtotal += unit * quantity;
     lines.push(

@@ -40,6 +40,21 @@ class CartItem {
         return sum + (star < 0 ? 1 : int.tryParse(id.substring(star + 1)) ?? 1);
       });
 
+  // خيار واحد بكل سطر مع عدده الفعلي، حتى لو أُضيفت نفس التركيبة أكثر من مرة
+  List<String> get optionLines => [
+        for (final g in selectedOptions)
+          for (var i = 0; i < g.selectedNames.length && i < g.selectedIds.length; i++)
+            _optionLine(g.selectedIds[i], g.selectedNames[i]),
+      ];
+
+  String _optionLine(String id, String name) {
+    final star = id.lastIndexOf('*');
+    final count = star < 0 ? 1 : int.tryParse(id.substring(star + 1)) ?? 1;
+    final total = count * quantity;
+    final baseName = name.replaceFirst(RegExp(r' ×\d+$'), '');
+    return total > 1 ? '$baseName ×$total' : baseName;
+  }
+
   double get unitPrice => item.chargedBasePrice + optionsExtra;
   double get total => unitPrice * quantity;
 
