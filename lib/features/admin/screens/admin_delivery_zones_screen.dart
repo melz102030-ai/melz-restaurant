@@ -15,6 +15,7 @@ import '../../../core/services/delivery_zone_service.dart';
 import '../../../core/services/settings_service.dart';
 import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../../../shared/utils/format_utils.dart';
 import '../../customer/screens/delivery_location_picker_screen.dart';
 
 class AdminDeliveryZonesScreen extends ConsumerWidget {
@@ -449,7 +450,7 @@ class _FlatFeeRowState extends State<_FlatFeeRow> {
         IconButton.filled(
           onPressed: _dirty
               ? () {
-                  final fee = double.tryParse(_feeCtrl.text.trim());
+                  final fee = parseAmount(_feeCtrl.text);
                   if (fee == null || fee < 0) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                       content: Text('أدخل رسم توصيل صحيح (رقم موجب)'),
@@ -495,8 +496,8 @@ class _ZoneDialogState extends State<_ZoneDialog> {
 
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
-    final distance = double.tryParse(_distanceCtrl.text.trim());
-    final fee = double.tryParse(_feeCtrl.text.trim());
+    final distance = parseAmount(_distanceCtrl.text);
+    final fee = parseAmount(_feeCtrl.text);
     if (name.isEmpty) {
       setState(() => _error = 'أدخل اسم النطاق');
       return;

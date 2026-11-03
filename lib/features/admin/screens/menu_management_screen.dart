@@ -17,6 +17,7 @@ import '../../../core/services/excel_import_service.dart';
 import '../../../features/customer/providers/menu_provider.dart';
 import '../../../core/providers/app_theme_provider.dart';
 import '../../../shared/utils/async_utils.dart';
+import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/admin_action_widgets.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../../core/models/combo_model.dart';
@@ -745,14 +746,14 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       setState(() => _saveError = 'يرجى ملء جميع الحقول المطلوبة');
       return;
     }
-    final price = double.tryParse(_priceCtrl.text.trim());
+    final price = parseAmount(_priceCtrl.text);
     if (price == null || price < 0) {
       setState(() => _saveError = 'السعر المُدخل غير صحيح');
       return;
     }
     double? discount;
     if (_discountCtrl.text.trim().isNotEmpty) {
-      discount = double.tryParse(_discountCtrl.text.trim());
+      discount = parseAmount(_discountCtrl.text);
       if (discount == null || discount < 0 || discount > 100) {
         setState(() => _saveError = 'نسبة الخصم يجب أن تكون رقماً بين 0 و100');
         return;
@@ -760,7 +761,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
     }
     int? calories;
     if (_caloriesCtrl.text.trim().isNotEmpty) {
-      calories = int.tryParse(_caloriesCtrl.text.trim());
+      calories = parseWholeNumber(_caloriesCtrl.text);
       if (calories == null || calories < 0) {
         setState(() => _saveError = 'عدد السعرات المُدخل غير صحيح');
         return;
@@ -1853,6 +1854,7 @@ class _ItemOptionDialog extends StatefulWidget {
 class _ItemOptionDialogState extends State<_ItemOptionDialog> {
   final _nameCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
+  String? _priceError;
 
   @override
   void initState() {
@@ -1891,10 +1893,11 @@ class _ItemOptionDialogState extends State<_ItemOptionDialog> {
             controller: _priceCtrl,
             keyboardType: const TextInputType.numberWithOptions(signed: true, decimal: true),
             style: TextStyle(color: AppColors.textPrimary),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'فرق السعر (ريال)',
               hintText: '0 = مجاني · 5 = يُضاف · -2 = يُخصم',
-              suffix: Text(AppStrings.sar),
+              suffix: const Text(AppStrings.sar),
+              errorText: _priceError,
             ),
           ),
         ],
@@ -1904,12 +1907,21 @@ class _ItemOptionDialogState extends State<_ItemOptionDialog> {
         ElevatedButton(
           onPressed: () {
             if (_nameCtrl.text.isEmpty) return;
+            // الحقل الفارغ يعني خياراً مجانياً، أما النص غير المفهوم فخطأ لا صفر
+            final priceText = _priceCtrl.text.trim();
+            final price = priceText.isEmpty ? 0.0 : parseAmount(priceText);
+            if (price == null) {
+              setState(() => _priceError = 'اكتب رقماً فقط، مثل 5 أو 2.5');
+              return;
+            }
             Navigator.pop(
               context,
               ItemOption(
                 id: widget.option?.id ?? _uuid.v4(),
                 name: _nameCtrl.text.trim(),
-                priceAdjustment: double.tryParse(_priceCtrl.text) ?? 0,
+                priceAdjustment: price,
+                // تعديل خيار موقوف لا يعيد تشغيله
+                isAvailable: widget.option?.isAvailable ?? true,
               ),
             );
           },
@@ -2829,6 +2841,8 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
     super.dispose();
   }
 
+  String? _formError;
+
   void _addIncludedName() {
     final name = _newNameCtrl.text.trim();
     if (name.isEmpty || _includedNames.contains(name)) return;
@@ -2840,9 +2854,19 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) return;
-    final price = double.tryParse(_priceCtrl.text) ?? 0;
-    if (price <= 0 || _items.isEmpty) return;
-    setState(() => _saving = true);
+    final price = parseAmount(_priceCtrl.text);
+    if (price == null || price <= 0) {
+      setState(() => _formError = 'اكتب سعراً صحيحاً أكبر من صفر');
+      return;
+    }
+    if (_items.isEmpty) {
+      setState(() => _formError = 'أضف صنفاً واحداً على الأقل للتركيبة');
+      return;
+    }
+    setState(() {
+      _formError = null;
+      _saving = true;
+    });
     try {
       await ComboService.save(ComboModel(
         id: widget.combo?.id ?? '',
@@ -2936,7 +2960,11 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
               TextFormField(
                 controller: _priceCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'السعر (ر.س)', suffixText: 'ر.س'),
+                decoration: InputDecoration(
+                  labelText: 'السعر (ر.س)',
+                  suffixText: 'ر.س',
+                  errorText: _formError,
+                ),
               ),
               const SizedBox(height: 10),
               const SizedBox(height: 10),

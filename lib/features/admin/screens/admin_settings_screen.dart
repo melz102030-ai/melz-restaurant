@@ -10,6 +10,7 @@ import '../../../core/services/settings_service.dart';
 import '../../../shared/widgets/admin_action_widgets.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../../../shared/utils/format_utils.dart';
 
 class AdminSettingsScreen extends ConsumerStatefulWidget {
   const AdminSettingsScreen({super.key});
@@ -87,7 +88,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
   }
 
   Future<void> _save() async {
-    final minOrder = double.tryParse(_minOrderCtrl.text.trim());
+    final minOrder = parseAmount(_minOrderCtrl.text);
     if (minOrder == null || minOrder < 0) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('الحد الأدنى للطلب رقم غير صحيح'),
@@ -95,7 +96,7 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
       ));
       return;
     }
-    final prepTime = int.tryParse(_prepTimeCtrl.text.trim());
+    final prepTime = parseWholeNumber(_prepTimeCtrl.text);
     if (prepTime == null || prepTime < 0) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('مدة التحضير التقديرية رقم غير صحيح'),

@@ -7,6 +7,7 @@ import '../../../core/models/menu_item_model.dart';
 import '../../../core/services/combo_service.dart';
 import '../../../features/customer/providers/menu_provider.dart';
 import '../../../shared/utils/async_utils.dart';
+import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
 final _combosProvider = StreamProvider<List<ComboModel>>((ref) {
@@ -186,6 +187,7 @@ class _ComboDialogState extends ConsumerState<_ComboDialog> {
   List<String> _optionItemIds = [];
   List<String> _includedNames = [];
   bool _saving = false;
+  String? _formError;
 
   @override
   void initState() {
@@ -214,11 +216,20 @@ class _ComboDialogState extends ConsumerState<_ComboDialog> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) return;
-    final price = double.tryParse(_priceCtrl.text) ?? 0;
-    if (price <= 0) return;
-    if (_items.isEmpty) return;
+    final price = parseAmount(_priceCtrl.text);
+    if (price == null || price <= 0) {
+      setState(() => _formError = 'اكتب سعراً صحيحاً أكبر من صفر');
+      return;
+    }
+    if (_items.isEmpty) {
+      setState(() => _formError = 'أضف صنفاً واحداً على الأقل للتركيبة');
+      return;
+    }
 
-    setState(() => _saving = true);
+    setState(() {
+      _formError = null;
+      _saving = true;
+    });
     await guardAsync(() async {
       final combo = ComboModel(
         id: widget.combo?.id ?? '',
@@ -335,8 +346,12 @@ class _ComboDialogState extends ConsumerState<_ComboDialog> {
               TextFormField(
                 controller: _priceCtrl,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.]'))],
-                decoration: const InputDecoration(labelText: 'السعر (ر.س)', suffixText: 'ر.س'),
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9٠-٩۰-۹.,٫]'))],
+                decoration: InputDecoration(
+                  labelText: 'السعر (ر.س)',
+                  suffixText: 'ر.س',
+                  errorText: _formError,
+                ),
               ),
               const SizedBox(height: 10),
               SwitchListTile(

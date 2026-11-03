@@ -4,6 +4,7 @@ import 'dart:html' as html;
 import 'package:excel/excel.dart';
 import '../models/category_model.dart';
 import '../models/menu_item_model.dart';
+import '../../shared/utils/format_utils.dart';
 import 'menu_service.dart';
 
 class ExcelImportService {
@@ -76,7 +77,7 @@ class ExcelImportService {
 
       if (catName.isEmpty || itemName.isEmpty) continue;
 
-      final price = double.tryParse(priceRaw);
+      final price = parseAmount(priceRaw);
       if (price == null) {
         errors.add('صف ${i + 1}: سعر غير صحيح "$priceRaw"');
         continue;
