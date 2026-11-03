@@ -1605,6 +1605,8 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
         required: _required,
         options: _options,
         allowQuantity: _allowQuantity,
+        // يبقى الارتباط بالقالب، وإلا أضاف تعديل القالب لاحقاً المجموعة مرة ثانية للصنف
+        sourceTemplateId: widget.group?.sourceTemplateId,
       ),
     );
   }
