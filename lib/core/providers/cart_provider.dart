@@ -55,7 +55,8 @@ class CartItem {
     final star = id.lastIndexOf('*');
     final count = star < 0 ? 1 : int.tryParse(id.substring(star + 1)) ?? 1;
     final total = count * quantity;
-    final baseName = name.replaceFirst(RegExp(r'^×\d+ '), '');
+    // السلة المحفوظة قد تحمل الصيغة الأقدم "صوص ×5" فيُزال الرقم من الطرفين
+    final baseName = name.replaceAll(RegExp(r'^×\d+ | ×\d+$'), '');
     return '×$total $baseName';
   }
 
