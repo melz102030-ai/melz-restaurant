@@ -72,6 +72,8 @@ test("صنف لا يُحتسب سعره: المبلغ من الخيارات وع
   assert.equal(r.total, 9);
   assert.deepEqual(r.items[0].selectedOptions[0].selectedNames, ["ثوم ×2", "حار"]);
   assert.equal(r.items[0].selectedOptions[0].extra, 9);
+  assert.equal(r.items[0].displayQuantity, 3, "الكمية المعروضة مجموع الخيارات");
+  assert.equal(r.items[0].quantity, 1, "كمية الحساب لا تتغير");
 });
 
 test("الخصم والخيار والكمية تدخل في السعر، وتجاهل أي سعر يرسله العميل", () => {
@@ -79,6 +81,7 @@ test("الخصم والخيار والكمية تدخل في السعر، وتج
     items: [{ itemId: "burger", quantity: 2, price: 1, total: 1, options: [{ groupId: "size", selectedIds: ["l"] }] }],
   });
   assert.equal(r.items[0].price, 23);
+  assert.equal(r.items[0].displayQuantity, undefined);
   assert.equal(r.subtotal, 46);
   assert.equal(r.total, 46);
 });

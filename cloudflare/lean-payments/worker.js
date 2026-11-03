@@ -366,7 +366,7 @@ function docFields(fields) {
 
 // الحقول العددية الصحيحة في Dart (quantity/orderNumber) يجب أن تُحفظ integerValue،
 // وإلا فشل قراءتها في OrderItem.fromMap لأن النوع المتوقع int
-const INT_FIELDS = new Set(["quantity", "orderNumber"]);
+const INT_FIELDS = new Set(["quantity", "displayQuantity", "orderNumber"]);
 
 function toFs(value, key) {
   if (value === null || value === undefined) return { nullValue: null };

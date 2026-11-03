@@ -308,7 +308,7 @@ class OrderService {
         totalRevenue += order.total;
         completedOrders++;
         for (final item in order.items) {
-          itemSales[item.name] = (itemSales[item.name] ?? 0) + item.quantity;
+          itemSales[item.name] = (itemSales[item.name] ?? 0) + item.shownQuantity;
         }
       } else if (order.status == OrderStatus.cancelled) {
         cancelledOrders++;

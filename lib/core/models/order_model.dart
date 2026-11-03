@@ -158,6 +158,8 @@ class OrderItem {
   final String? imageUrl;
   final List<OrderItemOption> selectedOptions;
   final String? note;
+  // صنف لا يُحتسب سعره الأساسي: مجموع عدد خياراته — للعرض فقط، والحساب بـ quantity
+  final int? displayQuantity;
 
   const OrderItem({
     required this.menuItemId,
@@ -167,9 +169,12 @@ class OrderItem {
     this.imageUrl,
     this.selectedOptions = const [],
     this.note,
+    this.displayQuantity,
   });
 
   double get total => price * quantity;
+
+  int get shownQuantity => displayQuantity ?? quantity;
 
   String get optionsSummary => selectedOptions
       .where((o) => o.selectedNames.isNotEmpty)
@@ -187,6 +192,7 @@ class OrderItem {
           .map((o) => OrderItemOption.fromMap(o as Map<String, dynamic>))
           .toList(),
       note: map['note'] as String?,
+      displayQuantity: (map['displayQuantity'] as num?)?.toInt(),
     );
   }
 
@@ -199,6 +205,7 @@ class OrderItem {
       'imageUrl': imageUrl,
       'selectedOptions': selectedOptions.map((o) => o.toMap()).toList(),
       if (note != null && note!.isNotEmpty) 'note': note,
+      if (displayQuantity != null) 'displayQuantity': displayQuantity,
     };
   }
 }

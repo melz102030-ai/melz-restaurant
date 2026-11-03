@@ -152,7 +152,7 @@ class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
     final order = widget.order;
     final color = order.status.color;
     final isActive = order.status != OrderStatus.delivered && order.status != OrderStatus.cancelled;
-    final itemsSummary = order.items.map((i) => '${i.name} ×${i.quantity}').join('، ');
+    final itemsSummary = order.items.map((i) => '${i.name} ×${i.shownQuantity}').join('، ');
 
     return Container(
       padding: const EdgeInsets.all(14),

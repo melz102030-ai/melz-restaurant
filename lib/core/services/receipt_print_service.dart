@@ -41,7 +41,7 @@ class ReceiptPrintService {
     }
     b.writeln(sep);
     for (final item in order.items) {
-      b.writeln('×${item.quantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
+      b.writeln('×${item.shownQuantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
       final optsLine = _optionsReceiptLine(item);
       if (optsLine.isNotEmpty) {
         b.writeln('   $optsLine');
@@ -72,7 +72,7 @@ class ReceiptPrintService {
           : '';
       return '''
         <tr>
-          <td style="width:28px;font-weight:bold">×${item.quantity}</td>
+          <td style="width:28px;font-weight:bold">×${item.shownQuantity}</td>
           <td>${_esc(item.name)}$optionsLine</td>
           <td style="text-align:left;white-space:nowrap">${item.total.toStringAsFixed(2)}</td>
         </tr>

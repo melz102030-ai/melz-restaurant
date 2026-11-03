@@ -70,6 +70,7 @@ function priceOptions(item, requested) {
   }
 
   let extra = 0;
+  let optionsCount = 0;
   const selectedOptions = [];
   for (const group of groups) {
     const parsed = (byGroup.get(group.id) ?? []).map(parseSelectedId);
@@ -102,6 +103,7 @@ function priceOptions(item, requested) {
         throw new OrderRejected("invalid-option", `لا يمكن زيادة عدد "${opt.name}"`);
       }
       groupExtra += Number(opt.priceAdjustment ?? 0) * sel.qty;
+      optionsCount += sel.qty;
       names.push(sel.qty > 1 ? `${opt.name} ×${sel.qty}` : opt.name);
     }
     if (names.length !== parsed.length) {
@@ -114,10 +116,10 @@ function priceOptions(item, requested) {
     extra += groupExtra;
     selectedOptions.push({ groupName: group.name, selectedNames: names, extra: groupExtra });
   }
-  return { extra, selectedOptions };
+  return { extra, optionsCount, selectedOptions };
 }
 
-function orderLine({ menuItemId, name, price, quantity, imageUrl, selectedOptions = [], note }) {
+function orderLine({ menuItemId, name, price, quantity, imageUrl, selectedOptions = [], note, displayQuantity }) {
   return {
     menuItemId,
     name,
@@ -126,6 +128,7 @@ function orderLine({ menuItemId, name, price, quantity, imageUrl, selectedOption
     imageUrl: imageUrl ?? null,
     selectedOptions,
     ...(note ? { note } : {}),
+    ...(displayQuantity ? { displayQuantity } : {}),
   };
 }
 
@@ -152,7 +155,7 @@ export function buildOrderLines(request, itemsById, combosById) {
     if (item.isAvailable === false) {
       throw new OrderRejected("item-unavailable", `"${item.name}" غير متوفر حالياً، احذفه من السلة`, 409);
     }
-    const { extra, selectedOptions } = priceOptions(item, req.options);
+    const { extra, optionsCount, selectedOptions } = priceOptions(item, req.options);
     const unit = itemBasePrice(item) + extra;
     subtotal += unit * quantity;
     lines.push(
@@ -164,6 +167,10 @@ export function buildOrderLines(request, itemsById, combosById) {
         imageUrl: item.imageUrl,
         selectedOptions,
         note: cleanText(req.note, MAX_NOTE),
+        // صنف لا يُحتسب سعره: كميته الفعلية مجموع خياراته (٥ كوكتيل + ٣ كاتشب = ٨)،
+        // للعرض فقط — الحساب يبقى price × quantity
+        displayQuantity:
+          item.excludeBasePrice === true && optionsCount > 0 ? optionsCount * quantity : undefined,
       })
     );
   }

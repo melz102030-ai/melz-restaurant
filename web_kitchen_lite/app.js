@@ -644,7 +644,7 @@ function buildOrderCard(order, index) {
       itemChildren.push(el('div', { class: 'item-note' }, ['📝 ' + item.note]));
     }
     itemsWrap.appendChild(el('div', { class: 'order-item-row' + (isUnavail ? ' unavail-row' : '') }, [
-      el('div', { class: 'qty-box' }, ['×' + item.quantity]),
+      el('div', { class: 'qty-box' }, ['×' + (item.displayQuantity || item.quantity)]),
       el('div', {}, itemChildren),
     ]));
   });
@@ -786,7 +786,7 @@ function buildDriverCopyText(order) {
   lines.push('طريقة الدفع: ' + (PAYMENT_LABEL[order.paymentMethod] || order.paymentMethod));
   lines.push('---');
   order.items.forEach(function (item) {
-    lines.push('×' + item.quantity + ' ' + item.name);
+    lines.push('×' + (item.displayQuantity || item.quantity) + ' ' + item.name);
     var opts = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
       .map(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
@@ -979,7 +979,7 @@ function buildReceiptPlainText(order) {
     // في الحالتين اختفى اسم الصنف بالكامل من الطباعة الفعلية (يبدو أن
     // الدالة لا تحسب عرض النص العربي بشكل صحيح على هذه الطابعة). رجعنا
     // لسطرين منفصلين لأنها الطريقة الوحيدة المؤكَّد عملها فعلياً
-    lines.push('×' + item.quantity + ' ' + item.name);
+    lines.push('×' + (item.displayQuantity || item.quantity) + ' ' + item.name);
     lines.push((item.price * item.quantity).toFixed(2) + ' ر.س');
     // كل قيمة مختارة بسطر مستقل (لا نجمعها بفاصلة) — كانت تُطبَع كتلة
     // نصية واحدة طويلة تلتف على عدة أسطر فتبدو متلاصقة بلا فواصل واضحة

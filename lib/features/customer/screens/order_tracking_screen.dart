@@ -554,7 +554,7 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            '×${item.quantity}',
+                            '×${item.shownQuantity}',
                             style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.bold),
                           ),
                         ),

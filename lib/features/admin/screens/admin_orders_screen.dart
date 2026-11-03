@@ -229,7 +229,7 @@ class _AdminOrderCardState extends State<_AdminOrderCard> {
                       child: Row(
                         children: [
                           Text(
-                            '×${item.quantity}',
+                            '×${item.shownQuantity}',
                             style: TextStyle(
                               color: AppColors.purple,
                               fontWeight: FontWeight.bold,

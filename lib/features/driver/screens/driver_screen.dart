@@ -634,7 +634,7 @@ class _CurrentOrderCardState extends ConsumerState<_CurrentOrderCard> {
               padding: const EdgeInsets.symmetric(vertical: 3),
               child: Row(
                 children: [
-                  Text('×${item.quantity}',
+                  Text('×${item.shownQuantity}',
                       style: TextStyle(color: AppColors.purple, fontWeight: FontWeight.bold)),
                   const SizedBox(width: 8),
                   Expanded(
