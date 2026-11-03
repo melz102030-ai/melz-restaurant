@@ -931,18 +931,16 @@ class _CartItemTile extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // صنف لا يُحتسب سعره: الكمية تُحدَّد من عدد كل خيار في صفحة الصنف،
-              // فلا عدّاد له هنا، ويظهر العدد فقط إن أُضيفت نفس التركيبة أكثر من مرة
+              // فلا عدّاد له هنا، ويظهر بدله مجموع عدد خياراته (٥ كوكتيل + ٣ كاتشب = ٨)
               if (cartItem.item.excludeBasePrice)
-                cartItem.quantity > 1
-                    ? Text(
-                        '×${cartItem.quantity}',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      )
-                    : const SizedBox.shrink()
+                Text(
+                  'الكمية: ${cartItem.totalOptionsQuantity}',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                  ),
+                )
               else
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 2),

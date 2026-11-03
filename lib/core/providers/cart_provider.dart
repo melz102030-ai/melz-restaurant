@@ -32,6 +32,14 @@ class CartItem {
   double get optionsExtra =>
       selectedOptions.fold(0.0, (s, g) => s + g.totalExtra);
 
+  // مجموع عدد الخيارات المختارة — selectedIds بصيغة "id" أو "id*3"
+  int get totalOptionsQuantity =>
+      quantity *
+      selectedOptions.expand((g) => g.selectedIds).fold<int>(0, (sum, id) {
+        final star = id.lastIndexOf('*');
+        return sum + (star < 0 ? 1 : int.tryParse(id.substring(star + 1)) ?? 1);
+      });
+
   double get unitPrice => item.chargedBasePrice + optionsExtra;
   double get total => unitPrice * quantity;
 
