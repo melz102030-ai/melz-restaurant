@@ -90,7 +90,8 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios),
-          onPressed: () => context.pop(),
+          // الدخول من رابط الإدارة مباشرة (/a/) لا يترك صفحة سابقة للرجوع إليها
+          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
       ),
       body: Center(
