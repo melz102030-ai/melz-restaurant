@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - "firestore.rules"
+      - ".github/scripts/deploy-firestore-rules.mjs"
       - ".github/workflows/deploy-firestore-rules.yml"
 
 concurrency:
@@ -17,7 +18,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
@@ -26,16 +27,7 @@ jobs:
           node-version: 22
 
       # نفس حساب الخدمة الذي يستخدمه خادم الدفع
-      - name: Write service account
-        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > "$RUNNER_TEMP/firebase-sa.json"
-
       - name: Deploy rules
-        # سبب الفشل يُعرض كتنبيه على التشغيل، لا في السجل فقط
-        run: |
-          if ! npx firebase-tools@latest deploy --only firestore:rules --project melz-restaurant --non-interactive > "$RUNNER_TEMP/deploy.log" 2>&1; then
-            grep -iE "error|denied|permission|forbidden|invalid|Line [0-9]+" "$RUNNER_TEMP/deploy.log" | tail -n 8 | sed 's/^/::error::/'
-            exit 1
-          fi
-          cat "$RUNNER_TEMP/deploy.log"
+        run: node .github/scripts/deploy-firestore-rules.mjs
         env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
