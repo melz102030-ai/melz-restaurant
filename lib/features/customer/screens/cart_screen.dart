@@ -324,34 +324,22 @@ class _CartScreenState extends ConsumerState<CartScreen> {
 
       final deliveryFee = isDelivery ? pricing.fee : 0.0;
 
-      final order = OrderModel(
-        id: '',
-        customerId: user.id,
-        customerName: user.name,
-        customerPhone: user.phone,
-        items: [
-          ...ref.read(cartProvider.notifier).toOrderItems(),
-          ...ref.read(comboCartProvider.notifier).state
-              .expand((e) => e.toOrderItems())
-              .toList(),
-        ],
-        subtotal: cartTotal,
-        deliveryFee: deliveryFee,
-        total: cartTotal + deliveryFee,
-        status: OrderStatus.pending,
-        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-        createdAt: DateTime.now(),
-        updatedAt: DateTime.now(),
-        orderType: isDelivery ? OrderType.delivery : OrderType.pickup,
-        deliveryLat: isDelivery ? _deliveryLat : null,
-        deliveryLng: isDelivery ? _deliveryLng : null,
-        deliveryAddress: isDelivery ? _deliveryAddressNote : null,
-        deliveryZoneId: isDelivery ? pricing.zoneId : null,
-        deliveryZoneName: isDelivery ? pricing.zoneName : null,
-        paymentMethod: _paymentMethod,
-      );
-
-      final orderId = await OrderService.placeOrder(order);
+      final notes = _notesController.text.trim();
+      final placed = await OrderService.submitOrder({
+        'items': ref.read(cartProvider).map((c) => c.toOrderRequest()).toList(),
+        'combos': ref.read(comboCartProvider).map((e) => e.toOrderRequest()).toList(),
+        'orderType': (isDelivery ? OrderType.delivery : OrderType.pickup).name,
+        if (isDelivery) ...{
+          'deliveryLat': _deliveryLat,
+          'deliveryLng': _deliveryLng,
+          'deliveryAddress': _deliveryAddressNote,
+        },
+        if (notes.isNotEmpty) 'notes': notes,
+        'paymentMethod': _paymentMethod.name,
+        // الخادم يرفض الطلب إن اختلف إجماليه عمّا رآه العميل على الشاشة
+        'expectedTotal': cartTotal + deliveryFee,
+      });
+      final orderId = placed.orderId;
       ref.read(cartProvider.notifier).clear();
       ref.read(comboCartProvider.notifier).clear();
       ref.read(cartOrderNoteProvider.notifier).state = '';
@@ -365,13 +353,20 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       // البنكي الآن ونتيح إرفاق الإيصال، ونتابع لشاشة التتبع بعدها دائماً
       // (سواء أرفق الإيصال الآن أو لاحقاً) — التحقق الفعلي يدوي من الأدمن
       if (_paymentMethod == PaymentMethod.manualBankTransfer && mounted) {
-        await _showBankTransferSheet(orderId, cartTotal + deliveryFee);
+        await _showBankTransferSheet(orderId, placed.total);
         if (!mounted) return;
       }
 
       if (mounted) await _showOrderConfirmationDialog(settings.restaurantPhone);
       if (!mounted) return;
       context.go('/track/$orderId');
+    } on OrderRejectedException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.message),
+          backgroundColor: AppColors.error,
+        ));
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(

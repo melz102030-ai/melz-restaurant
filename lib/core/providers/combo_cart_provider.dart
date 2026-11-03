@@ -45,6 +45,19 @@ class ComboCartEntry {
         quantity: quantity ?? this.quantity,
       );
 
+  // ما يُرسل للخادم عند إنشاء الطلب — بلا أي سعر
+  Map<String, dynamic> toOrderRequest() {
+    final chosen = subSelections
+        .where((s) => combo.optionItemIds.contains(s.item.id))
+        .map((s) => s.item.id)
+        .firstOrNull;
+    return {
+      'comboId': combo.id,
+      'quantity': quantity,
+      if (chosen != null) 'optionItemId': chosen,
+    };
+  }
+
   // التركيبة تُحوَّل لـ OrderItem واحد (الرأس بالسعر) + sub-items بسعر صفر
   // حتى يراها المطبخ والإدارة بشكل كامل
   List<OrderItem> toOrderItems() {

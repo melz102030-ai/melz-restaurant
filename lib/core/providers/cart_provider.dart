@@ -40,6 +40,16 @@ class CartItem {
       .map((g) => g.summary)
       .join(' · ');
 
+  // ما يُرسل للخادم عند إنشاء الطلب — معرّفات وكميات فقط بلا أي سعر
+  Map<String, dynamic> toOrderRequest() => {
+        'itemId': item.id,
+        'quantity': quantity,
+        'options': selectedOptions
+            .map((g) => {'groupId': g.groupId, 'selectedIds': g.selectedIds})
+            .toList(),
+        if (note != null && note!.isNotEmpty) 'note': note,
+      };
+
   CartItem copyWith({int? quantity}) =>
       CartItem(item: item, quantity: quantity ?? this.quantity, selectedOptions: selectedOptions, note: note);
 

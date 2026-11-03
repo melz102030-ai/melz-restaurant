@@ -555,8 +555,7 @@ async function handleCreateOrder(request, env) {
       customerId: uid,
       customerName: profile.name ?? "",
       customerPhone: profile.phone ?? "",
-      // TODO مؤقت: تحقق لمرة واحدة من شكل الطلب المكتوب بلا تنبيه المطبخ، يُزال فور انتهائه
-      status: body.selfTestCancelled === true ? "cancelled" : "pending",
+      status: "pending",
       createdAt: now,
       updatedAt: now,
       estimatedTime: null,

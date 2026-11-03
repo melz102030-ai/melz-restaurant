@@ -1,70 +1,54 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import '../models/order_model.dart';
+
+// رفض الخادم للطلب، ورسالته جاهزة للعرض للعميل كما هي
+class OrderRejectedException implements Exception {
+  final String message;
+  const OrderRejectedException(this.message);
+}
 
 class OrderService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _colOrders = 'orders';
 
-  // رقم طلب عشوائي من 4 خانات (1000-9999) لكن بلا أي تكرار إطلاقاً — بدل
-  // عدّاد تسلسلي بسيط، نولّد مرة واحدة مجموعة كل الأرقام الممكنة (9000 رقماً)
-  // مخلوطة عشوائياً (Fisher-Yates عبر shuffle) ونسحب منها رقماً واحداً فقط
-  // في كل طلب جديد (ثم نتقدّم بمؤشر القراءة)؛ معاملة Firestore ذرية تمنع
-  // سحب نفس الرقم مرتين حتى مع طلبات متزامنة. عند استنفاد المجموعة كاملة
-  // (بعد 9000 طلب) تُخلط مجموعة جديدة تلقائياً ويُعاد الدوران من جديد.
-  static Future<int> _nextOrderNumber() {
-    final poolRef = _db.collection('counters').doc('orderNumberPool');
-    return _db.runTransaction<int>((tx) async {
-      final snap = await tx.get(poolRef);
-      List<int> sequence;
-      int index;
-      if (snap.exists) {
-        sequence = (snap.data()!['sequence'] as List)
-            .map((e) => (e as num).toInt())
-            .toList();
-        index = (snap.data()!['index'] as num).toInt();
-      } else {
-        sequence = [];
-        index = 0;
-      }
-      if (index >= sequence.length) {
-        sequence = List<int>.generate(9000, (i) => 1000 + i)..shuffle();
-        index = 0;
-      }
-      final number = sequence[index];
-      tx.set(poolRef, {'sequence': sequence, 'index': index + 1});
-      return number;
-    });
-  }
+  static const String _ordersUrl =
+      'https://melz-lean-payments.melz102030.workers.dev/orders';
 
-  // Place new order
-  static Future<String> placeOrder(OrderModel order) async {
-    final ref = _db.collection(_colOrders).doc();
-    final orderNumber = await _nextOrderNumber();
-    final newOrder = OrderModel(
-      id: ref.id,
-      orderNumber: orderNumber,
-      customerId: order.customerId,
-      customerName: order.customerName,
-      customerPhone: order.customerPhone,
-      items: order.items,
-      subtotal: order.subtotal,
-      deliveryFee: order.deliveryFee,
-      total: order.total,
-      status: OrderStatus.pending,
-      notes: order.notes,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-      orderType: order.orderType,
-      deliveryLat: order.deliveryLat,
-      deliveryLng: order.deliveryLng,
-      deliveryAddress: order.deliveryAddress,
-      deliveryZoneId: order.deliveryZoneId,
-      deliveryZoneName: order.deliveryZoneName,
-      paymentMethod: order.paymentMethod,
-      paymentStatus: order.paymentStatus,
+  // إنشاء الطلب يتم في الخادم (cloudflare/lean-payments): نرسل المعرّفات
+  // والكميات فقط، وهو يقرأ الأسعار الحية ويحسب الإجمالي ويتحقق من أوقات العمل
+  // والحد الأدنى ويولّد رقم الطلب، فلا يتأثر المبلغ بأي تلاعب في المتصفح
+  static Future<({String orderId, double total})> submitOrder(
+      Map<String, dynamic> request) async {
+    const failure = 'تعذّر إرسال الطلب، حاول مجدداً';
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw const OrderRejectedException(failure);
+    final idToken = await user.getIdToken();
+
+    final res = await http.post(
+      Uri.parse(_ordersUrl),
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(request),
     );
-    await ref.set(newOrder.toMap());
-    return ref.id;
+
+    final Map<String, dynamic> data;
+    try {
+      data = jsonDecode(res.body) as Map<String, dynamic>;
+    } on FormatException {
+      throw const OrderRejectedException(failure);
+    }
+    if (res.statusCode != 200 || data['orderId'] == null) {
+      throw OrderRejectedException(data['message'] as String? ?? failure);
+    }
+    return (
+      orderId: data['orderId'] as String,
+      total: (data['total'] as num).toDouble(),
+    );
   }
 
   // Stream customer orders — sort in Dart to avoid composite index
