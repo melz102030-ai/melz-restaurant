@@ -171,13 +171,25 @@ service cloud.firestore {
       // الإنشاء: العميل فقط، لنفسه، تذكرة مفتوحة برسالة واحدة أولية
       allow create: if isSignedIn() &&
         request.resource.data.customerId == request.auth.uid &&
-        request.resource.data.status == 'open';
+        request.resource.data.status == 'open' &&
+        request.resource.data.messages.size() == 1 &&
+        request.resource.data.messages[0].senderRole == 'customer';
 
-      // الردّ/تغيير الحالة: الأدمن على أي تذكرة، أو العميل على تذكرته هو
-      // فقط — في الحالتين لا يجوز تغيير صاحب التذكرة نفسه
-      allow update: if isSignedIn() &&
-        request.resource.data.customerId == resource.data.customerId &&
-        (isAdmin() || resource.data.customerId == request.auth.uid);
+      // الأدمن: الردّ وتغيير الحالة على أي تذكرة بلا تغيير صاحبها. العميل على
+      // تذكرته: إضافة رسالته في آخر القائمة فقط، بلا تعديل ما قبلها أو كتابة رد
+      // باسم الدعم، وله إعادة فتحها لا إغلاقها.
+      allow update: if isSignedIn() && (
+        (isAdmin() &&
+          request.resource.data.customerId == resource.data.customerId) ||
+        (resource.data.customerId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['messages', 'updatedAt', 'status']) &&
+          (request.resource.data.status == resource.data.status ||
+            request.resource.data.status == 'open') &&
+          request.resource.data.messages.size() == resource.data.messages.size() + 1 &&
+          request.resource.data.messages[0:resource.data.messages.size()] == resource.data.messages &&
+          request.resource.data.messages[resource.data.messages.size()].senderRole == 'customer')
+      );
     }
   }
 }
