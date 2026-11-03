@@ -440,22 +440,7 @@ class _MenuItemTile extends ConsumerWidget {
                 showDialog(
                   context: context,
                   builder: (_) => _MenuItemDialog(
-                    item: MenuItemModel(
-                      id: '',
-                      name: '${item.name} (نسخة)',
-                      description: item.description,
-                      categoryId: item.categoryId,
-                      categoryName: item.categoryName,
-                      price: item.price,
-                      isAvailable: item.isAvailable,
-                      sortOrder: item.sortOrder,
-                      tags: item.tags,
-                      discountPercent: item.discountPercent,
-                      optionGroups: item.optionGroups,
-                      isBestSeller: item.isBestSeller,
-                      isNew: item.isNew,
-                      excludeBasePrice: item.excludeBasePrice,
-                    ),
+                    item: item.copyWith(id: '', name: '${item.name} (نسخة)'),
                     isDuplicate: true,
                   ),
                 );
@@ -504,7 +489,7 @@ class _MenuItemTile extends ConsumerWidget {
               Navigator.pop(dialogContext);
               runOrShowError(context, () => MenuService.deleteMenuItem(item.id),
                   successMessage: 'تم حذف الصنف');
-              CloudinaryService.deleteImage(item.imageUrl);
+              MenuService.deleteItemImageIfUnused(item.imageUrl, item.id);
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
@@ -819,7 +804,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         // حذف الصورة القديمة من Cloudinary بعد نجاح استبدالها فعلياً (وليس عند
         // التكرار — النسخة المكرَّرة تشارك نفس الصورة حتى تُغيَّر لاحقاً)
         if (_imageBytes != null && widget.item!.imageUrl != null && widget.item!.imageUrl != finalImageUrl) {
-          CloudinaryService.deleteImage(widget.item!.imageUrl);
+          MenuService.deleteItemImageIfUnused(widget.item!.imageUrl, widget.item!.id);
         }
       } else {
         await MenuService.addMenuItem(newItem);

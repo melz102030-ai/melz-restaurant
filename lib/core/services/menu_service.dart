@@ -4,6 +4,7 @@ import '../models/category_model.dart';
 import '../models/menu_item_model.dart';
 import '../models/option_group_model.dart';
 import '../models/option_template_model.dart';
+import 'cloudinary_service.dart';
 
 class MenuService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -66,6 +67,23 @@ class MenuService {
     if (categoryId != null) q = q.where('categoryId', isEqualTo: categoryId);
     return q.orderBy('sortOrder').snapshots().map((snap) =>
         snap.docs.map((d) => MenuItemModel.fromMap(d.data(), d.id)).toList());
+  }
+
+  // الصنف المنسوخ يشارك صورة الأصلي. عند الحذف أو الاستبدال لا تُحذف الصورة من
+  // Cloudinary إن كان صنف آخر يستخدمها، ويُحتفظ بها أيضاً إن تعذّر التأكد.
+  static Future<void> deleteItemImageIfUnused(String? imageUrl, String itemId) async {
+    if (imageUrl == null || imageUrl.isEmpty) return;
+    try {
+      final snap = await _db
+          .collection(_colItems)
+          .where('imageUrl', isEqualTo: imageUrl)
+          .limit(2)
+          .get();
+      if (snap.docs.any((d) => d.id != itemId)) return;
+    } catch (_) {
+      return;
+    }
+    await CloudinaryService.deleteImage(imageUrl);
   }
 
   static Future<String> addMenuItem(MenuItemModel item) async {
