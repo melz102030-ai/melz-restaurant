@@ -23,7 +23,7 @@
 // من قيم status الفعلية القادمة داخل مصفوفة payments، وتحديث المطابقة أدناه
 // إن لزم.
 
-import { priceOrder, removeUnavailableItems, OrderRejected } from "./pricing.js";
+import { priceOrder, removeUnavailableItems, setOptionAvailability, OrderRejected } from "./pricing.js";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -637,6 +637,63 @@ async function handleAcknowledgeUnavailable(request, env) {
   }
 }
 
+// المطبخ يوقف/يشغّل خياراً واحداً نفد — عبر الخادم، لأن السماح له بكتابة حقل
+// optionGroups كاملاً في القواعد يتيح له تغيير الأسعار أيضاً
+async function handleOptionAvailability(request, env) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const uid = idToken ? decodeUid(idToken) : null;
+  if (!uid || !/^[\w-]+$/.test(uid)) return json({ error: "unauthenticated" }, 401);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  const { itemId, groupId, optionId, isAvailable } = body;
+  const validIds = [itemId, groupId, optionId].every((v) => typeof v === "string" && v.length > 0);
+  if (!validIds || !/^[\w-]+$/.test(itemId) || typeof isAvailable !== "boolean") {
+    return json({ error: "invalid-body", message: "طلب غير صحيح" }, 400);
+  }
+
+  const failure = { error: "update-failed", message: "تعذّر تحديث الخيار، حاول مجدداً" };
+  try {
+    // قراءة الملف بتوكن المتصل تتحقق من صحته. الحساب المجهول ليس موظفاً مهما كان دوره
+    const profileRes = await fsFetch(env, idToken, `/users/${uid}`);
+    if (!profileRes.ok) return json({ error: "permission-denied", message: "لا تملك صلاحية هذا الإجراء" }, 403);
+    const role = (await profileRes.json()).fields?.role?.stringValue;
+    const claims = JSON.parse(atob(idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const isGuest = claims.firebase?.sign_in_provider === "anonymous";
+    if (isGuest || (role !== "kitchen" && role !== "admin")) {
+      return json({ error: "permission-denied", message: "لا تملك صلاحية هذا الإجراء" }, 403);
+    }
+
+    const adminToken = await getFirestoreAdminToken(env);
+    const itemRes = await fsFetch(env, adminToken, `/menu_items/${itemId}`);
+    if (!itemRes.ok) return json({ error: "item-not-found", message: "لم يُعثر على هذا الصنف، حدّث الصفحة" }, 404);
+    const doc = await itemRes.json();
+
+    const optionGroups = setOptionAvailability(doc.fields?.optionGroups, groupId, optionId, isAvailable);
+    const precondition = `currentDocument.updateTime=${encodeURIComponent(doc.updateTime)}`;
+    const patchRes = await fsFetch(
+      env,
+      adminToken,
+      `/menu_items/${itemId}?updateMask.fieldPaths=optionGroups&${precondition}`,
+      { method: "PATCH", body: JSON.stringify({ fields: { optionGroups } }) }
+    );
+    if (!patchRes.ok) {
+      console.error("option-availability-patch-failed", await patchRes.text());
+      return json(failure, 502);
+    }
+    return json({ ok: true });
+  } catch (e) {
+    if (e instanceof OrderRejected) return json({ error: e.code, message: e.message }, e.status);
+    console.error("option-availability-failed", String(e));
+    return json(failure, 502);
+  }
+}
+
 // فحص تشخيصي بلا حاجة لعميل حقيقي أو طلب فعلي — يختبر فقط أن أسرار لين
 // وحساب خدمة Firebase صالحة وتُصدر توكن وصول بنجاح. لا يكشف أي قيمة سرّية
 // في الرد، فقط ok/error لكل جزء. يُزال أو يُقيَّد لاحقاً بعد التأكد النهائي.
@@ -672,6 +729,7 @@ export default {
     }
     if (request.method !== "POST") return json({ error: "method-not-allowed" }, 405);
     if (url.pathname === "/orders") return handleCreateOrder(request, env);
+    if (url.pathname === "/menu/option-availability") return handleOptionAvailability(request, env);
     if (url.pathname === "/orders/acknowledge-unavailable") {
       return handleAcknowledgeUnavailable(request, env);
     }

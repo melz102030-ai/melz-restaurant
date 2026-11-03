@@ -15,6 +15,7 @@ firebase.initializeApp({
 });
 var auth = firebase.auth();
 var db = firebase.firestore();
+var WORKER_URL = 'https://melz-lean-payments.melz102030.workers.dev';
 
 // ─── حالة عامة ───────────────────────────────────────────────────────────────
 var state = {
@@ -1182,6 +1183,23 @@ function buildAvailItem(item) {
   return wrap;
 }
 
+// عبر الخادم لا Firestore مباشرة: القواعد لا تسمح للمطبخ بتعديل حقل الخيارات
+// كاملاً حتى لا يستطيع تغيير أسعارها، والخادم يغيّر توفر هذا الخيار وحده
+function setOptionAvailable(itemId, groupId, optionId, isAvailable) {
+  return auth.currentUser.getIdToken().then(function (token) {
+    return fetch(WORKER_URL + '/menu/option-availability', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ itemId: itemId, groupId: groupId, optionId: optionId, isAvailable: isAvailable }),
+    });
+  }).then(function (res) {
+    if (res.ok) return;
+    return res.json().catch(function () { return {}; }).then(function (data) {
+      throw new Error(data.message || 'تعذّر تحديث الخيار، حاول مجدداً');
+    });
+  });
+}
+
 // لوحة خيارات الصنف — كل مجموعة وخياراتها مع مفتاح تفعيل/إيقاف لكل خيار
 // على حِدة (مثال: إيقاف "جبنة إضافية" مؤقتاً لنفادها دون إيقاف الصنف كله)
 function buildAvailOptions(item) {
@@ -1205,7 +1223,7 @@ function buildAvailOptions(item) {
             }),
           });
         });
-        db.collection('menu_items').doc(item.id).update({ optionGroups: updatedGroups })
+        setOptionAvailable(item.id, group.id, opt.id, val)
           .then(function () {
             item.optionGroups = updatedGroups;
             opt.isAvailable = val;

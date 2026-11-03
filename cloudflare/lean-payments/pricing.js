@@ -423,3 +423,15 @@ export function removeUnavailableItems(order) {
     unavailableItemIds: [],
   };
 }
+
+// يغيّر توفر خيار واحد داخل optionGroups بصيغة Firestore الخام، ويرمي خطأ إن لم
+// يجده. لا يمس أي حقل آخر، فلا يستطيع المطبخ عبره تغيير سعر أو اسم.
+export function setOptionAvailability(optionGroupsValue, groupId, optionId, isAvailable) {
+  const groups = optionGroupsValue?.arrayValue?.values ?? [];
+  const group = groups.find((g) => g.mapValue?.fields?.id?.stringValue === groupId);
+  const options = group?.mapValue?.fields?.options?.arrayValue?.values ?? [];
+  const option = options.find((o) => o.mapValue?.fields?.id?.stringValue === optionId);
+  if (!option) throw new OrderRejected("option-not-found", "لم يُعثر على هذا الخيار، حدّث الصفحة", 404);
+  option.mapValue.fields.isAvailable = { booleanValue: isAvailable };
+  return optionGroupsValue;
+}

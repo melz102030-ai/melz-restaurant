@@ -1,7 +1,14 @@
 // node --test cloudflare/lean-payments/pricing.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
-import { priceOrder, isRestaurantOpen, distanceKm, removeUnavailableItems, OrderRejected } from "./pricing.js";
+import {
+  priceOrder,
+  isRestaurantOpen,
+  distanceKm,
+  removeUnavailableItems,
+  setOptionAvailability,
+  OrderRejected,
+} from "./pricing.js";
 
 const OPEN_SETTINGS = { minOrderAmount: 5, deliveryFee: 10, openTime: "", closeTime: "" };
 
@@ -207,6 +214,27 @@ test("إزالة الأصناف غير المتوفرة تعيد الحساب م
   assert.equal(removeUnavailableItems({ ...order, unavailableItemIds: [] }), null, "نقرة مكررة لا تغيّر شيئاً");
   rejectsWith(() => removeUnavailableItems({ ...order, status: "cancelled" }), "order-closed");
   rejectsWith(() => removeUnavailableItems({ ...order, unavailableItemIds: ["a", "b", "c"] }), "nothing-left");
+});
+
+test("توقيف خيار يغيّر توفره فقط ويبقي السعر والبقية كما هي", () => {
+  const option = (id) => ({
+    mapValue: { fields: { id: { stringValue: id }, name: { stringValue: id }, priceAdjustment: { integerValue: "3" } } },
+  });
+  const value = () => ({
+    arrayValue: {
+      values: [
+        { mapValue: { fields: { id: { stringValue: "g1" }, options: { arrayValue: { values: [option("a"), option("b")] } } } } },
+      ],
+    },
+  });
+  const updated = setOptionAvailability(value(), "g1", "b", false);
+  const [a, b] = updated.arrayValue.values[0].mapValue.fields.options.arrayValue.values;
+  assert.deepEqual(b.mapValue.fields.isAvailable, { booleanValue: false });
+  assert.deepEqual(b.mapValue.fields.priceAdjustment, { integerValue: "3" });
+  assert.equal(a.mapValue.fields.isAvailable, undefined);
+
+  rejectsWith(() => setOptionAvailability(value(), "g1", "ghost", false), "option-not-found");
+  rejectsWith(() => setOptionAvailability(value(), "ghost", "a", false), "option-not-found");
 });
 
 test("حساب المسافة قريب من القيمة المعروفة", () => {
