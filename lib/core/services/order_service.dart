@@ -84,18 +84,22 @@ class OrderService {
             snap.exists ? OrderModel.fromMap(snap.data()!, snap.id) : null);
   }
 
-  // Stream all orders (admin) — الترتيب في Dart لتجنب Composite Index
+  // آخر الطلبات (admin) — بحد أقصى حتى لا تثقل اللوحة مع تراكم الطلبات، وفلترة
+  // الحالة في Dart لتجنب Composite Index. أرقام اللوحة والتقارير من
+  // getOrdersSummary بنطاق تاريخ مستقل، فلا يؤثر هذا الحد عليها
+  static const int _recentOrdersLimit = 500;
+
   static Stream<List<OrderModel>> streamAllOrders({OrderStatus? status}) {
-    Query<Map<String, dynamic>> query = _db.collection(_colOrders);
-    if (status != null) {
-      query = query.where('status', isEqualTo: status.name);
-    }
-    return query.snapshots().map((snap) {
-      final orders = snap.docs
-          .map((d) => OrderModel.fromMap(d.data(), d.id))
-          .toList();
-      orders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return orders;
+    return _db
+        .collection(_colOrders)
+        .orderBy('createdAt', descending: true)
+        .limit(_recentOrdersLimit)
+        .snapshots()
+        .map((snap) {
+      final orders = snap.docs.map((d) => OrderModel.fromMap(d.data(), d.id));
+      return status == null
+          ? orders.toList()
+          : orders.where((o) => o.status == status).toList();
     });
   }
 

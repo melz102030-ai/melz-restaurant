@@ -26,6 +26,12 @@ var state = {
   expandedCards: {},     // orderId -> bool
   deliveredExpanded: false,
   unsubOrders: null,
+  unsubRecent: null,
+  recentRefreshTimer: null,
+  activeOrders: [],
+  recentOrders: [],
+  activeFromCache: false,
+  recentFromCache: false,
   unsubSettings: null,
   unsubVerified: null,
   verifiedPhones: {},    // phone -> { verifiedAt, verifiedBy }
@@ -278,6 +284,9 @@ auth.onAuthStateChanged(function (user) {
 });
 
 // ─── إعداد/إيقاف مستمعي Firestore ────────────────────────────────────────────
+var DELIVERED_WINDOW_MS = 4 * 60 * 60 * 1000;
+var RECENT_REFRESH_MS = 60 * 60 * 1000;
+
 function setupListeners() {
   if (state.unsubSettings) return; // مُفعَّل مسبقاً
   state.unsubSettings = db.doc('settings/restaurant').onSnapshot(function (snap) {
@@ -292,36 +301,74 @@ function setupListeners() {
     render();
   });
 
+  // مستمعان بدل استعلام واحد يحمّل كل ما سُلِّم منذ أول يوم: الطلبات النشطة
+  // (عددها محدود بطبيعتها)، وما تغيّر مؤخراً لعرض المسلَّم آخر ٤ ساعات
   state.unsubOrders = db.collection('orders')
-    .where('status', 'in', ['pending', 'confirmed', 'preparing', 'ready', 'outForDelivery', 'delivered'])
+    .where('status', 'in', ['pending', 'confirmed', 'preparing', 'ready', 'outForDelivery'])
     .onSnapshot({ includeMetadataChanges: true }, function (snap) {
-      state.isOffline = snap.metadata.fromCache;
-      var cutoff = Date.now() - 4 * 60 * 60 * 1000;
-      var orders = snap.docs.map(function (d) { return orderFromDoc(d); });
-      orders = orders.filter(function (o) {
-        return o.status !== 'delivered' || o.updatedAt.getTime() > cutoff;
-      });
-      orders.sort(function (a, b) { return a.createdAt - b.createdAt; });
-      state.orders = orders;
-
-      // كشف الطلبات الجديدة (pending) وتشغيل المنبه
-      var pendingIds = {};
-      orders.forEach(function (o) { if (o.status === 'pending') pendingIds[o.id] = true; });
-      if (state.knownPendingIds !== null) {
-        var isNew = false;
-        for (var id in pendingIds) { if (!state.knownPendingIds[id]) { isNew = true; break; } }
-        if (isNew) playAlarm();
-      }
-      state.knownPendingIds = pendingIds;
-
-      render();
+      state.activeOrders = snap.docs.map(function (d) { return orderFromDoc(d); });
+      state.activeFromCache = snap.metadata.fromCache;
+      applyOrders(true);
     }, function (err) {
       console.warn('orders listener error', err);
     });
+
+  subscribeRecentOrders();
+  // الجهاز قد يبقى مفتوحاً أياماً، فيُحدَّث النطاق حتى لا يكبر المستمع مع الوقت
+  state.recentRefreshTimer = setInterval(subscribeRecentOrders, RECENT_REFRESH_MS);
+}
+
+function subscribeRecentOrders() {
+  if (state.unsubRecent) state.unsubRecent();
+  var since = firebase.firestore.Timestamp.fromMillis(Date.now() - DELIVERED_WINDOW_MS);
+  state.unsubRecent = db.collection('orders')
+    .where('updatedAt', '>=', since)
+    .onSnapshot({ includeMetadataChanges: true }, function (snap) {
+      state.recentOrders = snap.docs
+        .map(function (d) { return orderFromDoc(d); })
+        .filter(function (o) { return o.status === 'delivered'; });
+      state.recentFromCache = snap.metadata.fromCache;
+      applyOrders(false);
+    }, function (err) {
+      console.warn('recent orders listener error', err);
+    });
+}
+
+function applyOrders(activeChanged) {
+  state.isOffline = state.activeFromCache || state.recentFromCache;
+  var cutoff = Date.now() - DELIVERED_WINDOW_MS;
+  var byId = {};
+  state.recentOrders.forEach(function (o) {
+    if (o.updatedAt.getTime() > cutoff) byId[o.id] = o;
+  });
+  state.activeOrders.forEach(function (o) { byId[o.id] = o; });
+  var orders = Object.keys(byId).map(function (id) { return byId[id]; });
+  orders.sort(function (a, b) { return a.createdAt - b.createdAt; });
+  state.orders = orders;
+
+  // كشف الطلبات الجديدة (pending) وتشغيل المنبه — من الطلبات النشطة فقط
+  if (activeChanged) {
+    var pendingIds = {};
+    state.activeOrders.forEach(function (o) { if (o.status === 'pending') pendingIds[o.id] = true; });
+    if (state.knownPendingIds !== null) {
+      var isNew = false;
+      for (var id in pendingIds) { if (!state.knownPendingIds[id]) { isNew = true; break; } }
+      if (isNew) playAlarm();
+    }
+    state.knownPendingIds = pendingIds;
+  }
+
+  render();
 }
 
 function teardownListeners() {
   if (state.unsubOrders) { state.unsubOrders(); state.unsubOrders = null; }
+  if (state.unsubRecent) { state.unsubRecent(); state.unsubRecent = null; }
+  if (state.recentRefreshTimer) { clearInterval(state.recentRefreshTimer); state.recentRefreshTimer = null; }
+  state.activeOrders = [];
+  state.recentOrders = [];
+  state.activeFromCache = false;
+  state.recentFromCache = false;
   if (state.unsubSettings) { state.unsubSettings(); state.unsubSettings = null; }
   if (state.unsubVerified) { state.unsubVerified(); state.unsubVerified = null; }
   state.orders = [];
