@@ -588,7 +588,7 @@ function buildOrderCard(order, index) {
   } else {
     var verifyBtn = el('button', { class: 'verify-btn', title: 'وثّق الرقم بعد الاتصال' }, [
       el('span', { class: 'verify-icon' }, ['⚠']),
-      el('span', {}, ['وثّق']),
+      el('span', {}, ['غير موثق']),
     ]);
     verifyBtn.addEventListener('click', function (e) {
       e.stopPropagation();
