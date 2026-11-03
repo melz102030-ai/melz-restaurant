@@ -55,8 +55,8 @@ class CartItem {
     final star = id.lastIndexOf('*');
     final count = star < 0 ? 1 : int.tryParse(id.substring(star + 1)) ?? 1;
     final total = count * quantity;
-    final baseName = name.replaceFirst(RegExp(r' ×\d+$'), '');
-    return total > 1 ? '$baseName ×$total' : baseName;
+    final baseName = name.replaceFirst(RegExp(r'^×\d+ '), '');
+    return '×$total $baseName';
   }
 
   double get unitPrice => item.chargedBasePrice + optionsExtra;

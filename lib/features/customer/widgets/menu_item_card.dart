@@ -912,7 +912,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
       if (selectedIds.isEmpty) continue;
       final selectedOpts =
           group.options.where((o) => selectedIds.contains(o.id)).toList();
-      // العدد يُضمَّن في المعرّف (لتمييز "جبن ×2" عن "جبن" كعنصرين مختلفين
+      // العدد يُضمَّن في المعرّف (لتمييز "×2 جبن" عن "جبن" كعنصرين مختلفين
       // في السلة) وفي الاسم (ليظهر للمطبخ والفاتورة دون تعديل نموذج الطلب)
       selectedGroups.add(SelectedOptionGroup(
         groupId: group.id,
@@ -923,7 +923,9 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
         }).toList(),
         selectedNames: selectedOpts.map((o) {
           final q = _qtyOf(group, o.id);
-          return q > 1 ? '${o.name} ×$q' : o.name;
+          return group.allowQuantity || widget.item.excludeBasePrice
+              ? '×$q ${o.name}'
+              : o.name;
         }).toList(),
         totalExtra: selectedOpts.fold(
             0.0, (s, o) => s + o.priceAdjustment * _qtyOf(group, o.id)),

@@ -98,9 +98,15 @@ class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
           // الأسماء قد تحمل عدداً ("جبن ×2") للمجموعات التي تسمح بزيادة العدد
           final qtyByName = <String, int>{};
           for (final n in opt.selectedNames) {
-            final m = RegExp(r'^(.*) ×(\d+)$').firstMatch(n);
+            // "×2 جبن"، والطلبات الأقدم بصيغة "جبن ×2". صنف لا يُحتسب سعره
+            // يُحفظ عدد خياراته مضروباً في كمية الصنف، فيُقسم هنا لتفادي مضاعفته
+            final m = RegExp(r'^×(\d+) (.*)$').firstMatch(n);
+            final old = RegExp(r'^(.*) ×(\d+)$').firstMatch(n);
             if (m != null) {
-              qtyByName[m.group(1)!] = int.parse(m.group(2)!);
+              final perUnit = current.excludeBasePrice ? oi.quantity : 1;
+              qtyByName[m.group(2)!] = int.parse(m.group(1)!) ~/ perUnit;
+            } else if (old != null) {
+              qtyByName[old.group(1)!] = int.parse(old.group(2)!);
             } else {
               qtyByName[n] = 1;
             }
@@ -113,7 +119,9 @@ class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
             groupId: group.id,
             groupName: group.name,
             selectedIds: matched.map((o) => q(o) > 1 ? '${o.id}*${q(o)}' : o.id).toList(),
-            selectedNames: matched.map((o) => q(o) > 1 ? '${o.name} ×${q(o)}' : o.name).toList(),
+            selectedNames: matched
+                .map((o) => allowQty || current!.excludeBasePrice ? '×${q(o)} ${o.name}' : o.name)
+                .toList(),
             totalExtra: matched.fold(0.0, (s, o) => s + o.priceAdjustment * q(o)),
           ));
         }

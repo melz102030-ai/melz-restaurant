@@ -105,7 +105,9 @@ function priceOptions(item, requested, displayMultiplier = 1) {
       groupExtra += Number(opt.priceAdjustment ?? 0) * sel.qty;
       optionsCount += sel.qty;
       const shown = sel.qty * displayMultiplier;
-      names.push(shown > 1 ? `${opt.name} ×${shown}` : opt.name);
+      // الرقم قبل الاسم، ويظهر حتى ×1 في الخيارات التي لها عدد
+      const showCount = shown > 1 || group.allowQuantity === true || item.excludeBasePrice === true;
+      names.push(showCount ? `×${shown} ${opt.name}` : opt.name);
     }
     if (names.length !== parsed.length) {
       throw new OrderRejected(
