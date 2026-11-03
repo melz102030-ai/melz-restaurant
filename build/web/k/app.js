@@ -639,7 +639,9 @@ function buildOrderCard(order, index) {
       });
     var itemChildren = [
       el('div', { class: 'item-name' + (isUnavail ? ' unavail-name' : '') }, [item.name]),
-    ].concat(optLines.map(function (line) { return el('div', { class: 'item-opts' }, [line]); }));
+    ].concat(optLines.map(function (line) {
+      return el('div', { class: item.displayQuantity ? 'item-opts item-opt-line' : 'item-opts' }, [line]);
+    }));
     if (isUnavail) {
       itemChildren.push(el('div', { class: 'item-unavail-badge' }, ['نفد • ينتظر رد العميل']));
     }
