@@ -16,23 +16,8 @@ import 'features/customer/screens/order_history_screen.dart';
 import 'features/customer/screens/profile_screen.dart';
 import 'features/customer/screens/support_screen.dart';
 import 'features/customer/screens/support_ticket_screen.dart';
-import 'features/admin/screens/admin_shell.dart';
-import 'features/admin/screens/admin_dashboard.dart';
-import 'features/admin/screens/menu_management_screen.dart';
-import 'features/admin/screens/admin_orders_screen.dart';
-import 'features/admin/screens/admin_reports_screen.dart';
-import 'features/admin/screens/admin_settings_screen.dart';
-import 'features/admin/screens/admin_users_screen.dart';
-import 'features/admin/screens/admin_drivers_screen.dart';
-import 'features/admin/screens/admin_delivery_zones_screen.dart';
-import 'features/admin/screens/admin_working_hours_screen.dart';
-import 'features/admin/screens/admin_appearance_screen.dart';
-import 'features/admin/screens/admin_popup_ads_screen.dart';
-import 'features/admin/screens/admin_banners_screen.dart';
-import 'features/admin/screens/admin_splash_screen.dart';
-import 'features/admin/screens/admin_support_screen.dart';
-import 'features/admin/screens/admin_support_ticket_screen.dart';
-import 'features/driver/screens/driver_screen.dart';
+import 'features/admin/admin_screens.dart' deferred as admin;
+import 'features/driver/screens/driver_screen.dart' deferred as driver;
 import 'shared/utils/kitchen_redirect.dart';
 import 'features/game/heart_dodge_game_screen.dart';
 
@@ -158,68 +143,68 @@ final _routerProvider = Provider<GoRouter>((ref) {
       // Admin - Shell route with sidebar
       ShellRoute(
         navigatorKey: _adminKey,
-        builder: (_, __, child) => AdminShell(child: child),
+        builder: (_, __, child) => _adminPage(() => admin.AdminShell(child: child)),
         routes: [
           GoRoute(
             path: '/admin',
-            builder: (_, __) => const AdminDashboard(),
+            builder: (_, __) => _adminPage(() => admin.AdminDashboard()),
           ),
           GoRoute(
             path: '/admin/menu',
-            builder: (_, __) => const MenuManagementScreen(),
+            builder: (_, __) => _adminPage(() => admin.MenuManagementScreen()),
           ),
           GoRoute(
             path: '/admin/orders',
-            builder: (_, __) => const AdminOrdersScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminOrdersScreen()),
           ),
           GoRoute(
             path: '/admin/reports',
-            builder: (_, __) => const AdminReportsScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminReportsScreen()),
           ),
           GoRoute(
             path: '/admin/users',
-            builder: (_, __) => const AdminUsersScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminUsersScreen()),
           ),
           GoRoute(
             path: '/admin/settings',
-            builder: (_, __) => const AdminSettingsScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminSettingsScreen()),
           ),
           GoRoute(
             path: '/admin/drivers',
-            builder: (_, __) => const AdminDriversScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminDriversScreen()),
           ),
           GoRoute(
             path: '/admin/delivery-zones',
-            builder: (_, __) => const AdminDeliveryZonesScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminDeliveryZonesScreen()),
           ),
           GoRoute(
             path: '/admin/working-hours',
-            builder: (_, __) => const AdminWorkingHoursScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminWorkingHoursScreen()),
           ),
           GoRoute(
             path: '/admin/appearance',
-            builder: (_, __) => const AdminAppearanceScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminAppearanceScreen()),
           ),
           GoRoute(
             path: '/admin/popup-ads',
-            builder: (_, __) => const AdminPopupAdsScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminPopupAdsScreen()),
           ),
           GoRoute(
             path: '/admin/banners',
-            builder: (_, __) => const AdminBannersScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminBannersScreen()),
           ),
           GoRoute(
             path: '/admin/splash',
-            builder: (_, __) => const AdminSplashScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminSplashScreen()),
           ),
           GoRoute(
             path: '/admin/support',
-            builder: (_, __) => const AdminSupportScreen(),
+            builder: (_, __) => _adminPage(() => admin.AdminSupportScreen()),
           ),
           GoRoute(
             path: '/admin/support/:ticketId',
             builder: (_, state) =>
-                AdminSupportTicketScreen(ticketId: state.pathParameters['ticketId']!),
+                _adminPage(() => admin.AdminSupportTicketScreen(ticketId: state.pathParameters['ticketId']!)),
           ),
         ],
       ),
@@ -227,7 +212,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
       // Driver
       GoRoute(
         path: '/driver',
-        builder: (_, __) => const DriverScreen(),
+        builder: (_, __) => _DeferredPage(id: 'driver', load: driver.loadLibrary, builder: () => driver.DriverScreen()),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
@@ -249,6 +234,68 @@ final _routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+Widget _adminPage(Widget Function() builder) =>
+    _DeferredPage(id: 'admin', load: admin.loadLibrary, builder: builder);
+
+// يحمّل حزمة منفصلة عند أول فتح لها ثم يعرض الشاشة مباشرة في المرات التالية.
+// فشل التحميل يعني غالباً انقطاع اتصال، أو أن الصفحة مفتوحة من قبل تحديث جديد،
+// وإعادة تحميل الصفحة تعالج الحالتين.
+class _DeferredPage extends StatefulWidget {
+  final String id;
+  final Future<void> Function() load;
+  final Widget Function() builder;
+
+  const _DeferredPage({required this.id, required this.load, required this.builder});
+
+  static final Set<String> _loaded = {};
+
+  @override
+  State<_DeferredPage> createState() => _DeferredPageState();
+}
+
+class _DeferredPageState extends State<_DeferredPage> {
+  Future<void>? _loading;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!_DeferredPage._loaded.contains(widget.id)) {
+      _loading = widget.load().then((_) => _DeferredPage._loaded.add(widget.id));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_DeferredPage._loaded.contains(widget.id)) return widget.builder();
+    return FutureBuilder<void>(
+      future: _loading,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('تعذّر تحميل الصفحة'),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: reloadPage,
+                    child: const Text('إعادة تحميل'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        return widget.builder();
+      },
+    );
+  }
+}
 
 String _getInitialRoute(UserModel? user) {
   // الرابط الجذر "/" يُظهر دائماً واجهة العميل — الأدمن يُوجَّه لـ /admin

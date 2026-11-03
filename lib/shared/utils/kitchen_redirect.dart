@@ -9,3 +9,7 @@ import 'dart:html' as html;
 void redirectToKitchenLite() {
   html.window.location.href = '/k/#/kitchen';
 }
+
+void reloadPage() {
+  html.window.location.reload();
+}
