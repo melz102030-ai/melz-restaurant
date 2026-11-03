@@ -39,7 +39,7 @@ class MenuItemListCard extends ConsumerWidget {
     final totalQty = ref.watch(cartProvider.select(
       (c) => c
           .where((i) => i.item.id == item.id)
-          .fold(0, (s, c) => s + c.quantity),
+          .fold(0, (s, c) => s + c.shownQuantity),
     ));
     final available = item.isAvailable;
     final glowColor = available ? _badgeGlowColor(item) : null;
@@ -286,7 +286,7 @@ class MenuItemGridCard extends ConsumerWidget {
     final totalQty = ref.watch(cartProvider.select(
       (c) => c
           .where((i) => i.item.id == item.id)
-          .fold(0, (s, c) => s + c.quantity),
+          .fold(0, (s, c) => s + c.shownQuantity),
     ));
     final available = item.isAvailable;
     final glowColor = available ? _badgeGlowColor(item) : null;

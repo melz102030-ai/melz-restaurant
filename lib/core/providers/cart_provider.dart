@@ -40,6 +40,10 @@ class CartItem {
         return sum + (star < 0 ? 1 : int.tryParse(id.substring(star + 1)) ?? 1);
       });
 
+  // الكمية الظاهرة للعميل: صنف لا يُحتسب سعره كميته مجموع خياراته (٨ صوصات لا ١)
+  int get shownQuantity =>
+      item.excludeBasePrice && selectedOptions.isNotEmpty ? totalOptionsQuantity : quantity;
+
   // خيار واحد بكل سطر مع عدده الفعلي، حتى لو أُضيفت نفس التركيبة أكثر من مرة
   List<String> get optionLines => [
         for (final g in selectedOptions)
@@ -195,7 +199,7 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
   }
 
   int getQuantity(String itemId) =>
-      state.where((c) => c.item.id == itemId).fold(0, (s, c) => s + c.quantity);
+      state.where((c) => c.item.id == itemId).fold(0, (s, c) => s + c.shownQuantity);
 
   List<OrderItem> toOrderItems() {
     return state.map((c) => OrderItem(
@@ -237,7 +241,7 @@ final cartTotalProvider = Provider<double>((ref) {
 });
 
 final cartItemCountProvider = Provider<int>((ref) {
-  return ref.watch(cartProvider).fold(0, (s, c) => s + c.quantity);
+  return ref.watch(cartProvider).fold(0, (s, c) => s + c.shownQuantity);
 });
 
 // ملاحظة الطلب العامة — تبقى محفوظة أثناء التنقل بين الشاشات
