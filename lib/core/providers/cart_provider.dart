@@ -32,7 +32,7 @@ class CartItem {
   double get optionsExtra =>
       selectedOptions.fold(0.0, (s, g) => s + g.totalExtra);
 
-  double get unitPrice => item.finalPrice + optionsExtra;
+  double get unitPrice => item.chargedBasePrice + optionsExtra;
   double get total => unitPrice * quantity;
 
   String get optionsSummary => selectedOptions

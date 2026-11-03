@@ -454,6 +454,7 @@ class _MenuItemTile extends ConsumerWidget {
                       optionGroups: item.optionGroups,
                       isBestSeller: item.isBestSeller,
                       isNew: item.isNew,
+                      excludeBasePrice: item.excludeBasePrice,
                     ),
                     isDuplicate: true,
                   ),
@@ -687,6 +688,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   bool _isBestSeller = false;
   bool _isNew = false;
   bool _showNutritionInfo = false;
+  bool _excludeBasePrice = false;
   List<String> _allergens = [];
   bool _isSaving = false;
   String? _imageUrl;
@@ -730,6 +732,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
       _caloriesCtrl.text = item.calories?.toString() ?? '';
       _allergens = List.from(item.allergens);
       _showNutritionInfo = item.showNutritionInfo;
+      _excludeBasePrice = item.excludeBasePrice;
       _linkedTemplateIds = List.from(item.linkedTemplateIds);
     }
   }
@@ -805,6 +808,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         allergens: _allergens,
         showNutritionInfo: _showNutritionInfo,
         linkedTemplateIds: _linkedTemplateIds,
+        excludeBasePrice: _excludeBasePrice,
         useTransparentBg: _useTransparentBg,
         imageScale: _imageScale,
         imageOffsetX: _imageOffsetX,
@@ -1027,6 +1031,25 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
             ],
           ),
           const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('عدم احتساب سعر الصنف:',
+                        style: TextStyle(color: AppColors.textSecondary)),
+                    Text('السعر يُعرض فقط، والمبلغ يُحسب من الخيارات المختارة (مثل الصوصات)',
+                        style: TextStyle(color: AppColors.textHint, fontSize: 11)),
+                  ],
+                ),
+              ),
+              Switch(
+                value: _excludeBasePrice,
+                onChanged: (v) => setState(() => _excludeBasePrice = v),
+              ),
+            ],
+          ),
           Row(
             children: [
               Text('متوفر:', style: TextStyle(color: AppColors.textSecondary)),

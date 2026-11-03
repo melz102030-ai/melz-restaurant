@@ -902,7 +902,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     return extra;
   }
 
-  double get _unitPrice => widget.item.finalPrice + _extraTotal;
+  double get _unitPrice => widget.item.chargedBasePrice + _extraTotal;
   double get _totalPrice => _unitPrice * _qty;
 
   void _addToCart() {

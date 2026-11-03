@@ -49,6 +49,9 @@ class MenuItemModel {
   // معرّفات القوالب المرتبطة بهذا الصنف — يُستخدَم للاستعلام عنه في Firestore
   // عند تعديل قالب لتحديث مجموعات خياراته في الصنف تلقائياً
   final List<String> linkedTemplateIds;
+  // سعر الصنف يُعرض فقط ولا يُحتسب — المبلغ الفعلي يأتي من الخيارات وحدها
+  // (مثال: صنف الصوصات يُعرض بـ 3 ريال، وكل صوص يختاره العميل يضيف 3 ريال)
+  final bool excludeBasePrice;
 
   // ── إعدادات الصورة الشفافة ──────────────────────────────────────────────────
   // يمكّن وضع لون خلفية خلف صورة PNG شفافة — اللون نفسه عالمي من AppThemeSettings
@@ -81,6 +84,7 @@ class MenuItemModel {
     this.allergens = const [],
     this.showNutritionInfo = false,
     this.linkedTemplateIds = const [],
+    this.excludeBasePrice = false,
     this.useTransparentBg = false,
     this.imageScale = 1.0,
     this.imageOffsetX = 0.0,
@@ -93,6 +97,9 @@ class MenuItemModel {
     }
     return price;
   }
+
+  // السعر الأساسي الداخل فعلياً في حساب السلة والطلب (صفر إن كان مستثنى)
+  double get chargedBasePrice => excludeBasePrice ? 0 : finalPrice;
 
   bool get hasDiscount => discountPercent != null && discountPercent! > 0;
   bool get hasOptions => optionGroups.isNotEmpty;
@@ -128,6 +135,7 @@ class MenuItemModel {
       allergens: List<String>.from(map['allergens'] ?? []),
       showNutritionInfo: map['showNutritionInfo'] ?? false,
       linkedTemplateIds: List<String>.from(map['linkedTemplateIds'] ?? []),
+      excludeBasePrice: map['excludeBasePrice'] ?? false,
       useTransparentBg: map['useTransparentBg'] ?? false,
       imageScale: (map['imageScale'] as num?)?.toDouble() ?? 1.0,
       imageOffsetX: (map['imageOffsetX'] as num?)?.toDouble() ?? 0.0,
@@ -156,6 +164,7 @@ class MenuItemModel {
       'allergens': allergens,
       'showNutritionInfo': showNutritionInfo,
       'linkedTemplateIds': linkedTemplateIds,
+      'excludeBasePrice': excludeBasePrice,
       'useTransparentBg': useTransparentBg,
       'imageScale': imageScale,
       'imageOffsetX': imageOffsetX,
@@ -184,6 +193,7 @@ class MenuItemModel {
     List<String>? allergens,
     bool? showNutritionInfo,
     List<String>? linkedTemplateIds,
+    bool? excludeBasePrice,
     bool? useTransparentBg,
     double? imageScale,
     double? imageOffsetX,
@@ -210,6 +220,7 @@ class MenuItemModel {
       allergens: allergens ?? this.allergens,
       showNutritionInfo: showNutritionInfo ?? this.showNutritionInfo,
       linkedTemplateIds: linkedTemplateIds ?? this.linkedTemplateIds,
+      excludeBasePrice: excludeBasePrice ?? this.excludeBasePrice,
       useTransparentBg: useTransparentBg ?? this.useTransparentBg,
       imageScale: imageScale ?? this.imageScale,
       imageOffsetX: imageOffsetX ?? this.imageOffsetX,
