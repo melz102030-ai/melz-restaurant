@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import '../models/order_model.dart';
+import '../models/settings_model.dart';
 
 // رفض الخادم للطلب، ورسالته جاهزة للعرض للعميل كما هي
 class OrderRejectedException implements Exception {
@@ -329,26 +330,28 @@ class OrderService {
   }
 
   // Stream daily order counts for the last 7 days
-  static Future<List<Map<String, dynamic>>> getDailyStats() async {
-    final now = DateTime.now();
-    final sevenDaysAgo = now.subtract(const Duration(days: 7));
+  static Future<List<Map<String, dynamic>>> getDailyStats(RestaurantSettings settings) async {
+    final todayStart = settings.currentBusinessDayStart;
 
     final snap = await _db
         .collection(_colOrders)
-        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(sevenDaysAgo))
+        .where(
+          'createdAt',
+          isGreaterThanOrEqualTo:
+              Timestamp.fromDate(todayStart.subtract(const Duration(days: 6))),
+        )
         .get();
 
     final orders = snap.docs.map((d) => OrderModel.fromMap(d.data(), d.id)).toList();
     final dailyMap = <String, Map<String, dynamic>>{};
 
     for (int i = 0; i < 7; i++) {
-      final day = now.subtract(Duration(days: 6 - i));
-      final key = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+      final key = settings.businessDayKeyOf(todayStart.subtract(Duration(days: 6 - i)));
       dailyMap[key] = {'date': key, 'orders': 0, 'revenue': 0.0};
     }
 
     for (final order in orders) {
-      final key = '${order.createdAt.year}-${order.createdAt.month.toString().padLeft(2, '0')}-${order.createdAt.day.toString().padLeft(2, '0')}';
+      final key = settings.businessDayKeyOf(order.createdAt);
       if (dailyMap.containsKey(key)) {
         dailyMap[key]!['orders'] = (dailyMap[key]!['orders'] as int) + 1;
         if (order.status == OrderStatus.delivered) {

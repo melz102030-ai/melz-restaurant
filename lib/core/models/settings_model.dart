@@ -157,6 +157,52 @@ class RestaurantSettings {
     return now.isAfter(open) && now.isBefore(close);
   }
 
+  // ─── يوم العمل ─────────────────────────────────────────────────────────────
+  // يوم العمل يبدأ عند آخر إغلاق يمتد بعد منتصف الليل، لا عند الساعة 12: طلب
+  // الساعة 1 ليلاً تابع لوردية الأمس. بلا فترات ليلية يبدأ من منتصف الليل.
+  int get businessDayStartMinutes {
+    int minutesOf(String hhmm) {
+      final parts = hhmm.trim().split(':');
+      if (parts.length != 2) return -1;
+      final h = int.tryParse(parts[0].trim());
+      final m = int.tryParse(parts[1].trim());
+      return h == null || m == null ? -1 : h * 60 + m;
+    }
+
+    final shifts = hasDetailedHours
+        ? workingHours.values.expand((s) => s).map((s) => (s.open, s.close))
+        : [(openTime, closeTime)];
+    var start = 0;
+    for (final (open, close) in shifts) {
+      final o = minutesOf(open);
+      final c = minutesOf(close);
+      if (o < 0 || c < 0 || c >= o) continue; // لا تمتد بعد منتصف الليل
+      if (c > start) start = c;
+    }
+    return start;
+  }
+
+  // بداية يوم العمل الذي تقع فيه هذه اللحظة، بتوقيت عالمي، بتوقيت الرياض دائماً
+  DateTime businessDayStartOf(DateTime instant) {
+    final shifted = instant
+        .toUtc()
+        .add(const Duration(hours: 3))
+        .subtract(Duration(minutes: businessDayStartMinutes));
+    return DateTime.utc(shifted.year, shifted.month, shifted.day)
+        .add(Duration(minutes: businessDayStartMinutes))
+        .subtract(const Duration(hours: 3));
+  }
+
+  DateTime get currentBusinessDayStart => businessDayStartOf(DateTime.now());
+
+  // مفتاح يوم العمل YYYY-MM-DD لتجميع الطلبات في التقارير
+  String businessDayKeyOf(DateTime instant) {
+    final d = businessDayStartOf(instant).add(const Duration(hours: 3));
+    final mm = d.month.toString().padLeft(2, '0');
+    final dd = d.day.toString().padLeft(2, '0');
+    return '${d.year}-$mm-$dd';
+  }
+
   // أوقات العمل بتوقيت المطعم دائماً، لا بساعة جهاز العميل أو منطقته الزمنية
   static DateTime _riyadhNow() {
     final t = DateTime.now().toUtc().add(const Duration(hours: 3));

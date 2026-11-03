@@ -21,8 +21,7 @@ class AdminDashboard extends ConsumerWidget {
     // بطاقات لوحة التحكم تعرض أرقام اليوم تحديداً — ملخص سريع لبداية يوم
     // العمل — لا أرقاماً تراكمية منذ أول يوم تشغيل كما كانت سابقاً (كانت
     // تُقرأ خطأً كملخص يومي رغم كونها إجمالياً منذ البداية)
-    final now = DateTime.now();
-    final todayStart = DateTime(now.year, now.month, now.day);
+    final todayStart = ref.watch(settingsProvider).currentBusinessDayStart;
     // to: null (بلا سقف علوي) بدل DateTime.now() — تمرير "الآن" بدقة الميكروثانية
     // كمفتاح لمزوّد FutureProvider.family كان يُنشئ نسخة جديدة تماماً من
     // المزوّد في كل إعادة بناء (أي تغيّر طفيف بالطلبات)، فيُعاد التحميل من

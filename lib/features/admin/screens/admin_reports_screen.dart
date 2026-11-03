@@ -6,6 +6,7 @@ import '../../../core/constants/app_strings.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/admin_provider.dart';
+import '../../../core/providers/settings_provider.dart';
 
 enum _ReportRange { today, week, month, allTime }
 
@@ -26,8 +27,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   // ظهورها. بلا سقف علوي، المفتاح يعتمد فقط على "from" (تاريخ فقط، ثابت
   // طوال اليوم)، وهذا يكافئ "حتى الآن" تماماً لأنه لا طلبات مستقبلية أصلاً
   ({DateTime? from, DateTime? to}) get _dateRange {
-    final today = DateTime.now();
-    final todayStart = DateTime(today.year, today.month, today.day);
+    final todayStart = ref.watch(settingsProvider).currentBusinessDayStart;
     switch (_range) {
       case _ReportRange.today:
         return (from: todayStart, to: null);

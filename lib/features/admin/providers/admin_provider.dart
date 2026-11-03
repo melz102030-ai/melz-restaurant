@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/order_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/menu_service.dart';
@@ -22,7 +23,7 @@ final adminOrderStatsProvider = FutureProvider.family<
 });
 
 final dailyStatsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  return OrderService.getDailyStats();
+  return OrderService.getDailyStats(ref.watch(settingsProvider));
 });
 
 final categoryItemCountsProvider = FutureProvider<Map<String, int>>((ref) async {
