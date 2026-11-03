@@ -5,8 +5,6 @@ import 'dart:convert';
 
 class CloudinaryService {
   static const String cloudName = 'dwbzohzt9';
-  static const String uploadPreset = 'melz_upload';
-  static const String folder = 'melz_restaurant';
 
   // رابط Cloudflare Worker الذي ينفّذ الحذف الموقّع (cloudflare/worker.js)
   static const String _deleteWorkerUrl =
@@ -28,7 +26,32 @@ class CloudinaryService {
     return url.replaceFirst('/upload/', '/upload/$transform/');
   }
 
-  static Future<String?> uploadImage(Uint8List imageBytes, String fileName) async {
+  // الرفع يتم من المتصفح مباشرة لكن بتوقيع من الخادم (cloudflare/worker.js)، فلا
+  // يستطيع أحد الرفع على الحساب بلا صلاحية: المدير للصور، والعميل لإيصال طلبه
+  static Future<Map<String, String>> _signUpload(Map<String, String> body) async {
+    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (idToken == null) throw Exception('تعذّر رفع الملف، سجّل الدخول وحاول مجدداً');
+    final response = await http.post(
+      Uri.parse('$_deleteWorkerUrl/sign-upload'),
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('تعذّر رفع الملف (${response.statusCode})');
+    }
+    return (jsonDecode(response.body) as Map<String, dynamic>)
+        .map((k, v) => MapEntry(k, v.toString()));
+  }
+
+  // receiptOrderId: إيصال تحويل بنكي لطلب العميل، بدل صورة من لوحة الإدارة
+  static Future<String?> uploadImage(
+    Uint8List imageBytes,
+    String fileName, {
+    String? receiptOrderId,
+  }) async {
     final url = Uri.parse(
       'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
     );
@@ -39,10 +62,12 @@ class CloudinaryService {
     final safeId = '${DateTime.now().millisecondsSinceEpoch}_'
         '${nameWithoutExt.replaceAll(RegExp(r'[^\w\-]'), '_')}';
 
+    final signed = await _signUpload(
+      receiptOrderId != null ? {'receiptOrderId': receiptOrderId} : {'publicId': safeId},
+    );
+
     final request = http.MultipartRequest('POST', url)
-      ..fields['upload_preset'] = uploadPreset
-      ..fields['folder'] = folder
-      ..fields['public_id'] = safeId
+      ..fields.addAll(signed)
       ..files.add(http.MultipartFile.fromBytes(
         'file',
         imageBytes,

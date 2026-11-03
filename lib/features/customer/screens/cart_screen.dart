@@ -1278,6 +1278,7 @@ class _BankTransferSheetState extends ConsumerState<_BankTransferSheet> {
       final url = await CloudinaryService.uploadImage(
         _pickedFile!.bytes!,
         _pickedFile!.name,
+        receiptOrderId: widget.orderId,
       );
       if (url == null) throw Exception('فشل رفع الملف');
       await OrderService.attachPaymentReceipt(widget.orderId, url);
