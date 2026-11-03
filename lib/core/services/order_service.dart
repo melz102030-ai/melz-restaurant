@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import '../models/closing_report.dart';
 import '../models/order_model.dart';
 import '../models/settings_model.dart';
 
@@ -327,6 +328,18 @@ class OrderService {
       'cancelledOrders': cancelledOrders,
       'topItems': sortedItems.take(5).map((e) => {'name': e.key, 'count': e.value}).toList(),
     };
+  }
+
+  // تقرير إغلاق يوم عمل واحد يبدأ من dayStart
+  static Future<ClosingReport> getClosingReport(DateTime dayStart) async {
+    final snap = await _db
+        .collection(_colOrders)
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(dayStart))
+        .where('createdAt', isLessThan: Timestamp.fromDate(dayStart.add(const Duration(days: 1))))
+        .get();
+    return ClosingReport.fromOrders(
+      snap.docs.map((d) => OrderModel.fromMap(d.data(), d.id)).toList(),
+    );
   }
 
   // Stream daily order counts for the last 7 days

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/models/closing_report.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/providers/settings_provider.dart';
@@ -20,6 +21,11 @@ final allUsersProvider = StreamProvider<List<UserModel>>((ref) {
 final adminOrderStatsProvider = FutureProvider.family<
     Map<String, dynamic>, ({DateTime? from, DateTime? to})>((ref, range) async {
   return OrderService.getOrdersSummary(from: range.from, to: range.to);
+});
+
+final closingReportProvider =
+    FutureProvider.autoDispose.family<ClosingReport, DateTime>((ref, dayStart) {
+  return OrderService.getClosingReport(dayStart);
 });
 
 final dailyStatsProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {

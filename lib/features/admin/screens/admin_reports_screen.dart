@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/models/closing_report.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/admin_provider.dart';
@@ -69,6 +70,7 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
             onPressed: () {
               ref.invalidate(adminOrderStatsProvider);
               ref.invalidate(dailyStatsProvider);
+              ref.invalidate(closingReportProvider);
             },
             icon: Icon(Icons.refresh),
           ),
@@ -78,12 +80,15 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
         onRefresh: () async {
           ref.invalidate(adminOrderStatsProvider);
           ref.invalidate(dailyStatsProvider);
+          ref.invalidate(closingReportProvider);
         },
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const _ClosingReportCard(),
+              const SizedBox(height: 20),
               // اختيار المدى الزمني للبطاقات الملخّصة أدناه — الرسوم البيانية
               // تبقى دوماً بآخر 7 أيام (منفصلة عن هذا الاختيار)
               Wrap(
@@ -476,6 +481,186 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// تقرير إغلاق يوم العمل حسب طريقة الدفع، مع التنقل بين الأيام السابقة
+class _ClosingReportCard extends ConsumerStatefulWidget {
+  const _ClosingReportCard();
+
+  @override
+  ConsumerState<_ClosingReportCard> createState() => _ClosingReportCardState();
+}
+
+class _ClosingReportCardState extends ConsumerState<_ClosingReportCard> {
+  int _daysAgo = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
+    final dayStart = settings.currentBusinessDayStart.subtract(Duration(days: _daysAgo));
+    final reportAsync = ref.watch(closingReportProvider(dayStart));
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.point_of_sale, color: AppColors.purple, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'إغلاق اليوم',
+                  style: TextStyle(
+                      color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+              IconButton(
+                tooltip: 'اليوم السابق',
+                onPressed: () => setState(() => _daysAgo++),
+                icon: const Icon(Icons.chevron_right),
+              ),
+              Text(
+                _daysAgo == 0 ? 'اليوم' : settings.businessDayKeyOf(dayStart),
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+              IconButton(
+                tooltip: 'اليوم التالي',
+                onPressed: _daysAgo == 0 ? null : () => setState(() => _daysAgo--),
+                icon: const Icon(Icons.chevron_left),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          reportAsync.when(
+            data: _content,
+            loading: () => const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (e, _) => Text('تعذّر تحميل التقرير: $e',
+                style: TextStyle(color: AppColors.error, fontSize: 13)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _content(ClosingReport r) {
+    if (r.totalOrders == 0) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: Text('لا توجد طلبات في هذا اليوم',
+              style: TextStyle(color: AppColors.textHint, fontSize: 13)),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ClosingRow(
+          label: 'النقد المفترض في الدرج',
+          count: r.cashCount,
+          amount: r.cashTotal,
+          emphasized: true,
+        ),
+        _ClosingRow(
+          label: 'تحويلات بنكية مؤكدة',
+          count: r.transferConfirmedCount,
+          amount: r.transferConfirmedTotal,
+        ),
+        if (r.transferPendingCount > 0)
+          _ClosingRow(
+            label: 'تحويلات تنتظر المراجعة',
+            count: r.transferPendingCount,
+            amount: r.transferPendingTotal,
+            color: AppColors.warning,
+          ),
+        if (r.electronicCount > 0)
+          _ClosingRow(
+            label: 'مدفوع إلكترونياً',
+            count: r.electronicCount,
+            amount: r.electronicTotal,
+          ),
+        Divider(color: AppColors.surfaceLight),
+        _ClosingRow(label: 'طلبات مكتملة', count: r.deliveredCount, amount: r.deliveredTotal),
+        _ClosingRow(
+          label: 'طلبات ملغاة',
+          count: r.cancelledCount,
+          amount: r.cancelledTotal,
+          color: r.cancelledCount > 0 ? AppColors.error : null,
+        ),
+        if (r.openCount > 0) ...[
+          _ClosingRow(
+            label: 'طلبات لم تكتمل بعد',
+            count: r.openCount,
+            amount: r.openTotal,
+            color: AppColors.warning,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'الأرقام ليست نهائية حتى تكتمل هذه الطلبات أو تُلغى.',
+            style: TextStyle(color: AppColors.textHint, fontSize: 12),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ClosingRow extends StatelessWidget {
+  final String label;
+  final int count;
+  final double amount;
+  final bool emphasized;
+  final Color? color;
+
+  const _ClosingRow({
+    required this.label,
+    required this.count,
+    required this.amount,
+    this.emphasized = false,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = color ?? AppColors.textPrimary;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontSize: emphasized ? 15 : 14,
+                fontWeight: emphasized ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+          Text('$count طلب', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+          const SizedBox(width: 12),
+          Text(
+            '${amount.toStringAsFixed(2)} ${AppStrings.sar}',
+            style: TextStyle(
+              color: textColor,
+              fontSize: emphasized ? 15 : 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
