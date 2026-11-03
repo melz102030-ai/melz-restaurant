@@ -164,6 +164,14 @@ test("أوقات العمل بتوقيت الرياض بغض النظر عن ا�
   assert.equal(isRestaurantOpen(s, at("2026-11-03T21:00:00Z")), false);
   assert.equal(isRestaurantOpen(s, at("2026-11-04T10:00:00Z")), false, "الأربعاء عطلة");
 
+  // فترة تمتد لبعد منتصف الليل تُحسب على اليوم الذي بدأت فيه
+  const night = { workingHours: { mon: [{ open: "16:00", close: "04:00" }], tue: [] } };
+  assert.equal(isRestaurantOpen(night, at("2026-11-02T20:00:00Z")), true, "الإثنين 23:00");
+  assert.equal(isRestaurantOpen(night, at("2026-11-02T23:00:00Z")), true, "الثلاثاء 02:00 ضمن فترة الإثنين");
+  assert.equal(isRestaurantOpen(night, at("2026-11-03T02:00:00Z")), false, "الثلاثاء 05:00 بعد الإغلاق");
+  assert.equal(isRestaurantOpen(night, at("2026-11-03T15:00:00Z")), false, "الثلاثاء عطلة");
+  assert.equal(isRestaurantOpen(night, at("2026-11-01T23:00:00Z")), false, "الإثنين 02:00 قبل بدء الفترة");
+
   const overnight = { openTime: "22:00", closeTime: "02:00" };
   assert.equal(isRestaurantOpen(overnight, at("2026-11-03T22:00:00Z")), true, "01:00 بعد منتصف الليل");
   assert.equal(isRestaurantOpen(overnight, at("2026-11-03T10:00:00Z")), false);

@@ -280,11 +280,20 @@ export function isRestaurantOpen(settings, nowMs = Date.now()) {
   const hours = settings.workingHours;
 
   if (hours && typeof hours === "object" && Object.keys(hours).length > 0) {
-    const dayKey = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][riyadh.getUTCDay()];
-    for (const shift of Array.isArray(hours[dayKey]) ? hours[dayKey] : []) {
+    const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    const today = riyadh.getUTCDay();
+    const shiftsOf = (day) => (Array.isArray(hours[days[day]]) ? hours[days[day]] : []);
+    for (const shift of shiftsOf(today)) {
       const open = minutesOf(shift.open ?? "08:00");
       const close = minutesOf(shift.close ?? "22:00");
-      if (open != null && close != null && inShift(nowMin, open, close)) return true;
+      if (open == null || close == null) continue;
+      if (close <= open ? nowMin > open : nowMin > open && nowMin < close) return true;
+    }
+    // فترة بدأت أمس وتمتد لبعد منتصف الليل ولا تزال سارية، حتى لو كان اليوم عطلة
+    for (const shift of shiftsOf((today + 6) % 7)) {
+      const open = minutesOf(shift.open ?? "08:00");
+      const close = minutesOf(shift.close ?? "22:00");
+      if (open != null && close != null && close <= open && nowMin < close) return true;
     }
     return false;
   }

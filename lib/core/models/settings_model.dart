@@ -142,27 +142,12 @@ class RestaurantSettings {
   bool get effectivelyOpen {
     if (!isOpen || !allowOrders) return false;
 
-    if (hasDetailedHours) {
-      final now = DateTime.now();
-      final shifts = workingHours[dayKeyForWeekday(now.weekday)] ?? const [];
-      if (shifts.isEmpty) return false; // اليوم عطلة
-      for (final s in shifts) {
-        final open = _parseHHMM(s.open, now);
-        final close = _parseHHMM(s.close, now);
-        if (open == null || close == null) continue;
-        // معالجة تجاوز منتصف الليل (مثال: 22:00 - 02:00)
-        if (close.isBefore(open) || close.isAtSameMomentAs(open)) {
-          if (now.isAfter(open) || now.isBefore(close)) return true;
-        } else if (now.isAfter(open) && now.isBefore(close)) {
-          return true;
-        }
-      }
-      return false;
-    }
+    // يشمل فترة بدأت أمس وتمتد لبعد منتصف الليل حتى لو كان اليوم عطلة
+    if (hasDetailedHours) return _currentOpenShift != null;
 
     // نمط قديم: نطاق ساعات واحد يومي (قبل تفعيل الجدول التفصيلي)
     if (openTime.isEmpty || closeTime.isEmpty) return true;
-    final now = DateTime.now();
+    final now = _riyadhNow();
     final open = _parseHHMM(openTime, now);
     final close = _parseHHMM(closeTime, now);
     if (open == null || close == null) return true;
@@ -170,6 +155,12 @@ class RestaurantSettings {
       return now.isAfter(open) || now.isBefore(close);
     }
     return now.isAfter(open) && now.isBefore(close);
+  }
+
+  // أوقات العمل بتوقيت المطعم دائماً، لا بساعة جهاز العميل أو منطقته الزمنية
+  static DateTime _riyadhNow() {
+    final t = DateTime.now().toUtc().add(const Duration(hours: 3));
+    return DateTime(t.year, t.month, t.day, t.hour, t.minute, t.second);
   }
 
   static DateTime? _parseHHMM(String hhmm, DateTime date) {
@@ -196,7 +187,7 @@ class RestaurantSettings {
   // المطعم مغلقاً حالياً حسب الجدول
   WorkShift? get _currentOpenShift {
     if (!hasDetailedHours) return null;
-    final now = DateTime.now();
+    final now = _riyadhNow();
     final todayShifts = workingHours[dayKeyForWeekday(now.weekday)] ?? const [];
     for (final s in todayShifts) {
       final open = _parseHHMM(s.open, now);
@@ -228,7 +219,7 @@ class RestaurantSettings {
   // الفتح الصحيح للعميل عندما يكون مغلقاً حالياً
   WorkShift? get _nextOpeningShift {
     if (!hasDetailedHours) return null;
-    final now = DateTime.now();
+    final now = _riyadhNow();
     for (var dayOffset = 0; dayOffset < 8; dayOffset++) {
       final day = now.add(Duration(days: dayOffset));
       final shifts = workingHours[dayKeyForWeekday(day.weekday)] ?? const [];

@@ -82,17 +82,8 @@ function dayShifts(s, date) { return (s.workingHours && s.workingHours[DAY_KEYS[
 function effectivelyOpen(s) {
   if (s.isOpen === false || s.allowOrders === false) return false;
   var now = new Date();
-  if (hasDetailedHours(s)) {
-    var shifts = dayShifts(s, now);
-    if (!shifts.length) return false;
-    for (var i = 0; i < shifts.length; i++) {
-      var open = parseHHMM(shifts[i].open, now), close = parseHHMM(shifts[i].close, now);
-      if (!open || !close) continue;
-      if (close <= open) { if (now > open || now < close) return true; }
-      else if (now > open && now < close) return true;
-    }
-    return false;
-  }
+  // يشمل فترة بدأت أمس وتمتد لبعد منتصف الليل حتى لو كان اليوم عطلة
+  if (hasDetailedHours(s)) return !!currentOpenShift(s);
   if (!s.openTime || !s.closeTime) return true;
   var open2 = parseHHMM(s.openTime, now), close2 = parseHHMM(s.closeTime, now);
   if (!open2 || !close2) return true;
