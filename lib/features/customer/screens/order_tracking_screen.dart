@@ -120,6 +120,22 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
     }
   }
 
+  // عند الفشل يبقى قرار العميل معلّقاً: نوضّح السبب ونعيد عرض النافذة
+  Future<void> _resolveUnavailable(OrderModel order, Future<void> Function() action,
+      {VoidCallback? onDone}) async {
+    try {
+      await action();
+      if (mounted) onDone?.call();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(e is OrderRejectedException ? e.message : 'تعذّر تحديث طلبك، حاول مجدداً'),
+        backgroundColor: AppColors.error,
+      ));
+      _showUnavailableDialog(order);
+    }
+  }
+
   void _showUnavailableDialog(OrderModel order) {
     final removedIds = order.unavailableItemIds.toSet();
     final removedNames = order.items
@@ -169,7 +185,7 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                OrderService.cancelOrder(order.id);
+                _resolveUnavailable(order, () => OrderService.cancelOrder(order.id));
               },
               child: const Text('إلغاء الطلب', style: TextStyle(color: Colors.red)),
             ),
@@ -177,8 +193,11 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                OrderService.acknowledgeUnavailableItems(order);
-                context.go('/home');
+                _resolveUnavailable(
+                  order,
+                  () => OrderService.acknowledgeUnavailableItems(order),
+                  onDone: () => context.go('/home'),
+                );
               },
               child: const Text('أكمل وأضف طلباً جديداً'),
             ),
@@ -186,7 +205,10 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
             onPressed: remaining > 0
                 ? () {
                     Navigator.pop(ctx);
-                    OrderService.acknowledgeUnavailableItems(order);
+                    _resolveUnavailable(
+                      order,
+                      () => OrderService.acknowledgeUnavailableItems(order),
+                    );
                   }
                 : null,
             child: const Text('موافق، أكمل طلبي'),

@@ -1,7 +1,7 @@
 // node --test cloudflare/lean-payments/pricing.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
-import { priceOrder, isRestaurantOpen, distanceKm, OrderRejected } from "./pricing.js";
+import { priceOrder, isRestaurantOpen, distanceKm, removeUnavailableItems, OrderRejected } from "./pricing.js";
 
 const OPEN_SETTINGS = { minOrderAmount: 5, deliveryFee: 10, openTime: "", closeTime: "" };
 
@@ -177,6 +177,28 @@ test("أوقات العمل بتوقيت الرياض بغض النظر عن ا�
     }),
     "restaurant-closed"
   );
+});
+
+test("إزالة الأصناف غير المتوفرة تعيد الحساب من الأسطر المحفوظة ورسوم التوصيل", () => {
+  const order = {
+    status: "confirmed",
+    deliveryFee: 10,
+    unavailableItemIds: ["b"],
+    items: [
+      { menuItemId: "a", price: 12.5, quantity: 2 },
+      { menuItemId: "b", price: 30, quantity: 1 },
+      { menuItemId: "c", price: 4, quantity: 3 },
+    ],
+  };
+  const r = removeUnavailableItems(order);
+  assert.deepEqual(r.items.map((i) => i.menuItemId), ["a", "c"]);
+  assert.equal(r.subtotal, 37);
+  assert.equal(r.total, 47);
+  assert.deepEqual(r.unavailableItemIds, []);
+
+  assert.equal(removeUnavailableItems({ ...order, unavailableItemIds: [] }), null, "نقرة مكررة لا تغيّر شيئاً");
+  rejectsWith(() => removeUnavailableItems({ ...order, status: "cancelled" }), "order-closed");
+  rejectsWith(() => removeUnavailableItems({ ...order, unavailableItemIds: ["a", "b", "c"] }), "nothing-left");
 });
 
 test("حساب المسافة قريب من القيمة المعروفة", () => {

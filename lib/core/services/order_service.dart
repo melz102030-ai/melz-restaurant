@@ -16,35 +16,43 @@ class OrderService {
 
   static const String _ordersUrl =
       'https://melz-lean-payments.melz102030.workers.dev/orders';
+  static const String _serverFailure = 'تعذّر إرسال الطلب، حاول مجدداً';
 
-  // إنشاء الطلب يتم في الخادم (cloudflare/lean-payments): نرسل المعرّفات
-  // والكميات فقط، وهو يقرأ الأسعار الحية ويحسب الإجمالي ويتحقق من أوقات العمل
-  // والحد الأدنى ويولّد رقم الطلب، فلا يتأثر المبلغ بأي تلاعب في المتصفح
-  static Future<({String orderId, double total})> submitOrder(
-      Map<String, dynamic> request) async {
-    const failure = 'تعذّر إرسال الطلب، حاول مجدداً';
+  // يرسل للخادم بتوكن المستخدم، ويرمي OrderRejectedException برسالة جاهزة للعرض
+  static Future<Map<String, dynamic>> _postToServer(
+      String url, Map<String, dynamic> body) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null) throw const OrderRejectedException(failure);
+    if (user == null) throw const OrderRejectedException(_serverFailure);
     final idToken = await user.getIdToken();
 
     final res = await http.post(
-      Uri.parse(_ordersUrl),
+      Uri.parse(url),
       headers: {
         'Authorization': 'Bearer $idToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode(request),
+      body: jsonEncode(body),
     );
 
     final Map<String, dynamic> data;
     try {
       data = jsonDecode(res.body) as Map<String, dynamic>;
     } on FormatException {
-      throw const OrderRejectedException(failure);
+      throw const OrderRejectedException(_serverFailure);
     }
-    if (res.statusCode != 200 || data['orderId'] == null) {
-      throw OrderRejectedException(data['message'] as String? ?? failure);
+    if (res.statusCode != 200) {
+      throw OrderRejectedException(data['message'] as String? ?? _serverFailure);
     }
+    return data;
+  }
+
+  // إنشاء الطلب يتم في الخادم (cloudflare/lean-payments): نرسل المعرّفات
+  // والكميات فقط، وهو يقرأ الأسعار الحية ويحسب الإجمالي ويتحقق من أوقات العمل
+  // والحد الأدنى ويولّد رقم الطلب، فلا يتأثر المبلغ بأي تلاعب في المتصفح
+  static Future<({String orderId, double total})> submitOrder(
+      Map<String, dynamic> request) async {
+    final data = await _postToServer(_ordersUrl, request);
+    if (data['orderId'] == null) throw const OrderRejectedException(_serverFailure);
     return (
       orderId: data['orderId'] as String,
       total: (data['total'] as num).toDouble(),
@@ -257,21 +265,10 @@ class OrderService {
     await _db.collection(_colOrders).doc(orderId).update(update);
   }
 
-  // العميل يوافق على إزالة الأصناف غير المتوفرة — يحذفها من الطلب ويصفّر القائمة
+  // العميل يوافق على إزالة الأصناف غير المتوفرة — الخادم يحذفها ويعيد الحساب،
+  // لأن القواعد تمنع أي متصفح من تعديل أصناف الطلب وأسعاره
   static Future<void> acknowledgeUnavailableItems(OrderModel order) async {
-    final removedIds = order.unavailableItemIds.toSet();
-    final remaining = order.items
-        .where((i) => !removedIds.contains(i.menuItemId))
-        .toList();
-    final newSubtotal = remaining.fold<double>(0, (s, i) => s + i.total);
-    final newTotal = newSubtotal + order.deliveryFee;
-    await _db.collection(_colOrders).doc(order.id).update({
-      'items': remaining.map((i) => i.toMap()).toList(),
-      'subtotal': newSubtotal,
-      'total': newTotal,
-      'unavailableItemIds': [],
-      'updatedAt': Timestamp.fromDate(DateTime.now()),
-    });
+    await _postToServer('$_ordersUrl/acknowledge-unavailable', {'orderId': order.id});
   }
 
   // Cancel order (customer)

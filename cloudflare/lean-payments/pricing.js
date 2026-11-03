@@ -393,3 +393,24 @@ export function priceOrder({ request, settings, zones, itemsById, combosById, no
     notes: cleanText(request.notes, MAX_ORDER_NOTES),
   };
 }
+
+// موافقة العميل على إزالة ما أبلغ المطبخ بعدم توفره: يُعاد حساب الطلب من أسعار
+// أسطره المحفوظة ورسوم توصيله، فالسعر لا يأتي من المتصفح. null تعني لا شيء لإزالته.
+export function removeUnavailableItems(order) {
+  const removedIds = Array.isArray(order.unavailableItemIds) ? order.unavailableItemIds : [];
+  if (removedIds.length === 0) return null;
+  if (order.status === "delivered" || order.status === "cancelled") {
+    throw new OrderRejected("order-closed", "لا يمكن تعديل هذا الطلب بعد إغلاقه", 409);
+  }
+  const items = (order.items ?? []).filter((i) => !removedIds.includes(i.menuItemId));
+  if (items.length === 0) {
+    throw new OrderRejected("nothing-left", "لا تتبقى أصناف في طلبك، بإمكانك إلغاء الطلب", 409);
+  }
+  const subtotal = round2(items.reduce((sum, i) => sum + Number(i.price ?? 0) * i.quantity, 0));
+  return {
+    items,
+    subtotal,
+    total: round2(subtotal + Number(order.deliveryFee ?? 0)),
+    unavailableItemIds: [],
+  };
+}

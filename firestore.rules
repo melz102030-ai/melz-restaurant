@@ -99,9 +99,12 @@ service cloud.firestore {
         // 2) المندوب: فقط على طلبه المُسنَد له (قبول/رفض، تأكيد استلام،
         //    بث الموقع الحي، تسليم).
         (isDriver() && resource.data.driverId == request.auth.uid) ||
-        // 3) العميل: إلغاء طلبه الخاص فقط، وطالما لا يزال قيد الانتظار.
+        // 3) العميل: إلغاء طلبه الخاص فقط، طالما لا يزال قيد الانتظار، أو إن
+        //    أبلغه المطبخ بنفاد أصنافه ولم يخرج الطلب للتوصيل بعد.
         (resource.data.customerId == request.auth.uid &&
-          resource.data.status == 'pending' &&
+          (resource.data.status == 'pending' ||
+            (resource.data.get('unavailableItemIds', []).size() > 0 &&
+              resource.data.status in ['confirmed', 'preparing', 'ready'])) &&
           request.resource.data.status == 'cancelled' &&
           request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['status', 'updatedAt'])) ||

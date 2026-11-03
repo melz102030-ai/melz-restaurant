@@ -23,7 +23,7 @@
 // من قيم status الفعلية القادمة داخل مصفوفة payments، وتحديث المطابقة أدناه
 // إن لزم.
 
-import { priceOrder, OrderRejected } from "./pricing.js";
+import { priceOrder, removeUnavailableItems, OrderRejected } from "./pricing.js";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -586,6 +586,57 @@ async function handleCreateOrder(request, env) {
   }
 }
 
+// العميل يوافق على إزالة ما نفد من طلبه — القواعد تمنع أي متصفح من تعديل الأسعار
+async function handleAcknowledgeUnavailable(request, env) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const uid = idToken ? decodeUid(idToken) : null;
+  if (!uid) return json({ error: "unauthenticated" }, 401);
+
+  let orderId;
+  try {
+    ({ orderId } = await request.json());
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  if (typeof orderId !== "string" || !/^[\w-]+$/.test(orderId)) {
+    return json({ error: "orderId-required" }, 400);
+  }
+
+  const failure = { error: "update-failed", message: "تعذّر تحديث طلبك، حاول مجدداً" };
+  try {
+    // القراءة بتوكن العميل تتحقق من صحته، ثم نتأكد أن الطلب طلبه هو
+    const orderRes = await fsFetch(env, idToken, `/orders/${orderId}`);
+    if (!orderRes.ok) return json({ error: "order-not-found-or-forbidden", message: failure.message }, 403);
+    const doc = await orderRes.json();
+    const order = docFields(doc.fields);
+    if (order.customerId !== uid) {
+      return json({ error: "order-not-found-or-forbidden", message: failure.message }, 403);
+    }
+
+    const changes = removeUnavailableItems(order);
+    if (!changes) return json({ ok: true, alreadyDone: true });
+
+    const fields = { ...changes, updatedAt: new Date() };
+    const mask = Object.keys(fields).map((f) => `updateMask.fieldPaths=${f}`).join("&");
+    const precondition = `currentDocument.updateTime=${encodeURIComponent(doc.updateTime)}`;
+    const adminToken = await getFirestoreAdminToken(env);
+    const patchRes = await fsFetch(env, adminToken, `/orders/${orderId}?${mask}&${precondition}`, {
+      method: "PATCH",
+      body: JSON.stringify({ fields: toFsFields(fields) }),
+    });
+    if (!patchRes.ok) {
+      console.error("ack-unavailable-patch-failed", await patchRes.text());
+      return json(failure, 502);
+    }
+    return json({ ok: true, subtotal: changes.subtotal, total: changes.total });
+  } catch (e) {
+    if (e instanceof OrderRejected) return json({ error: e.code, message: e.message }, e.status);
+    console.error("ack-unavailable-failed", String(e));
+    return json(failure, 502);
+  }
+}
+
 // فحص تشخيصي بلا حاجة لعميل حقيقي أو طلب فعلي — يختبر فقط أن أسرار لين
 // وحساب خدمة Firebase صالحة وتُصدر توكن وصول بنجاح. لا يكشف أي قيمة سرّية
 // في الرد، فقط ok/error لكل جزء. يُزال أو يُقيَّد لاحقاً بعد التأكد النهائي.
@@ -621,6 +672,9 @@ export default {
     }
     if (request.method !== "POST") return json({ error: "method-not-allowed" }, 405);
     if (url.pathname === "/orders") return handleCreateOrder(request, env);
+    if (url.pathname === "/orders/acknowledge-unavailable") {
+      return handleAcknowledgeUnavailable(request, env);
+    }
     return handleCreatePayment(request, env);
   },
 };
