@@ -1,0 +1,199 @@
+// اختبارات قواعد الأمان على محاكي Firestore، وتعمل قبل كل نشر للقواعد.
+// npx firebase-tools emulators:exec --only firestore --project demo-melz "npm --prefix firestore_tests test"
+import test, { after, before, beforeEach } from "node:test";
+import { readFileSync } from "node:fs";
+import {
+  assertFails,
+  assertSucceeds,
+  initializeTestEnvironment,
+} from "@firebase/rules-unit-testing";
+import {
+  addDoc,
+  arrayUnion,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+
+let env;
+
+const guest = (uid) =>
+  env.authenticatedContext(uid, { firebase: { sign_in_provider: "anonymous" } }).firestore();
+const staff = (uid) =>
+  env.authenticatedContext(uid, { firebase: { sign_in_provider: "password" } }).firestore();
+
+const seed = (fn) => env.withSecurityRulesDisabled((ctx) => fn(ctx.firestore()));
+
+const order = (over = {}) => ({
+  customerId: "guest1",
+  status: "pending",
+  items: [{ menuItemId: "a", price: 10, quantity: 1 }],
+  subtotal: 10,
+  deliveryFee: 0,
+  total: 10,
+  paymentMethod: "cash",
+  driverId: null,
+  ...over,
+});
+
+const ticket = (over = {}) => ({
+  customerId: "guest1",
+  status: "open",
+  messages: [{ senderRole: "customer", text: "مرحبا" }],
+  ...over,
+});
+
+before(async () => {
+  env = await initializeTestEnvironment({
+    projectId: "demo-melz",
+    firestore: { rules: readFileSync(new URL("../firestore.rules", import.meta.url), "utf8") },
+  });
+});
+
+after(() => env.cleanup());
+
+beforeEach(async () => {
+  await env.clearFirestore();
+  await seed(async (db) => {
+    await setDoc(doc(db, "users/admin1"), { role: "admin", name: "مدير" });
+    await setDoc(doc(db, "users/kitchen1"), { role: "kitchen", name: "مطبخ" });
+    await setDoc(doc(db, "users/driver1"), { role: "driver", name: "مندوب" });
+    await setDoc(doc(db, "users/guest1"), { role: "customer", name: "ضيف", phone: "0500000000" });
+    await setDoc(doc(db, "users/guest2"), { role: "customer", name: "آخر", phone: "0511111111" });
+    await setDoc(doc(db, "users/oldAnonAdmin"), { role: "admin", name: "حساب استغل الثغرة" });
+    await setDoc(doc(db, "menu_items/m1"), { name: "صنف", price: 5, isAvailable: true, optionGroups: [] });
+    await setDoc(doc(db, "counters/orderNumberPool"), { index: 1, sequence: [1000, 1001] });
+    await setDoc(doc(db, "orders/o1"), order());
+    await setDoc(doc(db, "support_tickets/t1"), ticket());
+  });
+});
+
+test("صلاحيات: الضيف ينشئ ملف عميل عادي فقط", async () => {
+  const plain = { role: "customer", name: "جديد", extraRoles: [], systemRole: "none", permissions: {} };
+  await assertSucceeds(setDoc(doc(guest("new1"), "users/new1"), plain));
+  await assertFails(setDoc(doc(guest("new2"), "users/new2"), { ...plain, role: "admin" }));
+  await assertFails(setDoc(doc(guest("new3"), "users/new3"), { ...plain, systemRole: "assistantAdmin" }));
+  await assertFails(setDoc(doc(guest("new4"), "users/new4"), { ...plain, extraRoles: ["kitchen"] }));
+  await assertFails(setDoc(doc(guest("new5"), "users/new5"), { ...plain, permissions: { menu: true } }));
+  await assertFails(setDoc(doc(guest("new6"), "users/other"), plain));
+});
+
+test("صلاحيات: لا أحد يرقّي نفسه، ويعدّل بياناته العادية", async () => {
+  const db = guest("guest1");
+  await assertFails(updateDoc(doc(db, "users/guest1"), { role: "admin" }));
+  await assertFails(updateDoc(doc(db, "users/guest1"), { permissions: { menu: true } }));
+  await assertFails(updateDoc(doc(db, "users/guest1"), { systemRole: "assistantAdmin" }));
+  await assertSucceeds(updateDoc(doc(db, "users/guest1"), { name: "اسم جديد", phone: "0522222222" }));
+  await assertFails(updateDoc(doc(db, "users/guest2"), { name: "تخريب" }));
+  await assertFails(updateDoc(doc(staff("kitchen1"), "users/kitchen1"), { role: "admin" }));
+  await assertSucceeds(updateDoc(doc(staff("admin1"), "users/guest1"), { role: "driver" }));
+});
+
+test("صلاحيات: حساب مجهول مكتوب في ملفه مدير لا يُعامل كمدير", async () => {
+  const db = guest("oldAnonAdmin");
+  await assertFails(getDoc(doc(db, "users/guest1")));
+  await assertFails(updateDoc(doc(db, "menu_items/m1"), { price: 1 }));
+  await assertFails(deleteDoc(doc(db, "orders/o1")));
+});
+
+test("الخصوصية: كل مستخدم يقرأ ملفه فقط، والمدير والمطبخ يقرأون الكل", async () => {
+  await assertSucceeds(getDoc(doc(guest("guest1"), "users/guest1")));
+  await assertFails(getDoc(doc(guest("guest1"), "users/guest2")));
+  await assertFails(getDocs(collection(guest("guest1"), "users")));
+  await assertFails(getDoc(doc(staff("driver1"), "users/guest1")));
+  await assertSucceeds(getDocs(collection(staff("admin1"), "users")));
+  await assertSucceeds(getDocs(collection(staff("kitchen1"), "users")));
+});
+
+test("الطلبات: المتصفح لا ينشئ طلباً ولا يعدّل عدّاد الأرقام", async () => {
+  await assertFails(addDoc(collection(guest("guest1"), "orders"), order()));
+  await assertFails(addDoc(collection(staff("admin1"), "orders"), order()));
+  await assertFails(updateDoc(doc(guest("guest1"), "counters/orderNumberPool"), { index: 0 }));
+  await assertFails(deleteDoc(doc(staff("admin1"), "counters/orderNumberPool")));
+});
+
+test("الطلبات: لا أحد يعدّل المبالغ، والعميل يقرأ طلبه فقط", async () => {
+  await assertFails(updateDoc(doc(guest("guest1"), "orders/o1"), { total: 1 }));
+  await assertFails(updateDoc(doc(staff("admin1"), "orders/o1"), { total: 1 }));
+  await assertFails(updateDoc(doc(staff("kitchen1"), "orders/o1"), { items: [] }));
+  await assertSucceeds(getDoc(doc(guest("guest1"), "orders/o1")));
+  await assertFails(getDoc(doc(guest("guest2"), "orders/o1")));
+  await assertSucceeds(updateDoc(doc(staff("kitchen1"), "orders/o1"), { status: "confirmed" }));
+});
+
+test("الطلبات: العميل يلغي طلبه وهو بالانتظار، أو عند نفاد أصنافه", async () => {
+  const cancel = (db) => updateDoc(doc(db, "orders/o1"), { status: "cancelled" });
+  await assertFails(cancel(guest("guest2")));
+  await assertSucceeds(cancel(guest("guest1")));
+
+  await seed((db) => setDoc(doc(db, "orders/o1"), order({ status: "preparing" })));
+  await assertFails(cancel(guest("guest1")));
+
+  await seed((db) => setDoc(doc(db, "orders/o1"), order({ status: "preparing", unavailableItemIds: ["a"] })));
+  await assertSucceeds(cancel(guest("guest1")));
+
+  await seed((db) => setDoc(doc(db, "orders/o1"), order({ status: "outForDelivery", unavailableItemIds: ["a"] })));
+  await assertFails(cancel(guest("guest1")));
+});
+
+test("الطلبات: رفع الإيصال لطلب التحويل البنكي فقط", async () => {
+  const attach = () => updateDoc(doc(guest("guest1"), "orders/o1"), { paymentReceiptUrl: "x" });
+  await assertFails(attach());
+  await seed((db) => setDoc(doc(db, "orders/o1"), order({ paymentMethod: "manualBankTransfer" })));
+  await assertSucceeds(attach());
+});
+
+test("القائمة: الجميع يقرأ، والمطبخ يغيّر توفر الصنف فقط", async () => {
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), "menu_items/m1")));
+  await assertFails(updateDoc(doc(guest("guest1"), "menu_items/m1"), { price: 1 }));
+  await assertSucceeds(updateDoc(doc(staff("kitchen1"), "menu_items/m1"), { isAvailable: false }));
+  await assertFails(updateDoc(doc(staff("kitchen1"), "menu_items/m1"), { price: 1 }));
+  await assertFails(updateDoc(doc(staff("kitchen1"), "menu_items/m1"), { optionGroups: [] }));
+  await assertSucceeds(updateDoc(doc(staff("admin1"), "menu_items/m1"), { price: 7 }));
+});
+
+test("توثيق الأرقام: للمطبخ والمدير فقط", async () => {
+  const mark = (db) => setDoc(doc(db, "verified_phones/0500000000"), { verifiedBy: "x" });
+  await assertSucceeds(mark(staff("kitchen1")));
+  await assertSucceeds(mark(staff("admin1")));
+  await assertFails(mark(guest("guest1")));
+  await assertFails(mark(staff("driver1")));
+  await assertFails(getDocs(collection(guest("guest1"), "verified_phones")));
+  await assertSucceeds(getDocs(collection(staff("kitchen1"), "verified_phones")));
+});
+
+test("الدعم: العميل يضيف رسالته فقط، ولا يعبث بالتذكرة", async () => {
+  const db = guest("guest1");
+  const ref = doc(db, "support_tickets/t1");
+  const mine = { senderRole: "customer", text: "سؤال" };
+
+  await assertSucceeds(updateDoc(ref, { messages: arrayUnion(mine), updatedAt: new Date() }));
+  await assertFails(updateDoc(ref, { messages: [] }));
+  await assertFails(updateDoc(ref, { messages: [{ senderRole: "customer", text: "تحريف" }] }));
+  await assertFails(updateDoc(ref, { messages: arrayUnion({ senderRole: "admin", text: "رد مزيف" }) }));
+  await assertFails(updateDoc(ref, { status: "closed" }));
+  await assertFails(updateDoc(ref, { customerId: "guest2" }));
+  await assertFails(updateDoc(doc(guest("guest2"), "support_tickets/t1"), { messages: arrayUnion(mine) }));
+
+  await seed((d) => setDoc(doc(d, "support_tickets/t1"), ticket({ status: "closed" })));
+  await assertSucceeds(updateDoc(ref, { messages: arrayUnion(mine), status: "open" }));
+
+  await assertSucceeds(
+    updateDoc(doc(staff("admin1"), "support_tickets/t1"), {
+      messages: arrayUnion({ senderRole: "admin", text: "رد" }),
+      status: "closed",
+    })
+  );
+});
+
+test("الدعم: التذكرة الجديدة باسم العميل وبرسالته", async () => {
+  const col = collection(guest("guest1"), "support_tickets");
+  await assertSucceeds(addDoc(col, ticket()));
+  await assertFails(addDoc(col, ticket({ customerId: "guest2" })));
+  await assertFails(addDoc(col, ticket({ messages: [{ senderRole: "admin", text: "مزيف" }] })));
+  await assertFails(addDoc(col, ticket({ status: "closed" })));
+});

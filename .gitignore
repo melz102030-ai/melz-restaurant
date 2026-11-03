@@ -59,3 +59,5 @@ app.*.map.json
 
 # Claude Code local settings
 .claude/
+
+firestore_tests/node_modules/
