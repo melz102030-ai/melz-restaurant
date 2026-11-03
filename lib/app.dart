@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/constants/app_colors.dart';
+import 'core/constants/app_permissions.dart';
 import 'core/models/user_model.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/app_theme_provider.dart';
@@ -84,6 +85,16 @@ final _routerProvider = Provider<GoRouter>((ref) {
       // المشتركة أعلاه
       if (user.role == UserRole.admin && !isAdminRoute && !isSharedCustomerRoute) {
         return '/admin';
+      }
+      // المدير المحدود لا يفتح بالرابط شاشة ليست من صلاحياته
+      if (user.role == UserRole.admin && isAdminRoute) {
+        final required = _permissionForAdminRoute(loc);
+        if (required != null && !user.hasPermission(required)) {
+          for (final route in _adminRoutePermissions.entries) {
+            if (user.hasPermission(route.value)) return route.key;
+          }
+          return '/home';
+        }
       }
       if (user.role == UserRole.driver && !isDriverRoute && !isSharedCustomerRoute) {
         return '/driver';
@@ -234,6 +245,31 @@ final _routerProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+// بترتيب القائمة الجانبية: أول شاشة مسموحة هي وجهة المدير عند منعه من شاشة أخرى
+const Map<String, String> _adminRoutePermissions = {
+  '/admin/orders': Perm.orders,
+  '/admin/working-hours': Perm.workHours,
+  '/admin/menu': Perm.menu,
+  '/admin/banners': Perm.content,
+  '/admin/popup-ads': Perm.content,
+  '/admin/splash': Perm.content,
+  '/admin/appearance': Perm.appearance,
+  '/admin/users': Perm.users,
+  '/admin/drivers': Perm.users,
+  '/admin/delivery-zones': Perm.delivery,
+  '/admin/reports': Perm.reports,
+  '/admin/support': Perm.support,
+  '/admin/settings': Perm.settings,
+  '/admin': Perm.dashboard,
+};
+
+String? _permissionForAdminRoute(String location) {
+  for (final route in _adminRoutePermissions.entries) {
+    if (location == route.key || location.startsWith('${route.key}/')) return route.value;
+  }
+  return null;
+}
 
 Widget _adminPage(Widget Function() builder) =>
     _DeferredPage(id: 'admin', load: admin.loadLibrary, builder: builder);

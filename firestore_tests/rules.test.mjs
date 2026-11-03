@@ -60,7 +60,11 @@ beforeEach(async () => {
   await env.clearFirestore();
   await seed(async (db) => {
     await setDoc(doc(db, "users/admin1"), { role: "admin", name: "مدير" });
-    await setDoc(doc(db, "users/kitchen1"), { role: "kitchen", name: "مطبخ" });
+    await setDoc(doc(db, "users/super1"), { role: "admin", name: "الأعلى", phone: "0531131125" });
+    await setDoc(doc(db, "users/assistant1"), { role: "admin", name: "مساعد", phone: "0533333333", systemRole: "assistantAdmin" });
+    await setDoc(doc(db, "users/ordersAdmin"), { role: "admin", name: "طلبات", phone: "0544444444", permissions: { orders: true } });
+    await setDoc(doc(db, "users/usersAdmin"), { role: "admin", name: "أعضاء", phone: "0555555555", permissions: { users: true } });
+    await setDoc(doc(db, "users/kitchen1"), { role: "kitchen", name: "مطبخ", phone: "0566666666" });
     await setDoc(doc(db, "users/driver1"), { role: "driver", name: "مندوب" });
     await setDoc(doc(db, "users/guest1"), { role: "customer", name: "ضيف", phone: "0500000000" });
     await setDoc(doc(db, "users/guest2"), { role: "customer", name: "آخر", phone: "0511111111" });
@@ -188,6 +192,47 @@ test("الدعم: العميل يضيف رسالته فقط، ولا يعبث ب
       status: "closed",
     })
   );
+});
+
+test("صلاحيات المدراء: المدير المحدود يعمل في صلاحيته فقط", async () => {
+  const limited = staff("ordersAdmin");
+  await assertSucceeds(updateDoc(doc(limited, "orders/o1"), { status: "confirmed" }));
+  await assertFails(updateDoc(doc(limited, "menu_items/m1"), { price: 1 }));
+  await assertFails(setDoc(doc(limited, "settings/restaurant"), { isOpen: false }));
+  await assertFails(updateDoc(doc(limited, "users/guest1"), { role: "driver" }));
+  await assertFails(updateDoc(doc(limited, "users/ordersAdmin"), { permissions: { users: true } }));
+  await assertFails(deleteDoc(doc(limited, "users/guest1")));
+  await assertFails(updateDoc(doc(staff("usersAdmin"), "orders/o1"), { status: "confirmed" }));
+});
+
+test("صلاحيات المدراء: حماية المدير الأعلى ومساعده", async () => {
+  const users = staff("usersAdmin");
+  await assertSucceeds(updateDoc(doc(users, "users/guest1"), { role: "driver" }));
+  await assertFails(updateDoc(doc(users, "users/super1"), { role: "customer" }));
+  await assertFails(deleteDoc(doc(users, "users/super1")));
+  await assertFails(updateDoc(doc(users, "users/assistant1"), { name: "تعديل" }));
+  await assertFails(updateDoc(doc(users, "users/guest2"), { systemRole: "assistantAdmin" }));
+  await assertFails(updateDoc(doc(users, "users/usersAdmin"), { permissions: { users: true, menu: true } }));
+  await assertFails(updateDoc(doc(users, "users/guest2"), { phone: "0531131125" }));
+
+  const assistant = staff("assistant1");
+  await assertSucceeds(updateDoc(doc(assistant, "users/guest2"), { name: "تعديل" }));
+  await assertSucceeds(updateDoc(doc(assistant, "users/assistant1"), { permissions: { menu: true } }));
+  await assertFails(updateDoc(doc(assistant, "users/super1"), { name: "تعديل" }));
+  await assertFails(updateDoc(doc(assistant, "users/guest2"), { systemRole: "assistantAdmin" }));
+
+  const top = staff("super1");
+  await assertSucceeds(updateDoc(doc(top, "users/assistant1"), { systemRole: "none" }));
+  await assertSucceeds(updateDoc(doc(top, "users/usersAdmin"), { systemRole: "assistantAdmin" }));
+  await assertSucceeds(updateDoc(doc(top, "users/super1"), { permissions: { menu: false } }));
+  await assertSucceeds(updateDoc(doc(top, "menu_items/m1"), { price: 9 }));
+});
+
+test("الموظف لا يغيّر رقمه ولا يأخذ أحد رقم المدير الأعلى، والعميل يعدّل رقمه", async () => {
+  await assertFails(updateDoc(doc(staff("kitchen1"), "users/kitchen1"), { phone: "0599999999" }));
+  await assertSucceeds(updateDoc(doc(staff("kitchen1"), "users/kitchen1"), { name: "اسم جديد" }));
+  await assertSucceeds(updateDoc(doc(guest("guest1"), "users/guest1"), { phone: "0522222222" }));
+  await assertFails(updateDoc(doc(guest("guest1"), "users/guest1"), { phone: "0531131125" }));
 });
 
 test("الدعم: التذكرة الجديدة باسم العميل وبرسالته", async () => {

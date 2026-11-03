@@ -37,6 +37,37 @@ service cloud.firestore {
     function isDriver() { return isSignedIn() && !isAnonymous() && myRole() == 'driver'; }
     function isStaff() { return isAdmin() || isKitchen() || isDriver(); }
 
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // نفس رقم المدير الأعلى في lib/core/constants/system_admins.dart
+    function isSuperPhone(phone) {
+      return phone in ['0531131125', '966531131125', '+966531131125', '00966531131125'];
+    }
+
+    function isSuperAdmin() { return isAdmin() && isSuperPhone(me().get('phone', '')); }
+
+    function isSystemAdmin() {
+      return isAdmin() && (isSuperPhone(me().get('phone', '')) ||
+        me().get('systemRole', 'none') == 'assistantAdmin');
+    }
+
+    // صلاحيات المدير المفصلة، مطابقة لـ UserModel.hasPermission: مدير النظام له كل
+    // شيء، والمدير بلا صلاحيات محددة له كل شيء (التهيئة القديمة)، وغيره حسب ما حُدد له
+    function hasPerm(key) {
+      return isAdmin() && (isSystemAdmin() ||
+        me().get('permissions', {}).size() == 0 ||
+        me().get('permissions', {}).get(key, false) == true);
+    }
+
+    // المدير الأعلى لا يعدّله غيره، ومساعد المدير لا يعدّله إلا نفسه والمدير الأعلى
+    function canManageUser(userId, target) {
+      return request.auth.uid == userId || isSuperAdmin() ||
+        (!isSuperPhone(target.get('phone', '')) &&
+          target.get('systemRole', 'none') != 'assistantAdmin');
+    }
+
     // الحقول التي تحدد الصلاحيات — لا يعدّلها إلا الأدمن
     function privilegedFieldsUnchanged() {
       return !request.resource.data.diff(resource.data).affectedKeys()
@@ -62,19 +93,27 @@ service cloud.firestore {
       // إنشاء الحساب: المستخدم نفسه كعميل عادي بلا صلاحيات (الضيف عند أول طلب)،
       // أو الأدمن عند إنشاء موظف مطبخ/مندوب من لوحة التحكم.
       allow create: if isSignedIn() && (
-        isAdmin() ||
+        hasPerm('users') ||
         (request.auth.uid == userId && isPlainCustomerProfile())
       );
 
-      // تعديل الحساب: الأدمن يستطيع تعديل أي مستخدم (بما فيها الأدوار).
-      // المستخدم نفسه يستطيع تعديل بياناته (الاسم، التوفّر، الموقع المحفوظ...)
-      // لكن لا يستطيع تغيير دوره أو صلاحياته بنفسه.
-      allow update: if isSignedIn() && (
-        isAdmin() ||
-        (request.auth.uid == userId && privilegedFieldsUnchanged())
+      // تعديل الحساب: صاحب صلاحية الأعضاء يعدّل غيره ضمن canManageUser، ولا يرفع
+      // صلاحيات نفسه إلا مدير النظام. ودرجة مدير النظام يمنحها المدير الأعلى فقط.
+      // ولا يأخذ أحد رقم المدير الأعلى، ولا يغيّر الموظف رقمه لأنه اسم دخوله.
+      // والمستخدم نفسه يعدّل بياناته (الاسم، التوفّر، الموقع المحفوظ...) فقط.
+      allow update: if isSignedIn() &&
+        (request.resource.data.get('phone', '') == resource.data.get('phone', '') ||
+          !isSuperPhone(request.resource.data.get('phone', ''))) && (
+        (hasPerm('users') && canManageUser(userId, resource.data) &&
+          (isSuperAdmin() ||
+            request.resource.data.get('systemRole', 'none') == resource.data.get('systemRole', 'none')) &&
+          (request.auth.uid != userId || isSystemAdmin() || privilegedFieldsUnchanged())) ||
+        (request.auth.uid == userId && privilegedFieldsUnchanged() &&
+          (resource.data.role == 'customer' ||
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['phone'])))
       );
 
-      allow delete: if isAdmin();
+      allow delete: if hasPerm('users') && canManageUser(userId, resource.data);
     }
 
     // ─────────────────────────────── orders ──────────────────────────────
@@ -93,7 +132,7 @@ service cloud.firestore {
       allow update: if isSignedIn() && _priceFieldsUnchanged() && (
         // 1) المطبخ/الأدمن: إدارة الحالة والتحضير وتعيين/إلغاء المندوب —
         //    باستثناء إلغاء تعيين مندوب يحمل الطلب بالفعل (outForDelivery).
-        (isStaff() && (isAdmin() || isKitchen()) &&
+        ((isKitchen() || hasPerm('orders') || hasPerm('kitchen')) &&
           !(resource.data.status == 'outForDelivery' &&
             request.resource.data.driverId == null)) ||
         // 2) المندوب: فقط على طلبه المُسنَد له (قبول/رفض، تأكيد استلام،
@@ -117,7 +156,7 @@ service cloud.firestore {
             .hasOnly(['paymentReceiptUrl', 'updatedAt']))
       );
 
-      allow delete: if isAdmin();
+      allow delete: if hasPerm('orders');
 
       function _priceFieldsUnchanged() {
         return request.resource.data.customerId == resource.data.customerId &&
@@ -133,22 +172,28 @@ service cloud.firestore {
     // القائمة والفئات وقوالب الخيارات ومناطق التوصيل والإعدادات والبانرات
     // والإعلانات وصور شاشة التحميل — يحتاج الزوّار غير المسجَّلين لقراءتها
     // لتصفّح القائمة والسعر قبل تسجيل الدخول.
-    match /categories/{id}       { allow read: if true; allow write: if isAdmin(); }
-    match /combos/{id}           { allow read: if true; allow write: if isAdmin(); }
+    match /categories/{id}       { allow read: if true; allow write: if hasPerm('menu'); }
+    match /combos/{id}           { allow read: if true; allow write: if hasPerm('menu'); }
     match /menu_items/{id} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if hasPerm('menu');
       // المطبخ: تبديل "متوفر/نفد من المطعم" فقط — بلا أي صلاحية أخرى
       // (شاشة توفر الأصناف في واجهة المطبخ تحتاج هذا تحديداً)
       allow update: if isKitchen() &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isAvailable']);
     }
-    match /option_templates/{id} { allow read: if true; allow write: if isAdmin(); }
-    match /deliveryZones/{id}    { allow read: if true; allow write: if isAdmin(); }
-    match /promo_banners/{id}    { allow read: if true; allow write: if isAdmin(); }
-    match /popup_ads/{id}        { allow read: if true; allow write: if isAdmin(); }
-    match /splash_images/{id}    { allow read: if true; allow write: if isAdmin(); }
-    match /settings/{docId}      { allow read: if true; allow write: if isAdmin(); }
+    match /option_templates/{id} { allow read: if true; allow write: if hasPerm('menu'); }
+    match /deliveryZones/{id}    { allow read: if true; allow write: if hasPerm('delivery'); }
+    match /promo_banners/{id}    { allow read: if true; allow write: if hasPerm('content'); }
+    match /popup_ads/{id}        { allow read: if true; allow write: if hasPerm('content'); }
+    match /splash_images/{id}    { allow read: if true; allow write: if hasPerm('content'); }
+    // مستند واحد تكتبه عدة شاشات: الإعدادات والمظهر وساعات العمل والتوصيل والكولاج
+    // وزر فتح المطعم وإغلاقه في لوحة التحكم
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if hasPerm('settings') || hasPerm('appearance') || hasPerm('workHours') ||
+        hasPerm('delivery') || hasPerm('content') || hasPerm('dashboard');
+    }
 
     // مجموعة أرقام الطلبات العشوائية غير المتكررة (4 خانات) — يسحب منها الخادم
     // عند إنشاء كل طلب، فلا حاجة لأي كتابة من المتصفح
@@ -160,7 +205,7 @@ service cloud.firestore {
     // أرقام العملاء التي وثّقها المطبخ بعد الاتصال بهم — بيانات عملاء، فلا تُقرأ
     // ولا تُكتب إلا من المطبخ والأدمن
     match /verified_phones/{phone} {
-      allow read, write: if isAdmin() || isKitchen();
+      allow read, write: if isKitchen() || hasPerm('kitchen') || hasPerm('orders');
     }
 
     // ───────────────────────── تذاكر الدعم الفني ────────────────────────────
@@ -179,7 +224,7 @@ service cloud.firestore {
       // تذكرته: إضافة رسالته في آخر القائمة فقط، بلا تعديل ما قبلها أو كتابة رد
       // باسم الدعم، وله إعادة فتحها لا إغلاقها.
       allow update: if isSignedIn() && (
-        (isAdmin() &&
+        (hasPerm('support') &&
           request.resource.data.customerId == resource.data.customerId) ||
         (resource.data.customerId == request.auth.uid &&
           request.resource.data.diff(resource.data).affectedKeys()
