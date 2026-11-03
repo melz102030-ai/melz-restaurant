@@ -60,6 +60,8 @@ class OrderService {
       deliveryAddress: order.deliveryAddress,
       deliveryZoneId: order.deliveryZoneId,
       deliveryZoneName: order.deliveryZoneName,
+      paymentMethod: order.paymentMethod,
+      paymentStatus: order.paymentStatus,
     );
     await ref.set(newOrder.toMap());
     return ref.id;

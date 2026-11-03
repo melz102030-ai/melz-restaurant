@@ -23,6 +23,8 @@
 // من قيم status الفعلية القادمة داخل مصفوفة payments، وتحديث المطابقة أدناه
 // إن لزم.
 
+import { priceOrder, OrderRejected } from "./pricing.js";
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -339,6 +341,251 @@ async function handleWebhook(request, env) {
   }
 }
 
+// ─── إنشاء الطلبات من جهة الخادم ─────────────────────────────────────────────
+// التطبيق يرسل المعرّفات والكميات فقط (راجع pricing.js)، والخادم يقرأ الأسعار
+// ويحسب الإجمالي ويكتب الطلب بحساب الخدمة، فلا يملك المتصفح أي تأثير على المبلغ.
+
+const firestoreBase = (env) =>
+  `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+
+function fromFs(value) {
+  if (!value || "nullValue" in value) return null;
+  if ("stringValue" in value) return value.stringValue;
+  if ("booleanValue" in value) return value.booleanValue;
+  if ("integerValue" in value) return Number(value.integerValue);
+  if ("doubleValue" in value) return value.doubleValue;
+  if ("timestampValue" in value) return value.timestampValue;
+  if ("arrayValue" in value) return (value.arrayValue.values ?? []).map(fromFs);
+  if ("mapValue" in value) return docFields(value.mapValue.fields);
+  return null;
+}
+
+function docFields(fields) {
+  return Object.fromEntries(Object.entries(fields ?? {}).map(([k, v]) => [k, fromFs(v)]));
+}
+
+// الحقول العددية الصحيحة في Dart (quantity/orderNumber) يجب أن تُحفظ integerValue،
+// وإلا فشل قراءتها في OrderItem.fromMap لأن النوع المتوقع int
+const INT_FIELDS = new Set(["quantity", "orderNumber"]);
+
+function toFs(value, key) {
+  if (value === null || value === undefined) return { nullValue: null };
+  if (typeof value === "string") return { stringValue: value };
+  if (typeof value === "boolean") return { booleanValue: value };
+  if (typeof value === "number") {
+    return INT_FIELDS.has(key) ? { integerValue: String(value) } : { doubleValue: value };
+  }
+  if (value instanceof Date) return { timestampValue: value.toISOString() };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map((v) => toFs(v)) } };
+  return { mapValue: { fields: toFsFields(value) } };
+}
+
+function toFsFields(obj) {
+  return Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, toFs(v, k)]));
+}
+
+async function fsFetch(env, token, path, init = {}) {
+  return fetch(`${firestoreBase(env)}${path}`, {
+    ...init,
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+  });
+}
+
+async function batchGetDocs(env, token, collection, ids) {
+  const unique = [...new Set(ids.filter((id) => typeof id === "string" && /^[\w-]+$/.test(id)))];
+  const result = new Map();
+  if (unique.length === 0) return result;
+  const prefix = `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/${collection}`;
+  const res = await fsFetch(env, token, ":batchGet", {
+    method: "POST",
+    body: JSON.stringify({ documents: unique.map((id) => `${prefix}/${id}`) }),
+  });
+  if (!res.ok) throw new Error(`firestore-batchget-failed: ${await res.text()}`);
+  for (const row of await res.json()) {
+    if (!row.found) continue;
+    const id = row.found.name.split("/").pop();
+    result.set(id, { id, ...docFields(row.found.fields) });
+  }
+  return result;
+}
+
+async function loadOrderContext(env, token, request) {
+  const reqItems = Array.isArray(request.items) ? request.items : [];
+  const reqCombos = Array.isArray(request.combos) ? request.combos : [];
+
+  const combosById = await batchGetDocs(env, token, "combos", reqCombos.map((c) => c?.comboId));
+  const itemIds = reqItems.map((i) => i?.itemId);
+  for (const combo of combosById.values()) {
+    for (const ref of combo.items ?? []) itemIds.push(ref.itemId);
+    itemIds.push(...(combo.optionItemIds ?? []));
+  }
+  const itemsById = await batchGetDocs(env, token, "menu_items", itemIds);
+
+  const settingsRes = await fsFetch(env, token, "/settings/restaurant");
+  if (!settingsRes.ok) throw new Error(`settings-read-failed: ${settingsRes.status}`);
+  const settings = docFields((await settingsRes.json()).fields);
+
+  const zonesRes = await fsFetch(env, token, "/deliveryZones?pageSize=100");
+  if (!zonesRes.ok) throw new Error(`zones-read-failed: ${zonesRes.status}`);
+  const zones = ((await zonesRes.json()).documents ?? []).map((d) => ({
+    id: d.name.split("/").pop(),
+    ...docFields(d.fields),
+  }));
+
+  return { settings, zones, itemsById, combosById };
+}
+
+function newDocId() {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  return [...crypto.getRandomValues(new Uint8Array(20))].map((b) => chars[b % chars.length]).join("");
+}
+
+function shuffledOrderNumbers() {
+  const list = Array.from({ length: 9000 }, (_, i) => 1000 + i);
+  const random = crypto.getRandomValues(new Uint32Array(list.length));
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = random[i] % (i + 1);
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+// يسحب رقم الطلب من مجموعة الأرقام ويكتب الطلب في معاملة واحدة، فلا يضيع رقم
+// ولا يتكرر. Firestore يعيد ABORTED عند تزاحم طلبات متزامنة فتُعاد المحاولة.
+async function commitOrder(env, token, fields) {
+  const docRoot = `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+  const poolName = `${docRoot}/counters/orderNumberPool`;
+
+  for (let attempt = 0; attempt < 6; attempt++) {
+    if (attempt > 0) {
+      await new Promise((r) => setTimeout(r, 150 * attempt + Math.random() * 250));
+    }
+    const txRes = await fsFetch(env, token, ":beginTransaction", { method: "POST", body: "{}" });
+    if (!txRes.ok) throw new Error(`begin-transaction-failed: ${await txRes.text()}`);
+    const { transaction } = await txRes.json();
+
+    const getRes = await fsFetch(env, token, ":batchGet", {
+      method: "POST",
+      body: JSON.stringify({ documents: [poolName], transaction }),
+    });
+    if (!getRes.ok) throw new Error(`pool-read-failed: ${await getRes.text()}`);
+    const rows = await getRes.json();
+    const found = rows.find((r) => r.found)?.found;
+    const pool = found ? docFields(found.fields) : {};
+
+    let sequence = Array.isArray(pool.sequence) ? pool.sequence : [];
+    let index = Number.isInteger(pool.index) ? pool.index : 0;
+    const reshuffled = index >= sequence.length;
+    if (reshuffled) {
+      sequence = shuffledOrderNumbers();
+      index = 0;
+    }
+    const orderNumber = sequence[index];
+
+    const orderId = newDocId();
+    const orderFields = { ...fields, orderNumber };
+    const commitRes = await fsFetch(env, token, ":commit", {
+      method: "POST",
+      body: JSON.stringify({
+        transaction,
+        writes: [
+          {
+            update: {
+              name: poolName,
+              fields: reshuffled
+                ? {
+                    sequence: { arrayValue: { values: sequence.map((n) => ({ integerValue: String(n) })) } },
+                    index: { integerValue: String(index + 1) },
+                  }
+                : { index: { integerValue: String(index + 1) } },
+            },
+            updateMask: { fieldPaths: reshuffled ? ["sequence", "index"] : ["index"] },
+          },
+          {
+            update: { name: `${docRoot}/orders/${orderId}`, fields: toFsFields(orderFields) },
+            currentDocument: { exists: false },
+          },
+        ],
+      }),
+    });
+    if (commitRes.ok) return { orderId, orderNumber };
+    if (commitRes.status !== 409) throw new Error(`commit-failed: ${await commitRes.text()}`);
+  }
+  throw new Error("commit-contention");
+}
+
+async function handleCreateOrder(request, env) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const uid = idToken ? decodeUid(idToken) : null;
+  if (!uid || !/^[\w-]+$/.test(uid)) return json({ error: "unauthenticated" }, 401);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+
+  // كتابة الطلب تتم بصلاحية إدارية، فيجب التأكد من صحة هوية المتصل قبلها:
+  // قراءة ملفه بتوكنه هو تجعل Firestore تتحقق من توقيع التوكن وترفض أي تزوير
+  const profileRes = await fsFetch(env, idToken, `/users/${uid}`);
+  if (profileRes.status === 401 || profileRes.status === 403) {
+    return json({ error: "unauthenticated" }, 401);
+  }
+  if (!profileRes.ok && profileRes.status !== 404) {
+    return json({ error: "profile-read-failed", message: "تعذّر إرسال الطلب، حاول مجدداً" }, 502);
+  }
+  const profile = profileRes.ok ? docFields((await profileRes.json()).fields) : null;
+  // dryRun يحسب فقط بلا أي كتابة — للتحقق من سلامة الخادم بعد النشر
+  if (!profile && body.dryRun !== true) {
+    return json({ error: "profile-missing", message: "تعذّر إرسال الطلب، أعد تحميل الصفحة وحاول مجدداً" }, 403);
+  }
+
+  try {
+    const adminToken = await getFirestoreAdminToken(env);
+    const context = await loadOrderContext(env, adminToken, body);
+    const priced = priceOrder({ request: body, ...context });
+
+    if (body.dryRun === true) return json({ dryRun: true, ...priced });
+
+    const now = new Date();
+    const { orderId, orderNumber } = await commitOrder(env, adminToken, {
+      ...priced,
+      customerId: uid,
+      customerName: profile.name ?? "",
+      customerPhone: profile.phone ?? "",
+      status: "pending",
+      createdAt: now,
+      updatedAt: now,
+      estimatedTime: null,
+      kitchenNotes: null,
+      estimatedMinutes: null,
+      estimatedSetAt: null,
+      driverId: null,
+      driverName: null,
+      driverPhone: null,
+      assignedAt: null,
+      driverAcceptedAt: null,
+      pickedUpAt: null,
+      driverLat: null,
+      driverLng: null,
+      driverLocationUpdatedAt: null,
+      paymentStatus: "pending",
+      leanPaymentIntentId: null,
+      paymentReceiptUrl: null,
+      unavailableItemIds: [],
+    });
+    return json({ orderId, orderNumber, total: priced.total });
+  } catch (e) {
+    if (e instanceof OrderRejected) {
+      return json({ error: e.code, message: e.message }, e.status);
+    }
+    console.error("create-order-failed", String(e));
+    return json({ error: "order-failed", message: "تعذّر إرسال الطلب، حاول مجدداً" }, 502);
+  }
+}
+
 // فحص تشخيصي بلا حاجة لعميل حقيقي أو طلب فعلي — يختبر فقط أن أسرار لين
 // وحساب خدمة Firebase صالحة وتُصدر توكن وصول بنجاح. لا يكشف أي قيمة سرّية
 // في الرد، فقط ok/error لكل جزء. يُزال أو يُقيَّد لاحقاً بعد التأكد النهائي.
@@ -373,6 +620,7 @@ export default {
       return handleWebhook(request, env);
     }
     if (request.method !== "POST") return json({ error: "method-not-allowed" }, 405);
+    if (url.pathname === "/orders") return handleCreateOrder(request, env);
     return handleCreatePayment(request, env);
   },
 };

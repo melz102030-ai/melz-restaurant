@@ -10,9 +10,8 @@ rules_version = '2';
 //     الأزرار في الواجهة فقط).
 //   • حقول السعر (subtotal/deliveryFee/total/items) غير قابلة للتعديل بعد
 //     إنشاء الطلب من أي طرف.
-//   • لا يمكن لأي عميل تصعيد صلاحياته (role) عبر الكتابة المباشرة، باستثناء
-//     حسابات المعاينة السريعة المجهولة (anonymous) المستخدمة حالياً في مرحلة
-//     الاختبار — راجع ملاحظة "الدخول السريع" أدناه قبل الإطلاق الفعلي.
+//   • لا يمكن لأي مستخدم تصعيد صلاحياته (role وما يتبعه) عبر الكتابة المباشرة،
+//     والحسابات المجهولة (الضيوف) لا تُعامَل كموظفين إطلاقاً مهما كان في ملفها.
 // عند إضافة بوابة دفع، التحقق الحقيقي من السعر والدفع يجب أن ينتقل إلى
 // Cloud Function موقّعة من جهة الخادم — هذه القواعد تمهّد لذلك لكنها ليست بديلاً عنه.
 
@@ -24,11 +23,9 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // حسابات "الدخول السريع للمعاينة" تستخدم Firebase Anonymous Auth — تُميَّز
-    // هنا لمنحها استثناءً واحداً فقط: حرية اختيار/تبديل دورها الخاص بنفسها،
-    // لتبقى ميزة المعاينة السريعة (بلا تسجيل دخول) تعمل أثناء مرحلة الاختبار.
-    // يُنصح بتعطيل Anonymous Auth من Firebase Console عند الإطلاق الفعلي
-    // للجمهور حتى يُغلق هذا الاستثناء تلقائياً.
+    // الضيوف (طلب بلا تسجيل دخول) يستخدمون Firebase Anonymous Auth، بينما كل
+    // موظف يدخل برقم وكلمة مرور (loginStaff) — لذلك لا يُعتدّ بأي دور موظف في
+    // ملف حساب مجهول، حتى لو كان مكتوباً فيه من قبل إغلاق هذا الاستثناء.
     function isAnonymous() {
       return isSignedIn() && request.auth.token.firebase.sign_in_provider == 'anonymous';
     }
@@ -37,30 +34,43 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
     }
 
-    function isAdmin() { return isSignedIn() && myRole() == 'admin'; }
-    function isKitchen() { return isSignedIn() && myRole() == 'kitchen'; }
-    function isDriver() { return isSignedIn() && myRole() == 'driver'; }
+    function isAdmin() { return isSignedIn() && !isAnonymous() && myRole() == 'admin'; }
+    function isKitchen() { return isSignedIn() && !isAnonymous() && myRole() == 'kitchen'; }
+    function isDriver() { return isSignedIn() && !isAnonymous() && myRole() == 'driver'; }
     function isStaff() { return isAdmin() || isKitchen() || isDriver(); }
+
+    // الحقول التي تحدد الصلاحيات — لا يعدّلها إلا الأدمن
+    function privilegedFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['role', 'extraRoles', 'systemRole', 'permissions']);
+    }
+
+    // ملف عميل جديد بلا أي صلاحية إضافية
+    function isPlainCustomerProfile() {
+      let d = request.resource.data;
+      return d.role == 'customer' &&
+        d.get('extraRoles', []).size() == 0 &&
+        d.get('systemRole', 'none') == 'none' &&
+        d.get('permissions', {}).size() == 0;
+    }
 
     // ─────────────────────────────── users ───────────────────────────────
     match /users/{userId} {
       allow read: if isSignedIn();
 
-      // إنشاء الحساب: المستخدم نفسه (تسجيل عميل عادي، أو حساب معاينة مجهول
-      // بأي دور)، أو الأدمن عند إنشاء موظف مطبخ/مندوب من لوحة التحكم.
+      // إنشاء الحساب: المستخدم نفسه كعميل عادي بلا صلاحيات (الضيف عند أول طلب)،
+      // أو الأدمن عند إنشاء موظف مطبخ/مندوب من لوحة التحكم.
       allow create: if isSignedIn() && (
         isAdmin() ||
-        (request.auth.uid == userId &&
-          (isAnonymous() || request.resource.data.role == 'customer'))
+        (request.auth.uid == userId && isPlainCustomerProfile())
       );
 
       // تعديل الحساب: الأدمن يستطيع تعديل أي مستخدم (بما فيها الأدوار).
       // المستخدم نفسه يستطيع تعديل بياناته (الاسم، التوفّر، الموقع المحفوظ...)
-      // لكن لا يستطيع تغيير دوره بنفسه — إلا حسابات المعاينة المجهولة.
+      // لكن لا يستطيع تغيير دوره أو صلاحياته بنفسه.
       allow update: if isSignedIn() && (
         isAdmin() ||
-        (request.auth.uid == userId &&
-          (isAnonymous() || request.resource.data.role == resource.data.role))
+        (request.auth.uid == userId && privilegedFieldsUnchanged())
       );
 
       allow delete: if isAdmin();

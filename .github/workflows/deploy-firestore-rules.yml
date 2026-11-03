@@ -1,0 +1,35 @@
+name: Deploy Firestore Rules
+
+# خطوة مستقلة عن بناء الويب: كانت جزءاً من نشر Firebase Hosting الذي يُتخطّى
+# لغياب سرّه، فلم تكن تعديلات القواعد تصل لقاعدة البيانات إطلاقاً
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "firestore.rules"
+      - ".github/workflows/deploy-firestore-rules.yml"
+
+concurrency:
+  group: deploy-firestore-rules
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # نفس حساب الخدمة الذي يستخدمه خادم الدفع
+      - name: Write service account
+        run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}' > "$RUNNER_TEMP/firebase-sa.json"
+
+      - name: Deploy rules
+        run: npx firebase-tools@latest deploy --only firestore:rules --project melz-restaurant --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/firebase-sa.json
