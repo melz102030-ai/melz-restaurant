@@ -108,6 +108,17 @@ class AuthService {
     await prefs.setString('user_name', name);
   }
 
+  // العميل يعدّل اسمه ورقمه من السلة، والخادم يقرأهما من هنا عند إنشاء الطلب
+  static Future<void> updateContactInfo(String userId, String name, String phone) async {
+    await _db.collection(_colUsers).doc(userId).set(
+      {'name': name, 'phone': phone},
+      SetOptions(merge: true),
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_name', name);
+    await prefs.setString('user_phone', phone);
+  }
+
   // يحفظ موقع التوصيل الافتراضي للعميل — يُستخدم تلقائياً في المرات القادمة حتى يغيّره
   static Future<void> updateSavedLocation(
     String userId, {

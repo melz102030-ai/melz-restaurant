@@ -5,17 +5,27 @@ import '../../../shared/widgets/app_button.dart';
 /// نافذة منبثقة مختصرة جداً لإتمام الطلب بلا تسجيل دخول (وضع "ضيف") —
 /// اسم ورقم جوال فقط، بلا كلمة مرور ولا أي خطوة إضافية. راجع
 /// AuthService.guestLogin لما يحدث خلف الكواليس بعد الإرسال.
-Future<({String name, String phone})?> showGuestCheckoutSheet(BuildContext context) {
+/// تمرير الاسم والرقم الحاليين يعرضها للتعديل، بدل أول إدخال عند أول طلب.
+Future<({String name, String phone})?> showGuestCheckoutSheet(
+  BuildContext context, {
+  String? initialName,
+  String? initialPhone,
+}) {
   return showModalBottomSheet<({String name, String phone})?>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => const _GuestCheckoutSheetContent(),
+    builder: (_) => _GuestCheckoutSheetContent(
+      initialName: initialName,
+      initialPhone: initialPhone,
+    ),
   );
 }
 
 class _GuestCheckoutSheetContent extends StatefulWidget {
-  const _GuestCheckoutSheetContent();
+  final String? initialName;
+  final String? initialPhone;
+  const _GuestCheckoutSheetContent({this.initialName, this.initialPhone});
 
   @override
   State<_GuestCheckoutSheetContent> createState() => _GuestCheckoutSheetContentState();
@@ -23,8 +33,10 @@ class _GuestCheckoutSheetContent extends StatefulWidget {
 
 class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
+  late final _nameCtrl = TextEditingController(text: widget.initialName);
+  late final _phoneCtrl = TextEditingController(text: widget.initialPhone);
+
+  bool get _isEditing => widget.initialPhone != null;
 
   @override
   void dispose() {
@@ -69,10 +81,13 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
                   style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
               const SizedBox(height: 4),
               Text(
-                'نحتاج اسمك ورقم جوالك فقط لإتمام الطلب والتواصل معك',
+                _isEditing
+                    ? 'سيتواصل معك المطعم على هذا الرقم بخصوص طلبك'
+                    : 'نحتاج اسمك ورقم جوالك فقط لإتمام الطلب والتواصل معك',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
               ),
               const SizedBox(height: 14),
+              if (!_isEditing)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
@@ -126,8 +141,8 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
               ),
               const SizedBox(height: 22),
               AppButton(
-                label: 'متابعة الطلب',
-                icon: Icons.arrow_forward,
+                label: _isEditing ? 'حفظ' : 'متابعة الطلب',
+                icon: _isEditing ? Icons.check : Icons.arrow_forward,
                 width: double.infinity,
                 onPressed: _submit,
               ),

@@ -23,6 +23,7 @@ import '../../../core/models/settings_model.dart';
 import '../../../core/models/delivery_zone_model.dart';
 import '../../../core/services/cloudinary_service.dart';
 import '../../../core/models/menu_item_model.dart';
+import '../../../core/models/user_model.dart';
 import '../../../core/services/order_service.dart';
 import '../../../core/services/delivery_zone_service.dart';
 import '../../../core/services/lean_payment_service.dart';
@@ -527,6 +528,24 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     }
   }
 
+  Future<void> _editContact(UserModel user) async {
+    final updated = await showGuestCheckoutSheet(
+      context,
+      initialName: user.name,
+      initialPhone: user.phone,
+    );
+    if (updated == null) return;
+    try {
+      await AuthService.updateContactInfo(user.id, updated.name, updated.phone);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('تعذّر حفظ بياناتك، حاول مجدداً'),
+        backgroundColor: AppColors.error,
+      ));
+    }
+  }
+
   void _syncCartWithMenu(List<MenuItemModel> menu) {
     // قائمة فارغة قد تعني عدم الاتصال بعد، ولا تبرر تفريغ سلة العميل
     if (menu.isEmpty) return;
@@ -553,6 +572,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     });
     final cart = ref.watch(cartProvider);
     final comboCart = ref.watch(comboCartProvider);
+    final contact = ref.watch(authProvider);
     final cartItemsTotal = ref.watch(cartTotalProvider);
     final comboTotal = ref.watch(comboCartTotalProvider);
     final cartTotal = cartItemsTotal + comboTotal;
@@ -645,6 +665,15 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       if (comboCart.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         ...comboCart.map((entry) => _ComboCartTile(entry: entry)),
+                      ],
+
+                      if (contact != null && contact.role == UserRole.customer) ...[
+                        const SizedBox(height: 8),
+                        _ContactCard(
+                          name: contact.name,
+                          phone: contact.phone,
+                          onEdit: () => _editContact(contact),
+                        ),
                       ],
 
                       const SizedBox(height: 16),
@@ -1112,6 +1141,48 @@ class _QtyButton extends StatelessWidget {
           alignment: Alignment.center,
           child: Icon(icon, color: AppColors.textPrimary, size: 16),
         ),
+      ),
+    );
+  }
+}
+
+// اسم ورقم العميل المستخدمان في الطلب، حتى يراهما ويعدّلهما قبل الإرسال
+class _ContactCard extends StatelessWidget {
+  final String name;
+  final String phone;
+  final VoidCallback onEdit;
+  const _ContactCard({required this.name, required this.phone, required this.onEdit});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 8, 6, 8),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.surfaceLight),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.person_outline, color: AppColors.purple, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14)),
+                Text(phone,
+                    textDirection: TextDirection.ltr,
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              ],
+            ),
+          ),
+          TextButton(onPressed: onEdit, child: const Text('تعديل')),
+        ],
       ),
     );
   }
