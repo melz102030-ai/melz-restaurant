@@ -152,7 +152,7 @@ test("القائمة: الجميع يقرأ، والمطبخ يغيّر توفر
   await assertFails(updateDoc(doc(guest("guest1"), "menu_items/m1"), { price: 1 }));
   await assertSucceeds(updateDoc(doc(staff("kitchen1"), "menu_items/m1"), { isAvailable: false }));
   await assertFails(updateDoc(doc(staff("kitchen1"), "menu_items/m1"), { price: 1 }));
-  await assertFails(updateDoc(doc(staff("kitchen1"), "menu_items/m1"), { optionGroups: [] }));
+  await assertFails(updateDoc(doc(staff("kitchen1"), "menu_items/m1"), { optionGroups: [{ id: "g" }] }));
   await assertSucceeds(updateDoc(doc(staff("admin1"), "menu_items/m1"), { price: 7 }));
 });
 
