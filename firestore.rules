@@ -157,6 +157,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // أرقام العملاء التي وثّقها المطبخ بعد الاتصال بهم — بيانات عملاء، فلا تُقرأ
+    // ولا تُكتب إلا من المطبخ والأدمن
+    match /verified_phones/{phone} {
+      allow read, write: if isAdmin() || isKitchen();
+    }
+
     // ───────────────────────── تذاكر الدعم الفني ────────────────────────────
     match /support_tickets/{id} {
       allow read: if isSignedIn() &&
