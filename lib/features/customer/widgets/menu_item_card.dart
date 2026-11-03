@@ -651,6 +651,55 @@ class _PillIconButton extends StatelessWidget {
   }
 }
 
+// عدّاد مصغّر داخل صف الخيار (للمجموعات التي تسمح بزيادة العدد) — أصغر من
+// _QtyRow حتى لا يكبّر ارتفاع صف الخيار
+class _OptionQtyStepper extends StatelessWidget {
+  final int qty;
+  final VoidCallback onAdd;
+  final VoidCallback onRemove;
+  const _OptionQtyStepper({required this.qty, required this.onAdd, required this.onRemove});
+
+  Widget _btn(IconData icon, String label, VoidCallback onTap) => Tooltip(
+        message: label,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: Icon(icon, color: AppColors.purple, size: 16),
+          ),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _btn(Icons.remove, 'إنقاص', onRemove),
+            SizedBox(
+              width: 20,
+              child: Text(
+                '$qty',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            _btn(Icons.add, 'زيادة', onAdd),
+          ],
+        ),
+      );
+}
+
 // ── Options bottom sheet ──────────────────────────────────────────────────────
 
 class _OptionsSheet extends StatelessWidget {
@@ -743,6 +792,9 @@ class ItemOptionsView extends ConsumerStatefulWidget {
 
 class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   final Map<String, Set<String>> _selections = {};
+  // عدد كل خيار مختار في المجموعات التي تسمح بزيادة العدد (allowQuantity)،
+  // بمفتاح "groupId/optionId" — غيابه يعني 1
+  final Map<String, int> _optionQty = {};
   final Map<String, GlobalKey> _groupKeys = {};
   final _noteCtrl = TextEditingController();
   int _qty = 1;
@@ -820,12 +872,31 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     }
   }
 
+  int _qtyOf(OptionGroup group, String optId) =>
+      group.allowQuantity ? (_optionQty['${group.id}/$optId'] ?? 1) : 1;
+
+  void _setOptionQty(OptionGroup group, String optId, int qty) {
+    setState(() {
+      if (qty <= 0) {
+        // الإنقاص تحت 1 يُلغي اختيار الخيار نفسه
+        final s = Set<String>.from(_selections[group.id] ?? {});
+        s.remove(optId);
+        _applySmartLogic(group, s, optId);
+        _selections[group.id] = s;
+        _optionQty.remove('${group.id}/$optId');
+      } else {
+        _optionQty['${group.id}/$optId'] = qty;
+      }
+      _activePresetId = null;
+    });
+  }
+
   double get _extraTotal {
     double extra = 0;
     for (final group in widget.item.optionGroups) {
       final selected = _selections[group.id] ?? {};
       for (final opt in group.options) {
-        if (selected.contains(opt.id)) extra += opt.priceAdjustment;
+        if (selected.contains(opt.id)) extra += opt.priceAdjustment * _qtyOf(group, opt.id);
       }
     }
     return extra;
@@ -841,12 +912,21 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
       if (selectedIds.isEmpty) continue;
       final selectedOpts =
           group.options.where((o) => selectedIds.contains(o.id)).toList();
+      // العدد يُضمَّن في المعرّف (لتمييز "جبن ×2" عن "جبن" كعنصرين مختلفين
+      // في السلة) وفي الاسم (ليظهر للمطبخ والفاتورة دون تعديل نموذج الطلب)
       selectedGroups.add(SelectedOptionGroup(
         groupId: group.id,
         groupName: group.name,
-        selectedIds: selectedOpts.map((o) => o.id).toList(),
-        selectedNames: selectedOpts.map((o) => o.name).toList(),
-        totalExtra: selectedOpts.fold(0.0, (s, o) => s + o.priceAdjustment),
+        selectedIds: selectedOpts.map((o) {
+          final q = _qtyOf(group, o.id);
+          return q > 1 ? '${o.id}*$q' : o.id;
+        }).toList(),
+        selectedNames: selectedOpts.map((o) {
+          final q = _qtyOf(group, o.id);
+          return q > 1 ? '${o.name} ×$q' : o.name;
+        }).toList(),
+        totalExtra: selectedOpts.fold(
+            0.0, (s, o) => s + o.priceAdjustment * _qtyOf(group, o.id)),
       ));
     }
 
@@ -900,9 +980,11 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
         if (deselecting) {
           if (preset.selections.containsKey(group.id)) {
             _selections[group.id] = _defaultSelectionFor(group);
+            _optionQty.removeWhere((k, _) => k.startsWith('${group.id}/'));
           }
         } else {
           _selections[group.id] = Set<String>.from(preset.selections[group.id] ?? const []);
+          _optionQty.removeWhere((k, _) => k.startsWith('${group.id}/'));
         }
       }
       _activePresetId = deselecting ? null : preset.id;
@@ -1113,6 +1195,11 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                     _applySmartLogic(group, s, opt.id);
                     _selections[group.id] = s;
                   }
+                  // أي خيار لم يعد مختاراً يعود عدده لـ 1 عند اختياره مجدداً
+                  final nowSelected = _selections[group.id] ?? const <String>{};
+                  _optionQty.removeWhere((k, _) =>
+                      k.startsWith('${group.id}/') &&
+                      !nowSelected.contains(k.substring(group.id.length + 1)));
                   if (_invalidGroupId == group.id) _invalidGroupId = null;
                   _activePresetId = null;
                 }),
@@ -1167,6 +1254,16 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                      if (group.allowQuantity && selected) ...[
+                        const SizedBox(width: 8),
+                        _OptionQtyStepper(
+                          qty: _qtyOf(group, opt.id),
+                          onRemove: () =>
+                              _setOptionQty(group, opt.id, _qtyOf(group, opt.id) - 1),
+                          onAdd: () =>
+                              _setOptionQty(group, opt.id, _qtyOf(group, opt.id) + 1),
+                        ),
+                      ],
                     ],
                   ),
                 ),

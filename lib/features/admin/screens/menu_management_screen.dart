@@ -1221,6 +1221,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
             type: g.type,
             required: g.required,
             options: g.options,
+            allowQuantity: g.allowQuantity,
             sourceTemplateId: selected.id,
           );
           final existing = _optionGroups.indexWhere((e) => e.id == g.id);
@@ -1478,6 +1479,8 @@ class _OptionGroupTile extends StatelessWidget {
                   group.type == OptionGroupType.single ? 'واحد' : 'متعدد',
                   AppColors.purple,
                 ),
+                if (group.allowQuantity)
+                  _badge('قابل للزيادة', AppColors.success),
               ],
             ),
           ],
@@ -1543,6 +1546,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
   final _nameCtrl = TextEditingController();
   OptionGroupType _type = OptionGroupType.single;
   bool _required = false;
+  bool _allowQuantity = false;
   List<ItemOption> _options = [];
   String? _error;
 
@@ -1553,6 +1557,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
       _nameCtrl.text = widget.group!.name;
       _type = widget.group!.type;
       _required = widget.group!.required;
+      _allowQuantity = widget.group!.allowQuantity;
       _options = List.from(widget.group!.options);
     }
   }
@@ -1576,6 +1581,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
         type: _type,
         required: _required,
         options: _options,
+        allowQuantity: _allowQuantity,
       ),
     );
   }
@@ -1658,6 +1664,26 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                         Switch(
                           value: _required,
                           onChanged: (v) => setState(() => _required = v),
+                        ),
+                      ],
+                    ),
+                    // Allow quantity toggle
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('السماح بزيادة العدد:',
+                                  style: TextStyle(color: AppColors.textSecondary)),
+                              Text('يختار العميل أكثر من حبة من نفس الخيار (مثل: جبن ×2)',
+                                  style: TextStyle(color: AppColors.textHint, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _allowQuantity,
+                          onChanged: (v) => setState(() => _allowQuantity = v),
                         ),
                       ],
                     ),

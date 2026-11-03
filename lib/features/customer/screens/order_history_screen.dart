@@ -95,14 +95,26 @@ class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
             }
           }
           if (group == null) continue;
-          final matched = group.options.where((o) => opt.selectedNames.contains(o.name)).toList();
+          // الأسماء قد تحمل عدداً ("جبن ×2") للمجموعات التي تسمح بزيادة العدد
+          final qtyByName = <String, int>{};
+          for (final n in opt.selectedNames) {
+            final m = RegExp(r'^(.*) ×(\d+)$').firstMatch(n);
+            if (m != null) {
+              qtyByName[m.group(1)!] = int.parse(m.group(2)!);
+            } else {
+              qtyByName[n] = 1;
+            }
+          }
+          final matched = group.options.where((o) => qtyByName.containsKey(o.name)).toList();
           if (matched.isEmpty) continue;
+          final allowQty = group.allowQuantity;
+          int q(ItemOption o) => allowQty ? qtyByName[o.name]! : 1;
           selectedGroups.add(SelectedOptionGroup(
             groupId: group.id,
             groupName: group.name,
-            selectedIds: matched.map((o) => o.id).toList(),
-            selectedNames: matched.map((o) => o.name).toList(),
-            totalExtra: matched.fold(0.0, (s, o) => s + o.priceAdjustment),
+            selectedIds: matched.map((o) => q(o) > 1 ? '${o.id}*${q(o)}' : o.id).toList(),
+            selectedNames: matched.map((o) => q(o) > 1 ? '${o.name} ×${q(o)}' : o.name).toList(),
+            totalExtra: matched.fold(0.0, (s, o) => s + o.priceAdjustment * q(o)),
           ));
         }
 

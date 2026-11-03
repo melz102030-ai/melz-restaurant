@@ -44,6 +44,9 @@ class OptionGroup {
   final OptionGroupType type;
   final bool required;
   final List<ItemOption> options;
+  // يسمح للعميل بزيادة عدد الخيار المختار (مثل: جبن إضافي ×2) بعدّاد +/−
+  // بدل الاكتفاء بتحديده مرة واحدة — يتضاعف فرق سعره حسب العدد
+  final bool allowQuantity;
   // معرّف القالب الذي جاءت منه هذه المجموعة — يُستخدَم لتحديث الصنف تلقائياً
   // عند تعديل القالب بدل الاكتفاء بنسخه مرة واحدة عند التطبيق
   final String? sourceTemplateId;
@@ -54,6 +57,7 @@ class OptionGroup {
     required this.type,
     required this.required,
     required this.options,
+    this.allowQuantity = false,
     this.sourceTemplateId,
   });
 
@@ -63,6 +67,7 @@ class OptionGroup {
         'type': type.name,
         'required': required,
         'options': options.map((o) => o.toMap()).toList(),
+        'allowQuantity': allowQuantity,
         if (sourceTemplateId != null) 'sourceTemplateId': sourceTemplateId,
       };
 
@@ -81,6 +86,7 @@ class OptionGroup {
         options: (m['options'] as List? ?? [])
             .map((o) => ItemOption.fromMap(Map<String, dynamic>.from(o as Map)))
             .toList(),
+        allowQuantity: m['allowQuantity'] ?? false,
         sourceTemplateId: m['sourceTemplateId'] as String?,
       );
 
@@ -94,6 +100,7 @@ class OptionGroup {
     OptionGroupType? type,
     bool? required,
     List<ItemOption>? options,
+    bool? allowQuantity,
     Object? sourceTemplateId = _sentinel,
   }) =>
       OptionGroup(
@@ -102,6 +109,7 @@ class OptionGroup {
         type: type ?? this.type,
         required: required ?? this.required,
         options: options ?? this.options,
+        allowQuantity: allowQuantity ?? this.allowQuantity,
         sourceTemplateId: sourceTemplateId == _sentinel
             ? this.sourceTemplateId
             : sourceTemplateId as String?,
