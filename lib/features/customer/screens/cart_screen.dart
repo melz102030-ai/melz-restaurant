@@ -22,6 +22,7 @@ import '../../../core/models/order_model.dart';
 import '../../../core/models/settings_model.dart';
 import '../../../core/models/delivery_zone_model.dart';
 import '../../../core/services/cloudinary_service.dart';
+import '../../../core/models/menu_item_model.dart';
 import '../../../core/services/order_service.dart';
 import '../../../core/services/delivery_zone_service.dart';
 import '../../../core/services/lean_payment_service.dart';
@@ -31,6 +32,7 @@ import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../auth/widgets/guest_checkout_sheet.dart';
 import 'delivery_location_picker_screen.dart';
+import '../providers/menu_provider.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
@@ -56,6 +58,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     super.initState();
     // يبدأ بنفس طريقة الاستلام التي اختارها العميل من الشاشة الرئيسية
     _orderType = ref.read(orderTypeProvider);
+
+    // القائمة قد تكون محمّلة قبل فتح السلة، ولا يُطلق ref.listen على القيمة الحالية
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final menu = ref.read(menuItemsStreamProvider(null)).valueOrNull;
+      if (menu != null) _syncCartWithMenu(menu);
+    });
 
     // استعادة نص الملاحظة المحفوظ من الـ provider
     _notesController.text = ref.read(cartOrderNoteProvider);
@@ -518,8 +527,30 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     }
   }
 
+  void _syncCartWithMenu(List<MenuItemModel> menu) {
+    // قائمة فارغة قد تعني عدم الاتصال بعد، ولا تبرر تفريغ سلة العميل
+    if (menu.isEmpty) return;
+    final result = ref.read(cartProvider.notifier).syncWithMenu(menu);
+    if (!mounted) return;
+    final messages = <String>[
+      if (result.removedNames.isNotEmpty)
+        'حذفنا من سلتك ما لم يعد متوفراً: ${result.removedNames.join('، ')}',
+      if (result.pricesChanged) 'تم تحديث أسعار سلتك حسب القائمة الحالية',
+    ];
+    if (messages.isEmpty) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(messages.join('\n')),
+      backgroundColor: AppColors.warning,
+      duration: const Duration(seconds: 6),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<MenuItemModel>>>(menuItemsStreamProvider(null), (_, next) {
+      final menu = next.valueOrNull;
+      if (menu != null) _syncCartWithMenu(menu);
+    });
     final cart = ref.watch(cartProvider);
     final comboCart = ref.watch(comboCartProvider);
     final cartItemsTotal = ref.watch(cartTotalProvider);

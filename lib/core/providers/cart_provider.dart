@@ -78,6 +78,38 @@ class CartItem {
         if (note != null && note!.isNotEmpty) 'note': note,
       };
 
+  // يعيد بناء العنصر من بيانات الصنف الحية بأسعارها الحالية، ويعيد null إن لم
+  // تعد خياراته صالحة (خيار حُذف أو توقف، أو مجموعة إجبارية أُضيفت بعد إضافته)
+  CartItem? _rebuiltFrom(MenuItemModel live) {
+    final groups = <SelectedOptionGroup>[];
+    for (final sel in selectedOptions) {
+      final group = live.optionGroups.where((g) => g.id == sel.groupId).firstOrNull;
+      if (group == null) return null;
+      var extra = 0.0;
+      final names = <String>[];
+      for (final raw in sel.selectedIds) {
+        final star = raw.lastIndexOf('*');
+        final id = star < 0 ? raw : raw.substring(0, star);
+        final count = star < 0 ? 1 : int.tryParse(raw.substring(star + 1)) ?? 1;
+        final opt = group.options.where((o) => o.id == id && o.isAvailable).firstOrNull;
+        if (opt == null || (count > 1 && !group.allowQuantity)) return null;
+        extra += opt.priceAdjustment * count;
+        names.add(group.allowQuantity || live.excludeBasePrice ? '×$count ${opt.name}' : opt.name);
+      }
+      groups.add(SelectedOptionGroup(
+        groupId: group.id,
+        groupName: group.name,
+        selectedIds: sel.selectedIds,
+        selectedNames: names,
+        totalExtra: extra,
+      ));
+    }
+    final missingRequired = live.optionGroups
+        .any((g) => g.required && !groups.any((s) => s.groupId == g.id));
+    if (missingRequired) return null;
+    return CartItem(item: live, quantity: quantity, selectedOptions: groups, note: note);
+  }
+
   CartItem copyWith({int? quantity}) =>
       CartItem(item: item, quantity: quantity ?? this.quantity, selectedOptions: selectedOptions, note: note);
 
@@ -126,6 +158,13 @@ class CartItem {
   }
 }
 
+// نتيجة مطابقة السلة مع القائمة الحية، لإبلاغ العميل بما تغيّر
+class CartSyncResult {
+  final List<String> removedNames;
+  final bool pricesChanged;
+  const CartSyncResult({required this.removedNames, required this.pricesChanged});
+}
+
 class CartNotifier extends StateNotifier<List<CartItem>> {
   CartNotifier() : super([]) {
     _restore();
@@ -172,6 +211,28 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
       state = [...state, entry];
     }
     _persist();
+  }
+
+  // السلة محفوظة في الجهاز بنسخة من الصنف، فتُطابَق مع القائمة الحية عند فتحها:
+  // تُحدَّث الأسعار ويُحذف ما توقف، حتى لا يرى العميل سعراً قديماً أو صنفاً نفد
+  CartSyncResult syncWithMenu(List<MenuItemModel> menu) {
+    final byId = {for (final m in menu) m.id: m};
+    final synced = <CartItem>[];
+    final removed = <String>[];
+    var changed = false;
+    for (final entry in state) {
+      final live = byId[entry.item.id];
+      final rebuilt = live == null || !live.isAvailable ? null : entry._rebuiltFrom(live);
+      if (rebuilt == null) {
+        removed.add(entry.item.name);
+        continue;
+      }
+      if ((rebuilt.total - entry.total).abs() > 0.001) changed = true;
+      synced.add(rebuilt);
+    }
+    state = synced;
+    _persist();
+    return CartSyncResult(removedNames: removed, pricesChanged: changed);
   }
 
   void removeItem(String cartKey) {
