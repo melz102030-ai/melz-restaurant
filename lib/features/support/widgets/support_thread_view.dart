@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/support_ticket_model.dart';
@@ -122,6 +123,7 @@ class _SupportThreadViewState extends State<SupportThreadView> {
                 Expanded(
                   child: TextField(
                     controller: _textCtrl,
+                    inputFormatters: [LengthLimitingTextInputFormatter(1000)],
                     minLines: 1,
                     maxLines: 4,
                     textInputAction: TextInputAction.send,

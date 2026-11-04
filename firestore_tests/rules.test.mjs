@@ -222,6 +222,36 @@ test("الدعم: العميل يضيف رسالته فقط، ولا يعبث ب
   );
 });
 
+test("حدود الطول: الملف الشخصي ورسائل الدعم", async () => {
+  const long = (n) => "ا".repeat(n);
+  const me = doc(guest("guest1"), "users/guest1");
+  await assertSucceeds(updateDoc(me, { name: long(60), phone: "5".repeat(20) }));
+  await assertFails(updateDoc(me, { name: long(61) }));
+  await assertFails(updateDoc(me, { phone: "5".repeat(21) }));
+  await assertSucceeds(updateDoc(me, { phone: null }));
+
+  const plain = { role: "customer", extraRoles: [], systemRole: "none", permissions: {} };
+  await assertFails(setDoc(doc(guest("new1"), "users/new1"), { ...plain, name: long(61) }));
+
+  const ref = doc(guest("guest1"), "support_tickets/t1");
+  const say = (text) => ({ messages: arrayUnion({ senderRole: "customer", text }) });
+  await assertSucceeds(updateDoc(ref, say(long(1000))));
+  await assertFails(updateDoc(ref, say(long(1001))));
+
+  const newTicket = (text, over = {}) =>
+    setDoc(doc(guest("guest1"), "support_tickets/n1"), ticket({
+      messages: [{ senderRole: "customer", text }],
+      ...over,
+    }));
+  await assertFails(newTicket(long(1001)));
+  await assertFails(newTicket("سؤال", { customerName: long(61) }));
+  await assertSucceeds(newTicket(long(1000), { customerName: long(60) }));
+
+  const many = Array.from({ length: 200 }, (_, i) => ({ senderRole: "customer", text: String(i) }));
+  await seed((d) => setDoc(doc(d, "support_tickets/t1"), ticket({ messages: many })));
+  await assertFails(updateDoc(ref, say("الرسالة 201")));
+});
+
 test("صلاحيات المدراء: المدير المحدود يعمل في صلاحيته فقط", async () => {
   const limited = staff("ordersAdmin");
   await assertSucceeds(updateDoc(doc(limited, "orders/o1"), { status: "confirmed" }));

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../shared/widgets/app_button.dart';
 
@@ -115,6 +116,7 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
                 controller: _nameCtrl,
                 autofocus: true,
                 textInputAction: TextInputAction.next,
+                inputFormatters: [LengthLimitingTextInputFormatter(60)],
                 style: TextStyle(color: AppColors.textPrimary),
                 decoration: const InputDecoration(
                   labelText: 'الاسم',
@@ -126,6 +128,7 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
               TextFormField(
                 controller: _phoneCtrl,
                 keyboardType: TextInputType.phone,
+                inputFormatters: [LengthLimitingTextInputFormatter(20)],
                 textInputAction: TextInputAction.done,
                 onFieldSubmitted: (_) => _submit(),
                 style: TextStyle(color: AppColors.textPrimary),

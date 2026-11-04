@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -293,6 +294,7 @@ class _NewTicketSheetState extends State<_NewTicketSheet> {
             TextField(
               controller: _msgCtrl,
               maxLines: 4,
+              inputFormatters: [LengthLimitingTextInputFormatter(1000)],
               style: TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
                 hintText: 'اشرح مشكلتك أو استفسارك بالتفصيل...',

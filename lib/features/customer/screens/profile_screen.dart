@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -83,6 +84,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           child: TextField(
                             controller: _nameController..text = user.name,
                             autofocus: true,
+                            inputFormatters: [LengthLimitingTextInputFormatter(60)],
                             style: TextStyle(color: AppColors.textPrimary),
                             decoration: const InputDecoration(
                               labelText: 'الاسم',

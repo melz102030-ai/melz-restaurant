@@ -16,6 +16,8 @@ const MAX_QTY = 99;
 const MAX_NOTE = 120;
 const MAX_ORDER_NOTES = 500;
 const MAX_ADDRESS = 300;
+const MAX_NAME = 60;
+const MAX_PHONE = 20;
 // فرق التقريب المسموح بين ما عرضه التطبيق وما حسبه الخادم
 const TOTAL_TOLERANCE = 0.05;
 const EARTH_RADIUS_M = 6378137; // نفس قيمة Geolocator.distanceBetween في التطبيق
@@ -28,6 +30,14 @@ const cleanText = (v, max) => {
   const t = v.trim().slice(0, max);
   return t.length ? t : null;
 };
+
+// الاسم والرقم يأتيان من ملف يعدّله صاحبه، ويظهران في شاشة المطبخ والفاتورة
+export function customerContact(profile) {
+  return {
+    customerName: cleanText(profile?.name, MAX_NAME) ?? "",
+    customerPhone: cleanText(profile?.phone, MAX_PHONE) ?? "",
+  };
+}
 
 function validQty(v) {
   if (!Number.isInteger(v) || v < 1 || v > MAX_QTY) {

@@ -23,7 +23,7 @@
 // من قيم status الفعلية القادمة داخل مصفوفة payments، وتحديث المطابقة أدناه
 // إن لزم.
 
-import { priceOrder, removeUnavailableItems, setOptionAvailability, OrderRejected } from "./pricing.js";
+import { priceOrder, removeUnavailableItems, setOptionAvailability, OrderRejected, customerContact } from "./pricing.js";
 import { canDeleteUser, canReclaimStaffAccount, canResetStaffPassword } from "./staff.js";
 
 const CORS_HEADERS = {
@@ -559,8 +559,7 @@ async function handleCreateOrder(request, env) {
     const { orderId, orderNumber } = await commitOrder(env, adminToken, {
       ...priced,
       customerId: uid,
-      customerName: profile.name ?? "",
-      customerPhone: profile.phone ?? "",
+      ...customerContact(profile),
       status: "pending",
       createdAt: now,
       updatedAt: now,

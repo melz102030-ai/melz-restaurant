@@ -8,6 +8,7 @@ import {
   removeUnavailableItems,
   setOptionAvailability,
   OrderRejected,
+  customerContact,
 } from "./pricing.js";
 
 const OPEN_SETTINGS = { minOrderAmount: 5, deliveryFee: 10, openTime: "", closeTime: "" };
@@ -154,6 +155,14 @@ test("رفض: مبلغ معروض مختلف، خيار متوقف، خيار إ
   rejectsWith(() => price({ items: [{ itemId: "ghost", quantity: 1 }] }), "item-unavailable");
   rejectsWith(() => price({ combos: [{ comboId: "c1", quantity: 1 }] }), "required-option-missing");
   rejectsWith(() => price({}), "empty-order");
+});
+
+test("اسم العميل ورقمه يُقصَّان قبل وصولهما للمطبخ والفاتورة", () => {
+  const { customerName, customerPhone } = customerContact({ name: "ا".repeat(5000), phone: "5".repeat(500) });
+  assert.equal(customerName.length, 60);
+  assert.equal(customerPhone.length, 20);
+  assert.deepEqual(customerContact({ name: " علي ", phone: "05" }), { customerName: "علي", customerPhone: "05" });
+  assert.deepEqual(customerContact(null), { customerName: "", customerPhone: "" });
 });
 
 test("الحد الأدنى وطرق الدفع", () => {
