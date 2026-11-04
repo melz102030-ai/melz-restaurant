@@ -64,3 +64,32 @@ jobs:
             grep -E "\[E\]|Expected:|Actual:|Error:|error:" "$RUNNER_TEMP/out.log" | head -n 12 | sed 's/^/::error::/'
             exit 1
           fi
+
+  analyze:
+    name: تحليل الكود
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+      - run: flutter pub get
+      # تقرير فقط حتى الآن: يعرض الملخص كتنبيهات، ويفشل إذا وُجدت أخطاء فعلية
+      - name: Analyze
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings > "$RUNNER_TEMP/analyze.log" 2>&1 || true
+          grep -E "^ *(error|warning|info) •" "$RUNNER_TEMP/analyze.log" > "$RUNNER_TEMP/issues.log" || true
+          echo "::notice::الملخص: $(awk -F'•' '{gsub(/ /,"",$1); c[$1]++} END {for (k in c) printf "%s=%d ", k, c[k]}' "$RUNNER_TEMP/issues.log")"
+          echo "::notice::الأكثر تكراراً: $(grep -vE '^ *info' "$RUNNER_TEMP/issues.log" | awk -F'•' '{gsub(/ /,"",$NF); c[$NF]++} END {for (k in c) print c[k], k}' | sort -rn | head -n 12 | tr '\n' ';')"
+          echo "::notice::معلومات: $(grep -E '^ *info' "$RUNNER_TEMP/issues.log" | awk -F'•' '{gsub(/ /,"",$NF); c[$NF]++} END {for (k in c) print c[k], k}' | sort -rn | head -n 15 | tr '\n' ';')"
+          grep -E "^ *warning" "$RUNNER_TEMP/issues.log" | head -n 8 | sed -E 's/^ *warning • /::warning::/'
+          if grep -qE "^ *error" "$RUNNER_TEMP/issues.log"; then
+            grep -E "^ *error" "$RUNNER_TEMP/issues.log" | head -n 8 | sed -E 's/^ *error • /::error::/'
+            exit 1
+          fi
+      - name: Outdated packages
+        run: |
+          flutter pub outdated --json > "$RUNNER_TEMP/outdated.json" || true
+          node -e "const d=JSON.parse(require('fs').readFileSync(process.env.RUNNER_TEMP+'/outdated.json'));const v=x=>x?x.version:'-';const direct=d.packages.filter(p=>p.kind==='direct'&&v(p.current)!==v(p.latest));console.log('::notice::مكتبات مباشرة قديمة '+direct.length+': '+direct.map(p=>p.package+' '+v(p.current)+'>'+v(p.latest)).join('، ').slice(0,3000));const disc=d.packages.filter(p=>p.isDiscontinued).map(p=>p.package);console.log('::notice::مكتبات متوقفة: '+(disc.join('، ')||'لا يوجد'));"
