@@ -18,6 +18,8 @@ var s = { cats: [], items: [], menuLoaded: false };
 function $(id) { return document.getElementById(id); }
 function qel(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
 function sar(p) { return p.toFixed(2) + ' ر.س'; }
+// الصنف الذي لا يُحتسب سعره الأساسي يتحدد مبلغه من خياراته، فلا يُعرض له سعر ثابت
+function priceLabel(item) { return item.excludeBasePrice ? 'حسب الاختيار' : sar(item.price); }
 function esc(str) {
   return String(str || '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -130,7 +132,8 @@ function loadMenu() {
         var x=d.data();
         return {
           id:d.id, name:x.name||'', description:x.description||'',
-          price:parseFloat(x.price||x.finalPrice||0),
+          price:parseFloat(x.price||0)*(1-(parseFloat(x.discountPercent)||0)/100),
+          excludeBasePrice:x.excludeBasePrice===true,
           imageUrl:x.imageUrl||null, categoryId:x.categoryId||'',
           isAvailable:x.isAvailable!==false, isBestSeller:!!x.isBestSeller,
         };
@@ -213,7 +216,7 @@ function buildCard(item, idx) {
     var desc = qel('div','item-desc'); desc.textContent = item.description; info.appendChild(desc);
   }
   var footer = qel('div','item-footer');
-  var price = qel('span','item-price'); price.textContent = sar(item.price); footer.appendChild(price);
+  var price = qel('span','item-price'); price.textContent = priceLabel(item); footer.appendChild(price);
   info.appendChild(footer);
   card.appendChild(info);
   return card;
@@ -223,7 +226,7 @@ function buildCard(item, idx) {
 function openModal(item) {
   $('mdName').textContent = item.name;
   $('mdDesc').textContent = item.description;
-  $('mdPrice').textContent = sar(item.price);
+  $('mdPrice').textContent = priceLabel(item);
   item.isBestSeller ? $('mdBest').classList.remove('hidden') : $('mdBest').classList.add('hidden');
 
   var wrap = $('mdImg'); wrap.innerHTML = '';
