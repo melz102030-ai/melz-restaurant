@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:js' as js;
+import 'dart:js_util' as js_util;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -483,7 +484,7 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         // TODO: اربطها بإعداد فعلي عند الانتقال لحساب لين الإنتاجي لاحقاً
         'sandbox': true,
         'access_token': '',
-        'callback': js.allowInterop((dynamic data) {
+        'callback': js_util.allowInterop((dynamic data) {
           String? status;
           try {
             status = (data as js.JsObject)['status'] as String?;

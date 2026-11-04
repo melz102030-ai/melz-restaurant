@@ -89,11 +89,13 @@ async function customerPlacesOrder(browser) {
   await tap(page, /صوص كوكتيل/);
   for (let i = 0; i < 4; i++) await tap(page, /^زيادة$/);
   await tap(page, /صوص كاتشب/);
-  const pluses = (await semantics(page)).filter((n) => n.text === "زيادة").sort((a, b) => b.y - a.y);
-  assert.equal(pluses.length, 2, "لازم عدادين للخيارين المختارين");
-  const ketchupRow = (await waitForLabel(page, /صوص كاتشب/)).y;
-  const ketchupPlus = pluses.reduce((a, b) => (Math.abs(a.y - ketchupRow) < Math.abs(b.y - ketchupRow) ? a : b));
+  // يُقاس الزر قبل كل ضغطة، لأن ظهور العداد قد يحرك الصفوف
   for (let i = 0; i < 2; i++) {
+    await page.waitForTimeout(400);
+    const pluses = (await semantics(page)).filter((n) => n.text === "زيادة");
+    assert.equal(pluses.length, 2, "لازم عدادين للخيارين المختارين");
+    const ketchupRow = (await waitForLabel(page, /صوص كاتشب/)).y;
+    const ketchupPlus = pluses.reduce((a, b) => (Math.abs(a.y - ketchupRow) < Math.abs(b.y - ketchupRow) ? a : b));
     await page.mouse.click(ketchupPlus.x, ketchupPlus.y);
     await page.waitForTimeout(300);
   }
@@ -241,10 +243,12 @@ main().catch(async (e) => {
   report(e.message);
   if (activePage && !activePage.isClosed()) {
     try {
-      const shown = (await semantics(activePage)).map((n) => n.text).join(" | ");
-      report(`الظاهر: ${shown || (await activePage.locator("body").innerText()).slice(0, 800)}`);
       report(`الرابط: ${activePage.url()}`);
-    } catch {}
+      const shown = (await semantics(activePage)).map((n) => n.text).join(" / ");
+      report(`الظاهر: ${shown || (await activePage.locator("body").innerText()).slice(0, 800)}`);
+    } catch (readError) {
+      report(`تعذرت قراءة الشاشة: ${readError.message}`);
+    }
   }
   for (const err of consoleErrors.slice(-4)) report(`خطأ المتصفح: ${err}`);
   process.exit(1);
