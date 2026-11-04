@@ -452,7 +452,7 @@ class _UserTile extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
-              runOrShowError(context, () => AuthService.deleteUserProfile(user.id));
+              runOrShowError(context, () => AuthService.deleteUser(user.id));
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('حذف'),

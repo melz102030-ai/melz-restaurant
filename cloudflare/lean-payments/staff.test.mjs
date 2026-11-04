@@ -1,7 +1,7 @@
 // node --test cloudflare/lean-payments/staff.test.mjs
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canResetStaffPassword } from "./staff.js";
+import { canDeleteUser, canReclaimStaffAccount, canResetStaffPassword } from "./staff.js";
 
 const admin = { role: "admin", phone: "0500000001" };
 const usersAdmin = { role: "admin", phone: "0500000002", permissions: { users: true } };
@@ -34,6 +34,31 @@ test("المدير الأعلى ومساعده محميان", () => {
   assert.equal(can(assistant, top), false);
   assert.equal(can(usersAdmin, assistant), false);
   assert.equal(can(top, assistant), true);
+});
+
+test("حذف المستخدم: بصلاحية الأعضاء، ويشمل العميل، ولا يشمل النفس", () => {
+  const del = (caller, target, extra = {}) => canDeleteUser({ caller, target, ...extra });
+  assert.equal(del(admin, driver), true);
+  assert.equal(del(admin, customer), true);
+  assert.equal(del(ordersAdmin, driver), false);
+  assert.equal(del(admin, top), false);
+  assert.equal(del(usersAdmin, assistant), false);
+  assert.equal(del(top, assistant), true);
+  assert.equal(del(admin, admin, { isSelf: true }), false);
+  assert.equal(del(admin, driver, { isAnonymous: true }), false);
+});
+
+test("إعادة استخدام حساب محذوف الملف: لدور موظف وبصلاحية الأعضاء", () => {
+  const reclaim = (caller, role, phone = "0500000009", extra = {}) =>
+    canReclaimStaffAccount({ caller, role, phone, ...extra });
+  assert.equal(reclaim(admin, "driver"), true);
+  assert.equal(reclaim(admin, "kitchen"), true);
+  assert.equal(reclaim(admin, "customer"), false);
+  assert.equal(reclaim(ordersAdmin, "driver"), false);
+  assert.equal(reclaim(driver, "driver"), false);
+  assert.equal(reclaim(admin, "driver", "0500000009", { isAnonymous: true }), false);
+  assert.equal(reclaim(admin, "admin", "0531131125"), false);
+  assert.equal(reclaim(top, "admin", "0531131125"), true);
 });
 
 test("لا يعيد كلمة مروره بنفسه ولا كلمة مرور عميل", () => {

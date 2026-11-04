@@ -24,7 +24,7 @@
 // إن لزم.
 
 import { priceOrder, removeUnavailableItems, setOptionAvailability, OrderRejected } from "./pricing.js";
-import { canResetStaffPassword } from "./staff.js";
+import { canDeleteUser, canReclaimStaffAccount, canResetStaffPassword } from "./staff.js";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -763,6 +763,178 @@ async function handleResetStaffPassword(request, env) {
   }
 }
 
+// هوية المتصل بعد تحقق Firestore من توكنه، أو null إن كان غير صالح
+async function readCaller(request, env) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const uid = idToken ? decodeUid(idToken) : null;
+  if (!uid || !/^[\w-]+$/.test(uid)) return null;
+  const res = await fsFetch(env, idToken, `/users/${uid}`);
+  if (!res.ok) return null;
+  const claims = JSON.parse(atob(idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+  return {
+    uid,
+    profile: docFields((await res.json()).fields),
+    isAnonymous: claims.firebase?.sign_in_provider === "anonymous",
+  };
+}
+
+const AUTH_SCOPE = "https://www.googleapis.com/auth/identitytoolkit";
+const authApi = (env, action) =>
+  `https://identitytoolkit.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/accounts:${action}`;
+
+async function authAdminCall(env, token, action, body) {
+  return fetch(authApi(env, action), {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+// حذف مستخدم: حساب الدخول مع ملفه، حتى يصير رقمه متاحاً لإضافته من جديد
+async function handleDeleteUser(request, env) {
+  const denied = { error: "permission-denied", message: "لا تملك صلاحية حذف هذا المستخدم" };
+  const failure = { error: "delete-failed", message: "تعذّر حذف المستخدم، حاول مجدداً" };
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  const { userId } = body;
+  if (typeof userId !== "string" || !/^[\w-]+$/.test(userId)) {
+    return json({ error: "invalid-body", message: "طلب غير صحيح" }, 400);
+  }
+  try {
+    const caller = await readCaller(request, env);
+    if (!caller) return json(denied, 403);
+
+    const adminToken = await getFirestoreAdminToken(env);
+    const targetRes = await fsFetch(env, adminToken, `/users/${userId}`);
+    if (!targetRes.ok) return json({ error: "user-not-found", message: "لم يُعثر على هذا المستخدم" }, 404);
+    const target = docFields((await targetRes.json()).fields);
+
+    const allowed = canDeleteUser({
+      caller: caller.profile,
+      target,
+      isAnonymous: caller.isAnonymous,
+      isSelf: caller.uid === userId,
+    });
+    if (!allowed) return json(denied, 403);
+
+    const authToken = await getFirestoreAdminToken(env, AUTH_SCOPE);
+    const authRes = await authAdminCall(env, authToken, "delete", { localId: userId });
+    // حساب دخول محذوف من قبل لا يمنع إكمال حذف الملف
+    if (!authRes.ok) {
+      const detail = await authRes.text();
+      if (!detail.includes("USER_NOT_FOUND")) {
+        console.error("delete-user-auth-failed", authRes.status, detail);
+        return json(failure, 502);
+      }
+    }
+    const docRes = await fsFetch(env, adminToken, `/users/${userId}`, { method: "DELETE" });
+    if (!docRes.ok) {
+      console.error("delete-user-doc-failed", docRes.status, await docRes.text());
+      return json(failure, 502);
+    }
+    return json({ ok: true });
+  } catch (e) {
+    console.error("delete-user-error", String(e));
+    return json(failure, 502);
+  }
+}
+
+// رقم محجوز بحساب دخول بلا ملف، من موظف حُذف قبل حذف الحسابات مع ملفاتها: يُعاد
+// استخدامه للموظف الجديد بكلمة المرور الجديدة. رقم موظف موجود فعلاً يبقى مرفوضاً.
+async function handleReclaimStaffAccount(request, env) {
+  const denied = { error: "permission-denied", message: "لا تملك صلاحية إضافة موظفين" };
+  const inUse = { error: "phone-in-use", message: "يوجد موظف مسجّل بهذا الرقم مسبقاً" };
+  const failure = { error: "reclaim-failed", message: "تعذّرت إضافة الموظف، حاول مجدداً" };
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  const { phone, name, role, password } = body;
+  const valid =
+    typeof phone === "string" && /^[+\d]{7,20}$/.test(phone) &&
+    typeof name === "string" && name.trim().length > 0 && name.length <= 100 &&
+    typeof password === "string" && password.length >= 6 && password.length <= 128;
+  if (!valid) return json({ error: "invalid-body", message: "بيانات الموظف غير صحيحة" }, 400);
+
+  try {
+    const caller = await readCaller(request, env);
+    if (!caller) return json(denied, 403);
+    const allowed = canReclaimStaffAccount({
+      caller: caller.profile,
+      isAnonymous: caller.isAnonymous,
+      role,
+      phone,
+    });
+    if (!allowed) return json(denied, 403);
+
+    const authToken = await getFirestoreAdminToken(env, AUTH_SCOPE);
+    const lookup = await authAdminCall(env, authToken, "lookup", { email: [`${phone}@meals.local`] });
+    if (!lookup.ok) {
+      console.error("reclaim-lookup-failed", lookup.status, await lookup.text());
+      return json(failure, 502);
+    }
+    const uid = (await lookup.json()).users?.[0]?.localId;
+    if (!uid) return json(failure, 404);
+
+    const adminToken = await getFirestoreAdminToken(env);
+    const existing = await fsFetch(env, adminToken, `/users/${uid}`);
+    if (existing.ok) return json(inUse, 409);
+    if (existing.status !== 404) return json(failure, 502);
+
+    const update = await authAdminCall(env, authToken, "update", {
+      localId: uid,
+      password,
+      disableUser: false,
+      validSince: String(Math.floor(Date.now() / 1000)),
+    });
+    if (!update.ok) {
+      console.error("reclaim-update-failed", update.status, await update.text());
+      return json(failure, 502);
+    }
+
+    const doc = await fsFetch(
+      env,
+      adminToken,
+      `/users/${uid}?currentDocument.exists=false`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          fields: toFsFields({
+            phone,
+            name: name.trim(),
+            role,
+            createdAt: new Date(),
+            fcmToken: null,
+            isAvailable: true,
+            vehicleType: null,
+            savedLat: null,
+            savedLng: null,
+            savedAddress: null,
+            extraRoles: [],
+            systemRole: "none",
+            permissions: {},
+          }),
+        }),
+      }
+    );
+    if (!doc.ok) {
+      console.error("reclaim-doc-failed", doc.status, await doc.text());
+      return json(failure, 502);
+    }
+    return json({ ok: true, uid });
+  } catch (e) {
+    console.error("reclaim-error", String(e));
+    return json(failure, 502);
+  }
+}
+
 // فحص تشخيصي بلا حاجة لعميل حقيقي أو طلب فعلي — يختبر فقط أن أسرار لين
 // وحساب خدمة Firebase صالحة وتُصدر توكن وصول بنجاح. لا يكشف أي قيمة سرّية
 // في الرد، فقط ok/error لكل جزء. يُزال أو يُقيَّد لاحقاً بعد التأكد النهائي.
@@ -800,6 +972,8 @@ export default {
     if (url.pathname === "/orders") return handleCreateOrder(request, env);
     if (url.pathname === "/menu/option-availability") return handleOptionAvailability(request, env);
     if (url.pathname === "/staff/reset-password") return handleResetStaffPassword(request, env);
+    if (url.pathname === "/staff/delete") return handleDeleteUser(request, env);
+    if (url.pathname === "/staff/reclaim") return handleReclaimStaffAccount(request, env);
     if (url.pathname === "/orders/acknowledge-unavailable") {
       return handleAcknowledgeUnavailable(request, env);
     }

@@ -191,10 +191,8 @@ class AuthService {
     await _db.collection(_colUsers).doc(userId).update({'name': name});
   }
 
-  // يحذف ملف المستخدم في Firestore فقط (لا صلاحية لدى كود العميل لحذف حساب
-  // Firebase Auth نفسه لمستخدم آخر — يحتاج ذلك صلاحيات خادم/Admin SDK غير
-  // متوفرة في هذا المشروع). عملياً يكفي لإبطال الوصول: تسجيل الدخول اللاحق
-  // (loginStaff) يتحقق من وجود هذا المستند ويرفض الدخول إن كان مفقوداً.
+  // يحذف الملف فقط — لحساب عميل مجهول رُقّي لموظف بحساب جديد في promoteCustomerToStaff.
+  // لحذف مستخدم فعلياً استخدم deleteUser.
   static Future<void> deleteUserProfile(String userId) async {
     await _db.collection(_colUsers).doc(userId).delete();
   }
@@ -253,7 +251,19 @@ class AuthService {
       return user;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'email-already-in-use') {
-        throw Exception('يوجد موظف مسجّل بهذا الرقم مسبقاً');
+        // قد يكون حساباً بقي بلا ملف من موظف حُذف سابقاً، والخادم يرفض إن كان موظفاً فعلياً
+        final data = await _staffApi(
+          'reclaim',
+          {'phone': phone, 'name': name, 'role': role.name, 'password': password},
+          'يوجد موظف مسجّل بهذا الرقم مسبقاً',
+        );
+        return UserModel(
+          id: data['uid'] as String,
+          phone: phone,
+          name: name,
+          role: role,
+          createdAt: DateTime.now(),
+        );
       }
       throw Exception(phonePasswordError(e.code));
     } finally {
@@ -305,27 +315,41 @@ class AuthService {
 
   static String? get currentUserId => _auth.currentUser?.uid;
 
-  // المدير يعيّن كلمة مرور جديدة لموظف نسيها، عبر الخادم لأنها تتطلب صلاحية إدارية
-  static Future<void> resetStaffPassword(String userId, String newPassword) async {
-    const failure = 'تعذّر تغيير كلمة المرور، حاول مجدداً';
+  // عمليات حسابات الدخول تتطلب صلاحية إدارية، فتمر عبر الخادم
+  static Future<Map<String, dynamic>> _staffApi(
+      String path, Map<String, dynamic> body, String failure) async {
     final idToken = await _auth.currentUser?.getIdToken();
     if (idToken == null) throw Exception(failure);
     final res = await http.post(
-      Uri.parse('https://melz-lean-payments.melz102030.workers.dev/staff/reset-password'),
+      Uri.parse('https://melz-lean-payments.melz102030.workers.dev/staff/$path'),
       headers: {
         'Authorization': 'Bearer $idToken',
         'Content-Type': 'application/json',
       },
-      body: jsonEncode({'userId': userId, 'newPassword': newPassword}),
+      body: jsonEncode(body),
     );
-    if (res.statusCode == 200) return;
-    String? message;
+    Map<String, dynamic>? data;
     try {
-      message = (jsonDecode(res.body) as Map<String, dynamic>)['message'] as String?;
+      data = jsonDecode(res.body) as Map<String, dynamic>;
     } on FormatException {
-      message = null;
+      data = null;
     }
-    throw Exception(message ?? failure);
+    if (res.statusCode == 200 && data != null) return data;
+    throw Exception(data?['message'] as String? ?? failure);
+  }
+
+  // المدير يعيّن كلمة مرور جديدة لموظف نسيها
+  static Future<void> resetStaffPassword(String userId, String newPassword) async {
+    await _staffApi(
+      'reset-password',
+      {'userId': userId, 'newPassword': newPassword},
+      'تعذّر تغيير كلمة المرور، حاول مجدداً',
+    );
+  }
+
+  // حذف كامل: حساب الدخول مع الملف، حتى يصير الرقم متاحاً لإضافته من جديد
+  static Future<void> deleteUser(String userId) async {
+    await _staffApi('delete', {'userId': userId}, 'تعذّر حذف المستخدم، حاول مجدداً');
   }
 
   // ─── المناديب ─────────────────────────────────────────────────────────────

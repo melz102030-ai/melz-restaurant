@@ -5,19 +5,40 @@ const SUPER_PHONES = ["0531131125", "966531131125", "+966531131125", "0096653113
 
 const isSuperPhone = (phone) => SUPER_PHONES.includes(phone);
 
-// caller وtarget ملفان من users. isAnonymous لحساب المتصل (الضيف ليس موظفاً أبداً)
+const STAFF_ROLES = ["admin", "kitchen", "driver"];
+
+// caller ملف المتصل من users، وisAnonymous لحسابه (الضيف ليس موظفاً أبداً)
+function hasUsersPermission(caller, isAnonymous) {
+  if (isAnonymous || !caller || caller.role !== "admin") return false;
+  const permissions = caller.permissions ?? {};
+  return (
+    isSuperPhone(caller.phone ?? "") ||
+    caller.systemRole === "assistantAdmin" ||
+    Object.keys(permissions).length === 0 ||
+    permissions.users === true
+  );
+}
+
+// المدير الأعلى لا يمسّه غيره، ومساعده لا يمسّه إلا المدير الأعلى
+function canManageTarget(caller, target) {
+  if (isSuperPhone(caller.phone ?? "")) return true;
+  return !isSuperPhone(target.phone ?? "") && target.systemRole !== "assistantAdmin";
+}
+
 export function canResetStaffPassword({ caller, target, isAnonymous, isSelf }) {
-  if (isAnonymous || !caller || !target || caller.role !== "admin") return false;
+  if (!target || !hasUsersPermission(caller, isAnonymous)) return false;
   // صاحب الحساب يغيّرها بكلمته الحالية، ولا حسابات دخول بكلمة مرور للعملاء
   if (isSelf || target.role === "customer") return false;
+  return canManageTarget(caller, target);
+}
 
-  const callerIsSuper = isSuperPhone(caller.phone ?? "");
-  const callerIsSystem = callerIsSuper || caller.systemRole === "assistantAdmin";
-  const permissions = caller.permissions ?? {};
-  const hasUsersPerm =
-    callerIsSystem || Object.keys(permissions).length === 0 || permissions.users === true;
-  if (!hasUsersPerm) return false;
+export function canDeleteUser({ caller, target, isAnonymous, isSelf }) {
+  if (!target || isSelf || !hasUsersPermission(caller, isAnonymous)) return false;
+  return canManageTarget(caller, target);
+}
 
-  if (callerIsSuper) return true;
-  return !isSuperPhone(target.phone ?? "") && target.systemRole !== "assistantAdmin";
+// إعادة استخدام حساب دخول بقي بلا ملف لموظف حُذف قبل حذف الحسابات مع الملفات
+export function canReclaimStaffAccount({ caller, isAnonymous, role, phone }) {
+  if (!hasUsersPermission(caller, isAnonymous) || !STAFF_ROLES.includes(role)) return false;
+  return !isSuperPhone(phone) || isSuperPhone(caller.phone ?? "");
 }
