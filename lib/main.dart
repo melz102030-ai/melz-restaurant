@@ -1,10 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'app.dart';
+import 'core/constants/app_config.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/services/auth_service.dart';
 
@@ -14,6 +17,12 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  if (kE2E) {
+    FirebaseFirestore.instance.useFirestoreEmulator('127.0.0.1', 8080);
+    await FirebaseAuth.instance.useAuthEmulator('127.0.0.1', 9099);
+    SemanticsBinding.instance.ensureSemantics();
+  }
 
   await initializeDateFormatting('ar', null);
 

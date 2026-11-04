@@ -5,6 +5,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'core/constants/app_config.dart';
 
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
@@ -29,7 +30,8 @@ class DefaultFirebaseOptions {
     apiKey: 'AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0',
     appId: '1:576056016616:web:54675719dc0de0da22535d',
     messagingSenderId: '576056016616',
-    projectId: 'melz-restaurant',
+    // مشروع demo- لا يصل إلى أي خدمة حقيقية، فيضمن أن بناء الاختبار لا يمس بيانات المطعم
+    projectId: kE2E ? 'demo-melz' : 'melz-restaurant',
     authDomain: 'melz-restaurant.firebaseapp.com',
     storageBucket: 'melz-restaurant.firebasestorage.app',
   );

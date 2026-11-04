@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import '../constants/app_config.dart';
 import '../models/closing_report.dart';
 import '../models/order_model.dart';
 import '../models/settings_model.dart';
@@ -16,8 +17,7 @@ class OrderService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _colOrders = 'orders';
 
-  static const String _ordersUrl =
-      'https://melz-lean-payments.melz102030.workers.dev/orders';
+  static const String _ordersUrl = '$kWorkerUrl/orders';
   static const String _serverFailure = 'تعذّر إرسال الطلب، حاول مجدداً';
 
   // يرسل للخادم بتوكن المستخدم، ويرمي OrderRejectedException برسالة جاهزة للعرض

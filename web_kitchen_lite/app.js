@@ -9,13 +9,19 @@ firebase.initializeApp({
   apiKey: 'AIzaSyC6DBWYEkTNv7QE0P7MAbtJSlSc6YiJnw0',
   appId: '1:576056016616:web:54675719dc0de0da22535d',
   messagingSenderId: '576056016616',
-  projectId: 'melz-restaurant',
+  projectId: window.__E2E__ ? 'demo-melz' : 'melz-restaurant',
   authDomain: 'melz-restaurant.firebaseapp.com',
   storageBucket: 'melz-restaurant.firebasestorage.app',
 });
 var auth = firebase.auth();
 var db = firebase.firestore();
 var WORKER_URL = 'https://melz-lean-payments.melz102030.workers.dev';
+// تضبطه اختبارات الرحلة (e2e/) فقط، فتعمل الصفحة على المحاكي المحلي
+if (window.__E2E__) {
+  db.useEmulator('127.0.0.1', 8080);
+  auth.useEmulator('http://127.0.0.1:9099');
+  WORKER_URL = window.__E2E__.workerUrl;
+}
 
 // ─── حالة عامة ───────────────────────────────────────────────────────────────
 var state = {

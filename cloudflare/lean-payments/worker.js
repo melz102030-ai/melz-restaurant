@@ -105,7 +105,12 @@ function base64url(input) {
 
 // توكن وصول Google بصلاحية إدارية (Service Account JWT bearer) — للكتابة
 // على Firestore متجاوزاً قواعد أمان العميل، تماماً كعمل Admin SDK
+// اختبارات الرحلة (e2e/) تضبط هذا المتغير فقط، فيعمل الخادم على المحاكي المحلي بدل
+// Firestore الحقيقي. لا يوجد في النشر (wrangler.toml)، فلا أثر له على الموقع.
+const firestoreOrigin = (env) => env.FIRESTORE_EMULATOR_ORIGIN || "https://firestore.googleapis.com";
+
 async function getFirestoreAdminToken(env, scope = "https://www.googleapis.com/auth/datastore") {
+  if (env.FIRESTORE_EMULATOR_ORIGIN) return "owner"; // صلاحية المدير في المحاكي
   const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON);
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
@@ -149,7 +154,7 @@ async function patchOrder(env, orderId, fields, adminToken) {
   const mask = Object.keys(fields)
     .map((f) => `updateMask.fieldPaths=${f}`)
     .join("&");
-  const url = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${orderId}?${mask}`;
+  const url = `${firestoreOrigin(env)}/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${orderId}?${mask}`;
   const body = {
     fields: Object.fromEntries(
       Object.entries(fields).map(([k, v]) => [
@@ -185,7 +190,7 @@ async function handleCreatePayment(request, env) {
 
   // جلب الطلب بتوكن العميل نفسه — Firestore ترفض أي طلب ليس ملكه فعلياً
   const orderRes = await fetch(
-    `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${orderId}`,
+    `${firestoreOrigin(env)}/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/orders/${orderId}`,
     { headers: { Authorization: `Bearer ${idToken}` } }
   );
   if (!orderRes.ok) return json({ error: "order-not-found-or-forbidden" }, 403);
@@ -308,7 +313,7 @@ async function handleWebhook(request, env) {
     // تخمين لشكل الحمولة، ويعمل بغض النظر عن اختلاف حقول الويبهوك مستقبلاً
     const adminToken = await getFirestoreAdminToken(env);
     const q = await fetch(
-      `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`,
+      `${firestoreOrigin(env)}/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery`,
       {
         method: "POST",
         headers: {
@@ -347,7 +352,7 @@ async function handleWebhook(request, env) {
 // ويحسب الإجمالي ويكتب الطلب بحساب الخدمة، فلا يملك المتصفح أي تأثير على المبلغ.
 
 const firestoreBase = (env) =>
-  `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+  `${firestoreOrigin(env)}/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
 
 function fromFs(value) {
   if (!value || "nullValue" in value) return null;

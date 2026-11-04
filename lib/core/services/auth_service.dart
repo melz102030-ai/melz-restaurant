@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/app_config.dart';
 import '../models/user_model.dart';
 
 class AuthService {
@@ -321,7 +322,7 @@ class AuthService {
     final idToken = await _auth.currentUser?.getIdToken();
     if (idToken == null) throw Exception(failure);
     final res = await http.post(
-      Uri.parse('https://melz-lean-payments.melz102030.workers.dev/staff/$path'),
+      Uri.parse('$kWorkerUrl/staff/$path'),
       headers: {
         'Authorization': 'Bearer $idToken',
         'Content-Type': 'application/json',
