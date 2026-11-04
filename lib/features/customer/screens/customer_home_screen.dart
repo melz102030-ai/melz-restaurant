@@ -82,8 +82,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         }
         break;
       case PopupAdLinkType.url:
-        if (ad.externalUrl != null && ad.externalUrl!.isNotEmpty) {
-          launchUrl(Uri.parse(ad.externalUrl!), mode: LaunchMode.externalApplication);
+        // الإعلانات القديمة قد تكون بدون https://
+        final url = normalizeWebUrl(ad.externalUrl ?? '');
+        if (url != null) {
+          launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
         }
         break;
       case PopupAdLinkType.none:

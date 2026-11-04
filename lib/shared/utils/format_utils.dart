@@ -52,3 +52,16 @@ String normalizeForSearch(String text) {
   _arabicVariants.forEach((from, to) => out = out.replaceAll(from, to));
   return out;
 }
+
+// رابط موقع صالح للفتح: يضيف https:// إذا لم يُكتب، و null لأي شيء آخر
+final _hasScheme = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*://');
+
+String? normalizeWebUrl(String input) {
+  final text = input.trim();
+  if (text.isEmpty) return null;
+  final uri = Uri.tryParse(_hasScheme.hasMatch(text) ? text : 'https://$text');
+  if (uri == null) return null;
+  if (uri.scheme != 'https' && uri.scheme != 'http') return null;
+  if (uri.userInfo.isNotEmpty || !uri.host.contains('.')) return null;
+  return uri.toString();
+}

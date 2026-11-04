@@ -12,6 +12,7 @@ import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/popup_ad_service.dart';
 import '../../../features/customer/providers/menu_provider.dart';
 import '../../../shared/utils/async_utils.dart';
+import '../../../shared/utils/format_utils.dart';
 import '../../../shared/widgets/admin_action_widgets.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
@@ -293,6 +294,11 @@ class _PopupAdDialogEditorState extends ConsumerState<_PopupAdDialogEditor> {
       setState(() => _error = 'أدخل الرابط الخارجي');
       return;
     }
+    final externalUrl = normalizeWebUrl(_urlCtrl.text);
+    if (_linkType == PopupAdLinkType.url && externalUrl == null) {
+      setState(() => _error = 'الرابط غير صحيح، اكتبه مثل: example.com');
+      return;
+    }
     setState(() {
       _isSaving = true;
       _error = null;
@@ -315,7 +321,7 @@ class _PopupAdDialogEditorState extends ConsumerState<_PopupAdDialogEditor> {
         linkId: (_linkType == PopupAdLinkType.category || _linkType == PopupAdLinkType.item)
             ? _linkId
             : null,
-        externalUrl: _linkType == PopupAdLinkType.url ? _urlCtrl.text.trim() : null,
+        externalUrl: _linkType == PopupAdLinkType.url ? externalUrl : null,
       );
       if (widget.ad != null) {
         await PopupAdService.updateAd(ad);
