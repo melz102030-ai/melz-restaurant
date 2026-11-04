@@ -129,7 +129,7 @@ service cloud.firestore {
 
       // التعديل: ثلاث حالات فقط، ولا يجوز لأيٍّ منها تعديل الأصناف أو الأسعار
       // أو صاحب الطلب بعد الإنشاء.
-      allow update: if isSignedIn() && _priceFieldsUnchanged() && (
+      allow update: if isSignedIn() && _priceFieldsUnchanged() && _statusChangeAllowed() && (
         // 1) المطبخ/الأدمن: إدارة الحالة والتحضير وتعيين/إلغاء المندوب —
         //    باستثناء إلغاء تعيين مندوب يحمل الطلب بالفعل (outForDelivery).
         ((isKitchen() || hasPerm('orders') || hasPerm('kitchen')) &&
@@ -157,6 +157,18 @@ service cloud.firestore {
       );
 
       allow delete: if hasPerm('orders');
+
+      // الطلب يتقدم خطوة خطوة ولا يرجع، والمسلَّم والملغى نهائيان حتى للمدير
+      function _statusChangeAllowed() {
+        let from = resource.data.status;
+        let to = request.resource.data.status;
+        return from == to ||
+          (from == 'pending' && to in ['confirmed', 'cancelled']) ||
+          (from == 'confirmed' && to in ['preparing', 'cancelled']) ||
+          (from == 'preparing' && to in ['ready', 'cancelled']) ||
+          (from == 'ready' && to in ['outForDelivery', 'delivered', 'cancelled']) ||
+          (from == 'outForDelivery' && to in ['delivered', 'cancelled']);
+      }
 
       function _priceFieldsUnchanged() {
         return request.resource.data.customerId == resource.data.customerId &&

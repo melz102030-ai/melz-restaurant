@@ -144,6 +144,32 @@ test("الطلبات: العميل يلغي طلبه وهو بالانتظار،
   await assertFails(cancel(guest("guest1")));
 });
 
+test("الطلبات: الحالة تتقدم بالترتيب ولا ترجع، حتى للمدير", async () => {
+  const set = (db, status) => updateDoc(doc(db, "orders/o1"), { status });
+  const kitchen = staff("kitchen1");
+  const admin = staff("admin1");
+
+  await assertFails(set(kitchen, "ready"));
+  await assertFails(set(kitchen, "delivered"));
+  await assertSucceeds(set(kitchen, "confirmed"));
+  await assertFails(set(kitchen, "pending"));
+  await assertSucceeds(set(kitchen, "preparing"));
+  await assertFails(set(admin, "confirmed"));
+  await assertSucceeds(set(kitchen, "ready"));
+  await assertSucceeds(set(admin, "delivered"));
+
+  await assertFails(set(admin, "cancelled"));
+  await assertFails(set(admin, "ready"));
+
+  await seed((db) => setDoc(doc(db, "orders/o1"), order({ status: "cancelled" })));
+  await assertFails(set(admin, "pending"));
+  await assertFails(set(kitchen, "confirmed"));
+
+  await seed((db) => setDoc(doc(db, "orders/o1"), order({ status: "outForDelivery", driverId: "driver1" })));
+  await assertFails(set(staff("driver1"), "ready"));
+  await assertSucceeds(set(staff("driver1"), "delivered"));
+});
+
 test("الطلبات: رفع الإيصال لطلب التحويل البنكي فقط", async () => {
   const attach = () => updateDoc(doc(guest("guest1"), "orders/o1"), { paymentReceiptUrl: "x" });
   await assertFails(attach());

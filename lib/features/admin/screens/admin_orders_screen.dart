@@ -9,6 +9,7 @@ import '../../../core/models/order_model.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/order_service.dart';
 import '../../../core/services/receipt_print_service.dart';
+import '../../../shared/utils/async_utils.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../providers/admin_provider.dart';
@@ -284,6 +285,35 @@ class _PaymentReceiptRow extends StatelessWidget {
   final OrderModel order;
   const _PaymentReceiptRow({required this.order});
 
+  void _confirmPayment(BuildContext context, {required bool paid}) {
+    final amount = '${order.total.toStringAsFixed(2)} ${AppStrings.sar}';
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(paid ? 'تأكيد استلام المبلغ' : 'إلغاء تأكيد الاستلام'),
+        content: Text(paid
+            ? 'هل وصل مبلغ $amount من "${order.customerName}" إلى الحساب؟'
+            : 'سيعود طلب "${order.customerName}" إلى انتظار مراجعة التحويل.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('تراجع')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              runOrShowError(
+                context,
+                () => OrderService.updatePaymentStatus(
+                  order.id,
+                  paid ? PaymentStatus.paid : PaymentStatus.pending,
+                ),
+              );
+            },
+            child: Text(paid ? 'تأكيد' : 'إلغاء التأكيد'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final paid = order.paymentStatus == PaymentStatus.paid;
@@ -320,15 +350,20 @@ class _PaymentReceiptRow extends StatelessWidget {
         else
           Text('لم يُرفق العميل إيصالاً بعد',
               style: TextStyle(color: AppColors.textHint, fontSize: 12.5)),
-        if (!paid) ...[
-          const SizedBox(height: 8),
+        const SizedBox(height: 8),
+        if (paid)
+          TextButton.icon(
+            onPressed: () => _confirmPayment(context, paid: false),
+            icon: const Icon(Icons.undo, size: 18),
+            label: const Text('إلغاء تأكيد الاستلام'),
+          )
+        else
           OutlinedButton.icon(
-            onPressed: () => OrderService.updatePaymentStatus(order.id, PaymentStatus.paid),
+            onPressed: () => _confirmPayment(context, paid: true),
             style: OutlinedButton.styleFrom(foregroundColor: AppColors.success),
             icon: const Icon(Icons.check_circle_outline, size: 18),
             label: const Text('تأكيد استلام المبلغ'),
           ),
-        ],
       ],
     );
   }
@@ -338,37 +373,33 @@ class _StatusActionButtons extends ConsumerWidget {
   final OrderModel order;
   const _StatusActionButtons({required this.order});
 
+  void _advance(BuildContext context, OrderStatus to) {
+    runOrShowError(
+      context,
+      () => OrderService.advanceOrderStatus(order.id, from: order.status, to: to),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        if (order.status == OrderStatus.pending)
-          _ActionButton(
-            label: 'تأكيد',
-            icon: Icons.thumb_up,
-            color: AppColors.statusConfirmed,
-            onTap: () async {
-              await OrderService.updateOrderStatus(order.id, OrderStatus.confirmed);
-              // طباعة فاتورة الطلب تلقائياً فور التأكيد — على طابعة الجهاز
-              // نفسه إن وُجدت (لا يوقف أي شيء لو ما فيه طابعة متصلة)
-              ReceiptPrintService.printOrder(order, ref.read(settingsProvider));
-            },
-          ),
+        // قبول الطلب من المطبخ فقط، لأنه يحدد وقت التحضير ويطبع على طابعته
         if (order.status == OrderStatus.confirmed)
           _ActionButton(
             label: 'بدء التحضير',
             icon: Icons.restaurant,
             color: AppColors.statusPreparing,
-            onTap: () => OrderService.updateOrderStatus(order.id, OrderStatus.preparing),
+            onTap: () => _advance(context, OrderStatus.preparing),
           ),
         if (order.status == OrderStatus.preparing)
           _ActionButton(
             label: 'جاهز',
             icon: Icons.check_circle,
             color: AppColors.statusReady,
-            onTap: () => OrderService.updateOrderStatus(order.id, OrderStatus.ready),
+            onTap: () => _advance(context, OrderStatus.ready),
           ),
         if (order.status == OrderStatus.ready ||
             order.status == OrderStatus.outForDelivery)
@@ -376,7 +407,7 @@ class _StatusActionButtons extends ConsumerWidget {
             label: 'تم التسليم',
             icon: Icons.done_all,
             color: AppColors.statusDelivered,
-            onTap: () => OrderService.updateOrderStatus(order.id, OrderStatus.delivered),
+            onTap: () => _advance(context, OrderStatus.delivered),
           ),
         _ActionButton(
           label: 'إعادة طباعة',
@@ -407,7 +438,7 @@ class _StatusActionButtons extends ConsumerWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              OrderService.updateOrderStatus(order.id, OrderStatus.cancelled);
+              _advance(context, OrderStatus.cancelled);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('إلغاء الطلب'),

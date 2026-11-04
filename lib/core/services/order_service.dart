@@ -271,6 +271,25 @@ class OrderService {
     await _db.collection(_colOrders).doc(orderId).update(update);
   }
 
+  // تغيير الحالة بشرط أنها لم تتغير من جهاز آخر منذ عرض الطلب على الشاشة
+  static Future<void> advanceOrderStatus(
+    String orderId, {
+    required OrderStatus from,
+    required OrderStatus to,
+  }) {
+    final ref = _db.collection(_colOrders).doc(orderId);
+    return _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (snap.data()?['status'] != from.name) {
+        throw Exception('هذا الطلب تغيّرت حالته من جهاز آخر');
+      }
+      tx.update(ref, {
+        'status': to.name,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      });
+    });
+  }
+
   // العميل يوافق على إزالة الأصناف غير المتوفرة — الخادم يحذفها ويعيد الحساب،
   // لأن القواعد تمنع أي متصفح من تعديل أصناف الطلب وأسعاره
   static Future<void> acknowledgeUnavailableItems(OrderModel order) async {
