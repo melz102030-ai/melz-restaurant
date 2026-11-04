@@ -4,8 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/theme/app_fonts.dart';
 import '../../../core/models/app_theme_settings.dart';
 import '../../../core/providers/app_theme_provider.dart';
 import '../../../core/providers/settings_provider.dart';
@@ -573,12 +573,7 @@ class _FontPicker extends StatelessWidget {
       runSpacing: 8,
       children: AppThemeSettings.availableFonts.map((font) {
         final isSelected = font == selected;
-        TextStyle style;
-        try {
-          style = GoogleFonts.getFont(font, fontWeight: FontWeight.w600, fontSize: 15);
-        } catch (_) {
-          style = GoogleFonts.cairo(fontWeight: FontWeight.w600, fontSize: 15);
-        }
+        final style = appFont(font, fontWeight: FontWeight.w600, fontSize: 15);
         final labelColor = isSelected ? Colors.white : AppColors.textPrimary;
         final hintColor = isSelected ? Colors.white.withValues(alpha: 0.75) : AppColors.textHint;
         return GestureDetector(
@@ -658,13 +653,8 @@ class _PreviewCard extends StatelessWidget {
     final card = Color(settings.cardColor);
     final text = Color(settings.textColor);
     final radius = settings.cardStyle == CardStyle.rounded ? 16.0 : 4.0;
-    TextStyle font(double size, FontWeight w) {
-      try {
-        return GoogleFonts.getFont(settings.fontFamily, fontSize: size, fontWeight: w);
-      } catch (_) {
-        return GoogleFonts.cairo(fontSize: size, fontWeight: w);
-      }
-    }
+    TextStyle font(double size, FontWeight w) =>
+        appFont(settings.fontFamily, fontSize: size, fontWeight: w);
 
     return Container(
       padding: const EdgeInsets.all(16),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 import '../models/app_theme_settings.dart';
+import 'app_fonts.dart';
 
 class AppTheme {
   // يُبنى من AppColors الحالية (المحدَّثة مسبقاً عبر AppColors.applyTheme) + خط الأدمن المختار
@@ -39,7 +39,7 @@ class AppTheme {
         onSurface: AppColors.textPrimary,
       ),
       scaffoldBackgroundColor: AppColors.background,
-      textTheme: _googleFontsTextTheme(settings.fontFamily, textTheme),
+      textTheme: appFontTextTheme(settings.fontFamily, textTheme),
       appBarTheme: AppBarTheme(
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.textPrimary,
@@ -65,7 +65,7 @@ class AppTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(fieldRadius)),
-          textStyle: _googleFont(settings.fontFamily, fontWeight: FontWeight.w600, fontSize: 16),
+          textStyle: appFont(settings.fontFamily, fontWeight: FontWeight.w600, fontSize: 16),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -149,21 +149,5 @@ class AppTheme {
                 : AppColors.surfaceLight),
       ),
     );
-  }
-
-  static TextTheme _googleFontsTextTheme(String fontFamily, TextTheme base) {
-    try {
-      return GoogleFonts.getTextTheme(fontFamily, base);
-    } catch (_) {
-      return GoogleFonts.cairoTextTheme(base);
-    }
-  }
-
-  static TextStyle _googleFont(String fontFamily, {FontWeight? fontWeight, double? fontSize}) {
-    try {
-      return GoogleFonts.getFont(fontFamily, fontWeight: fontWeight, fontSize: fontSize);
-    } catch (_) {
-      return GoogleFonts.cairo(fontWeight: fontWeight, fontSize: fontSize);
-    }
   }
 }
