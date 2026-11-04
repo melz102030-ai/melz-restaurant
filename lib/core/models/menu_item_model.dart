@@ -135,6 +135,43 @@ class MenuItemModel {
     );
   }
 
+  // مجموعات الصنف بعد تعديل قالبها: تبقى في مكانها بين مجموعات الصنف، ويبقى الخيار
+  // الموقوف موقوفاً، وتُزال المجموعة المكررة من نفس القالب
+  List<OptionGroup> optionGroupsWithTemplate(String templateId, List<OptionGroup> templateGroups) {
+    OptionGroup linked(OptionGroup fresh, OptionGroup? existing) => fresh.copyWith(
+          sourceTemplateId: templateId,
+          options: [
+            for (final option in fresh.options)
+              option.copyWith(
+                isAvailable: existing?.options
+                        .where((o) => o.id == option.id)
+                        .firstOrNull
+                        ?.isAvailable ??
+                    option.isAvailable,
+              ),
+          ],
+        );
+
+    final placed = <String>{};
+    final result = <OptionGroup>[];
+    var insertAt = -1;
+    for (final group in optionGroups) {
+      if (group.sourceTemplateId != templateId) {
+        result.add(group);
+        continue;
+      }
+      final fresh = templateGroups.where((g) => g.id == group.id).firstOrNull;
+      if (fresh != null && placed.add(group.id)) result.add(linked(fresh, group));
+      insertAt = result.length;
+    }
+    final added = [
+      for (final g in templateGroups)
+        if (!placed.contains(g.id)) linked(g, null),
+    ];
+    result.insertAll(insertAt < 0 ? result.length : insertAt, added);
+    return result;
+  }
+
   bool get hasDiscount => discountPercent != null && discountPercent! > 0;
   bool get hasOptions => optionGroups.isNotEmpty;
 
