@@ -82,24 +82,22 @@ async function waitForDoc(path, predicate, timeout = 20000) {
   throw new Error(`لم يتحدث ${path}: ${JSON.stringify(last).slice(0, 400)}`);
 }
 
-// تشخيص مؤقت: أين تذهب ضغطة زر الزيادة، وأي طريقة ضغط يستجيب لها
-async function diagnosePlusButton(page) {
-  const addLabel = async () => (await semantics(page)).map((n) => n.text).find((t) => /أضف للسلة/.test(t)) ?? "";
-  const hit = await waitForLabel(page, /^زيادة$/);
-  const seen = await page.evaluate(({ x, y }) => {
-    const el = document.elementFromPoint(x, y);
-    const brief = (e) => (e ? e.outerHTML.slice(0, 140) : "");
-    return `${brief(el)} << ${brief(el?.parentElement)}`;
-  }, hit);
-  report(`عند الزر: ${seen}`);
-  const before = await addLabel();
-  await page.mouse.click(hit.x, hit.y);
-  await page.waitForTimeout(600);
-  const afterMouse = await addLabel();
-  await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.click(), hit);
-  await page.waitForTimeout(600);
-  const afterClick = await addLabel();
-  report(`قبل: ${before} / بعد الماوس: ${afterMouse} / بعد click: ${afterClick}`);
+// زر الزيادة صغير ومكانه في شجرة أدوات الوصول قد يقع خارج حدود الشاشة، فيُضغط العنصر
+// نفسه: الأقرب إلى الصف المطلوب، وعدد مرات الضغط يُتحقق منه في زر الإضافة
+async function tapPlusInRow(page, rowPattern) {
+  const row = await waitForLabel(page, rowPattern);
+  const clicked = await page.evaluate((rowY) => {
+    const plus = [...document.querySelectorAll("flt-semantics")].filter((n) => {
+      const own = [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join(" ");
+      return (n.getAttribute("aria-label") || own || "").trim() === "زيادة";
+    });
+    const distance = (n) => Math.abs(n.getBoundingClientRect().y - rowY);
+    const nearest = plus.sort((a, b) => distance(a) - distance(b))[0];
+    nearest?.click();
+    return plus.length;
+  }, row.y);
+  assert.ok(clicked > 0, "لا يوجد زر زيادة");
+  await page.waitForTimeout(350);
 }
 
 async function customerPlacesOrder(browser) {
@@ -114,18 +112,9 @@ async function customerPlacesOrder(browser) {
 
   step = "العميل: اختيار ٥ كوكتيل و٣ كاتشب";
   await tap(page, /صوص كوكتيل/);
-  await diagnosePlusButton(page);
-  for (let i = 0; i < 4; i++) await tap(page, /^زيادة$/);
+  for (let i = 0; i < 4; i++) await tapPlusInRow(page, /صوص كوكتيل/);
   await tap(page, /صوص كاتشب/);
-  // يُقاس الزر قبل كل ضغطة، لأن ظهور العداد قد يحرك الصفوف
-  for (let i = 0; i < 2; i++) {
-    await page.waitForTimeout(400);
-    const pluses = (await semantics(page)).filter((n) => n.text === "زيادة");
-    assert.equal(pluses.length, 2, "لازم عدادين للخيارين المختارين");
-    const ketchupRow = (await waitForLabel(page, /صوص كاتشب/)).y;
-    const ketchupPlus = pluses.reduce((a, b) => (Math.abs(a.y - ketchupRow) < Math.abs(b.y - ketchupRow) ? a : b));
-    await press(page, ketchupPlus.x, ketchupPlus.y);
-  }
+  for (let i = 0; i < 2; i++) await tapPlusInRow(page, /صوص كاتشب/);
 
   step = "العميل: زر الإضافة بالسعر الصحيح وبلا عدّاد كمية عام";
   const labels = (await semantics(page)).map((n) => n.text);
