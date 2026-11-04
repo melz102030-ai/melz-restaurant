@@ -16,23 +16,15 @@ import '../../../core/providers/delivery_zone_provider.dart';
 import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../shared/widgets/app_button.dart';
+import '../models/delivery_location_result.dart';
+
+export '../models/delivery_location_result.dart';
 
 class _SearchResult {
   final String displayName;
   final double lat;
   final double lon;
   const _SearchResult({required this.displayName, required this.lat, required this.lon});
-}
-
-class DeliveryLocationResult {
-  final double lat;
-  final double lng;
-  final String? addressNote;
-  const DeliveryLocationResult({
-    required this.lat,
-    required this.lng,
-    this.addressNote,
-  });
 }
 
 // اختيار موقع التوصيل عبر تحديد الموقع الحالي (GPS) أو تحريك الخريطة يدوياً

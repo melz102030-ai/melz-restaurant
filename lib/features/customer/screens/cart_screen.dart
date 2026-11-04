@@ -32,7 +32,8 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../../auth/widgets/guest_checkout_sheet.dart';
-import 'delivery_location_picker_screen.dart';
+import '../models/delivery_location_result.dart';
+import 'delivery_location_picker_screen.dart' deferred as location_picker;
 import '../providers/menu_provider.dart';
 
 class CartScreen extends ConsumerStatefulWidget {
@@ -113,11 +114,30 @@ class _CartScreenState extends ConsumerState<CartScreen> {
     super.dispose();
   }
 
+  // الخريطة تُحمَّل عند أول فتح فقط، لأن كثيراً من العملاء لا يختارون التوصيل
+  bool _openingLocationPicker = false;
+
   Future<void> _pickDeliveryLocation() async {
+    if (_openingLocationPicker) return;
+    _openingLocationPicker = true;
+    try {
+      await location_picker.loadLibrary();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: const Text('تعذّر فتح الخريطة، تحقق من الاتصال وحاول مجدداً'),
+          backgroundColor: AppColors.error,
+        ));
+      }
+      return;
+    } finally {
+      _openingLocationPicker = false;
+    }
+    if (!mounted) return;
     final result = await Navigator.of(context, rootNavigator: true)
         .push<DeliveryLocationResult>(
       MaterialPageRoute(
-        builder: (_) => DeliveryLocationPickerScreen(
+        builder: (_) => location_picker.DeliveryLocationPickerScreen(
           initialLat: _deliveryLat,
           initialLng: _deliveryLng,
           initialNote: _deliveryAddressNote,

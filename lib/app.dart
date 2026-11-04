@@ -12,15 +12,15 @@ import 'features/auth/screens/staff_login_screen.dart';
 import 'features/customer/screens/customer_home_screen.dart';
 import 'features/customer/screens/cart_screen.dart';
 import 'features/customer/screens/item_detail_screen.dart';
-import 'features/customer/screens/order_tracking_screen.dart';
+import 'features/customer/screens/order_tracking_screen.dart' deferred as tracking;
 import 'features/customer/screens/order_history_screen.dart';
 import 'features/customer/screens/profile_screen.dart';
-import 'features/customer/screens/support_screen.dart';
-import 'features/customer/screens/support_ticket_screen.dart';
+import 'features/customer/screens/support_screen.dart' deferred as support;
+import 'features/customer/screens/support_ticket_screen.dart' deferred as support_ticket;
 import 'features/admin/admin_screens.dart' deferred as admin;
 import 'features/driver/screens/driver_screen.dart' deferred as driver;
 import 'shared/utils/kitchen_redirect.dart';
-import 'features/game/heart_dodge_game_screen.dart';
+import 'features/game/heart_dodge_game_screen.dart' deferred as game;
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _adminKey = GlobalKey<NavigatorState>();
@@ -125,8 +125,11 @@ final _routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/track/:orderId',
-        builder: (_, state) =>
-            OrderTrackingScreen(orderId: state.pathParameters['orderId']!),
+        builder: (_, state) => _DeferredPage(
+          id: 'tracking',
+          load: tracking.loadLibrary,
+          builder: () => tracking.OrderTrackingScreen(orderId: state.pathParameters['orderId']!),
+        ),
       ),
       GoRoute(
         path: '/orders',
@@ -138,17 +141,27 @@ final _routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/support',
-        builder: (_, __) => const SupportScreen(),
+        builder: (_, __) => _DeferredPage(
+          id: 'support',
+          load: support.loadLibrary,
+          builder: () => support.SupportScreen(),
+        ),
       ),
       GoRoute(
         path: '/support/:ticketId',
-        builder: (_, state) =>
-            SupportTicketScreen(ticketId: state.pathParameters['ticketId']!),
+        builder: (_, state) => _DeferredPage(
+          id: 'support_ticket',
+          load: support_ticket.loadLibrary,
+          builder: () => support_ticket.SupportTicketScreen(ticketId: state.pathParameters['ticketId']!),
+        ),
       ),
       GoRoute(
         path: '/game/:orderId',
-        builder: (_, state) =>
-            HeartDodgeGameScreen(orderId: state.pathParameters['orderId']!),
+        builder: (_, state) => _DeferredPage(
+          id: 'game',
+          load: game.loadLibrary,
+          builder: () => game.HeartDodgeGameScreen(orderId: state.pathParameters['orderId']!),
+        ),
       ),
 
       // Admin - Shell route with sidebar
