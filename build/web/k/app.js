@@ -797,12 +797,23 @@ function buildOrderCard(order, index) {
         update.estimatedSetAt = firebase.firestore.Timestamp.now();
       }
     }
-    db.collection('orders').doc(order.id).update(update)
+    // بمعاملة تتأكد أن الحالة لم تتغير، حتى لا يؤكد جهازان نفس الطلب ويطبعاه مرتين
+    var ref = db.collection('orders').doc(order.id);
+    db.runTransaction(function (tx) {
+      return tx.get(ref).then(function (snap) {
+        if (!snap.exists || snap.data().status !== order.status) {
+          throw new Error(ORDER_CHANGED_ELSEWHERE);
+        }
+        tx.update(ref, update);
+      });
+    })
       .then(function () {
         delete state.orderDrafts[order.id];
         if (newStatus === 'confirmed') printOrder(order);
       })
-      .catch(function (e) { toast('خطأ: ' + e.message); })
+      .catch(function (e) {
+        toast(e.message === ORDER_CHANGED_ELSEWHERE ? e.message : 'خطأ: ' + e.message);
+      })
       .finally(function () { btnEl.classList.remove('loading'); });
   }
 
@@ -854,6 +865,8 @@ function buildOrderCard(order, index) {
 
   return card;
 }
+
+var ORDER_CHANGED_ELSEWHERE = 'هذا الطلب تغيّرت حالته من جهاز آخر';
 
 function actionBtn(label, variant, onclick) {
   var btn = el('button', { class: 'action-btn ' + variant }, [label]);
