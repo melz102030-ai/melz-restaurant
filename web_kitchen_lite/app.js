@@ -41,7 +41,7 @@ var state = {
   activeFromCache: false,
   recentFromCache: false,
   unsubSettings: null,
-  unsubVerified: null,
+  verifiedListeners: {}, // phone -> إلغاء الاستماع
   verifiedPhones: {},    // phone -> { verifiedAt, verifiedBy }
 };
 
@@ -307,13 +307,6 @@ function setupListeners() {
     renderOpenStatus();
   });
 
-  state.unsubVerified = db.collection('verified_phones').onSnapshot(function (snap) {
-    var map = {};
-    snap.docs.forEach(function (d) { map[d.id] = d.data(); });
-    state.verifiedPhones = map;
-    render();
-  });
-
   // مستمعان بدل استعلام واحد يحمّل كل ما سُلِّم منذ أول يوم: الطلبات النشطة
   // (عددها محدود بطبيعتها)، وما تغيّر مؤخراً لعرض المسلَّم آخر ٤ ساعات
   state.unsubOrders = db.collection('orders')
@@ -347,6 +340,36 @@ function subscribeRecentOrders() {
     });
 }
 
+// توثيق أرقام الطلبات المعروضة فقط، بدل قراءة قائمة تكبر مع كل عميل موثق عند كل فتح.
+// فشله لا يوقف عرض الطلبات ولا المنبه.
+function syncVerifiedPhones() {
+  var shown = {};
+  state.orders.forEach(function (o) { if (o.customerPhone) shown[o.customerPhone] = true; });
+
+  Object.keys(state.verifiedListeners).forEach(function (phone) {
+    if (shown[phone]) return;
+    state.verifiedListeners[phone]();
+    delete state.verifiedListeners[phone];
+    delete state.verifiedPhones[phone];
+  });
+
+  Object.keys(shown).forEach(function (phone) {
+    if (state.verifiedListeners[phone]) return;
+    try {
+      state.verifiedListeners[phone] = db.collection('verified_phones').doc(phone).onSnapshot(function (snap) {
+        var wasVerified = !!state.verifiedPhones[phone];
+        if (snap.exists) state.verifiedPhones[phone] = snap.data();
+        else delete state.verifiedPhones[phone];
+        if (wasVerified !== snap.exists) render();
+      }, function (err) {
+        console.warn('verified phone listener error', err);
+      });
+    } catch (e) {
+      console.warn('verified phone listener failed', e);
+    }
+  });
+}
+
 function applyOrders(activeChanged) {
   state.isOffline = state.activeFromCache || state.recentFromCache;
   var cutoff = Date.now() - DELIVERED_WINDOW_MS;
@@ -358,6 +381,7 @@ function applyOrders(activeChanged) {
   var orders = Object.keys(byId).map(function (id) { return byId[id]; });
   orders.sort(function (a, b) { return a.createdAt - b.createdAt; });
   state.orders = orders;
+  syncVerifiedPhones();
 
   // كشف الطلبات الجديدة (pending) وتشغيل المنبه — من الطلبات النشطة فقط
   if (activeChanged) {
@@ -383,7 +407,8 @@ function teardownListeners() {
   state.activeFromCache = false;
   state.recentFromCache = false;
   if (state.unsubSettings) { state.unsubSettings(); state.unsubSettings = null; }
-  if (state.unsubVerified) { state.unsubVerified(); state.unsubVerified = null; }
+  Object.keys(state.verifiedListeners).forEach(function (phone) { state.verifiedListeners[phone](); });
+  state.verifiedListeners = {};
   state.orders = [];
   state.knownPendingIds = null;
   state.verifiedPhones = {};
