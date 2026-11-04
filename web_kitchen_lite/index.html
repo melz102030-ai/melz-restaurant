@@ -106,6 +106,10 @@
     border: none; background: rgba(244,67,54,.12); color: var(--error); font-weight: bold;
     font-size: 12px; padding: 8px 12px; border-radius: 10px; cursor: pointer;
   }
+  .update-banner {
+    display: block; width: 100%; border: none; cursor: pointer; padding: 10px 14px;
+    background: var(--purple); color: #fff; font: inherit; font-size: 14px; font-weight: 600;
+  }
   .offline-banner {
     background: var(--warning); color: #fff; text-align: center; padding: 8px 14px; font-size: 12.5px; font-weight: bold;
   }
@@ -363,6 +367,7 @@
     </header>
 
     <div id="offlineBanner" class="offline-banner hidden">⚠️ لا يوجد اتصال بالخادم — البيانات قد لا تكون محدَّثة</div>
+    <button id="updateBanner" type="button" class="update-banner hidden">🔄 يوجد تحديث جديد للصفحة — اضغط هنا للتحديث</button>
     <div id="alarmBanner" class="alarm-banner hidden">🔔 طلب جديد وصل! — اضغط لإيقاف الصوت</div>
 
     <div id="ordersRoot"></div>

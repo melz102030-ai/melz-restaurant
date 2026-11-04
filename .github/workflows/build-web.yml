@@ -47,6 +47,8 @@ jobs:
           rm -rf build/web/k
           mkdir -p build/web/k
           cp -r web_kitchen_lite/* build/web/k/
+          # بصمة ملفات الصفحة نفسها، حتى لا يظهر تنبيه التحديث إلا عند تغيّرها
+          find web_kitchen_lite -type f | sort | xargs cat | sha256sum | cut -d' ' -f1 > build/web/k/version.txt
 
       # صفحة وسيطة صغيرة فقط (راجع web_admin_entry/) — manifest.json مستقل
       # يمنح رابط الإدارة هوية تطبيق قابل للتثبيت خاصة به (اسم وأيقونة)،

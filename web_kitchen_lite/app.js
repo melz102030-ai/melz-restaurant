@@ -262,19 +262,33 @@ auth.onAuthStateChanged(function (user) {
       $('#adminBackBtn').classList.remove('hidden');
     }
     primeAudio();
-    // إذا سبق أن فعَّل المستخدم الصوت نتجاهل الـoverlay تماماً — الصوت
-    // سيُفعَّل تلقائياً عند أول تفاعل (pointerdown) مع الصفحة.
-    // إذا لم يفعله بعد، نعرض الشاشة بعد 600ms لضمان تفاعل حقيقي
-    if (!localStorage.getItem('kitchen_audio_ok')) {
-      setTimeout(function () {
-        if (kCtx && kCtx.state === 'suspended') {
-          $('#audioActivation').classList.remove('hidden');
-        }
-      }, 600);
-    }
+    // المتصفح يمنع الصوت بعد كل فتح أو إعادة تحميل حتى يلمس أحد الشاشة، ولو سبق
+    // تفعيله، فتظهر شاشة التفعيل كلما كان الصوت موقوفاً حتى لا يصمت المنبه
+    setTimeout(showAudioActivationIfSuspended, 600);
     setupListeners();
   });
 });
+
+// ─── تنبيه بوجود نسخة جديدة ──────────────────────────────────────────────────
+// الجهاز يبقى مفتوحاً أياماً على نسخته القديمة. لا نعيد التحميل تلقائياً لأن المتصفح
+// يوقف الصوت بعدها حتى يلمس أحد الشاشة، فقد يصمت منبه الطلبات والجهاز بلا موظف.
+var VERSION_CHECK_MS = 5 * 60 * 1000;
+var loadedVersion = null;
+
+function checkForNewVersion() {
+  fetch('version.txt', { cache: 'no-store' })
+    .then(function (res) { return res.ok ? res.text() : ''; })
+    .then(function (text) {
+      var version = text.trim();
+      if (!/^[0-9a-f]{64}$/.test(version)) return;
+      if (loadedVersion === null) loadedVersion = version;
+      $('#updateBanner').classList.toggle('hidden', version === loadedVersion);
+    })
+    .catch(function () {});
+}
+$('#updateBanner').addEventListener('click', function () { window.location.reload(); });
+checkForNewVersion();
+setInterval(checkForNewVersion, VERSION_CHECK_MS);
 
 // ─── إعداد/إيقاف مستمعي Firestore ────────────────────────────────────────────
 var DELIVERED_WINDOW_MS = 4 * 60 * 60 * 1000;
@@ -416,6 +430,11 @@ function primeAudio() {
     }
   } catch (e) {}
 }
+function showAudioActivationIfSuspended() {
+  if (kCtx && kCtx.state === 'suspended') {
+    $('#audioActivation').classList.remove('hidden');
+  }
+}
 $('#audioActivation').addEventListener('click', function () {
   primeAudio();
   localStorage.setItem('kitchen_audio_ok', '1');
@@ -446,8 +465,12 @@ function playAlarm() {
         tone(750, t + 0.25, 0.23, 1.0);
       }
     }
-    if (ctx.state === 'suspended') ctx.resume().then(scheduleTones);
-    else scheduleTones();
+    if (ctx.state === 'suspended') {
+      showAudioActivationIfSuspended();
+      ctx.resume().then(scheduleTones);
+    } else {
+      scheduleTones();
+    }
   } catch (e) { console.warn('alarm error', e); }
   state.alarmPlaying = true;
   $('#stopAlarmBtn').classList.remove('hidden');
