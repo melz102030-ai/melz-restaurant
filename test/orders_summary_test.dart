@@ -69,6 +69,24 @@ void main() {
     ]);
   });
 
+  test('ملخصات الأيام المحفوظة تعطي نفس نتيجة قراءة كل الطلبات', () {
+    final orders = [
+      _order(total: 60, deliveryFee: 10, at: DateTime(2026, 11, 1), items: [_item('b', 'برجر قديم', 2)]),
+      _order(total: 40, at: DateTime(2026, 11, 2), items: [_item('b', 'برجر', 3)]),
+      _order(total: 500, status: OrderStatus.cancelled, at: DateTime(2026, 11, 2)),
+      _order(total: 300, status: OrderStatus.preparing, at: DateTime(2026, 11, 3)),
+    ];
+    final days = summarizeByDay(orders, (at) => '${at.day}');
+    expect(days.length, 3);
+
+    // كما لو حُفظت في Firestore ثم قُرئت
+    final merged = DaySummary();
+    for (final day in days.values) {
+      merged.merge(DaySummary.fromMap(day.toMap()));
+    }
+    expect(merged.toReport(), summarizeOrders(orders));
+  });
+
   test('إغلاق اليوم يبين المدفوع الملغى حتى يُسترجع، ولا يدخله في المحصَّل', () {
     final r = ClosingReport.fromOrders([
       _order(total: 50, status: OrderStatus.cancelled),

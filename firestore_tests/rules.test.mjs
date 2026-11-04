@@ -222,6 +222,16 @@ test("الدعم: العميل يضيف رسالته فقط، ولا يعبث ب
   );
 });
 
+test("ملخصات التقارير: لمن له صلاحية التقارير فقط", async () => {
+  const path = "daily_summaries/2026-11-01";
+  await assertSucceeds(setDoc(doc(staff("admin1"), path), { totalOrders: 1 }));
+  await assertSucceeds(getDoc(doc(staff("admin1"), path)));
+  await assertFails(getDoc(doc(staff("ordersAdmin"), path)));
+  await assertFails(setDoc(doc(staff("ordersAdmin"), path), { totalOrders: 9 }));
+  await assertFails(getDoc(doc(staff("kitchen1"), path)));
+  await assertFails(getDoc(doc(guest("guest1"), path)));
+});
+
 test("حدود الطول: الملف الشخصي ورسائل الدعم", async () => {
   const long = (n) => "ا".repeat(n);
   const me = doc(guest("guest1"), "users/guest1");

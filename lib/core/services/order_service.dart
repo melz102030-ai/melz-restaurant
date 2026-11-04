@@ -305,23 +305,91 @@ class OrderService {
     });
   }
 
-  // Get orders summary for reports
-  static Future<Map<String, dynamic>> getOrdersSummary({
+  // ملخص التقارير. الأيام الأخيرة تُقرأ طلباتها مباشرة لأنها قد تتغير، وما قبلها من
+  // ملخصات يومية محفوظة، حتى لا تكلف الضغطة قراءة كل طلب منذ بداية التشغيل.
+  static const String _colDaySummaries = 'daily_summaries';
+  static const int _liveReportDays = 3;
+
+  static Future<Map<String, dynamic>> getOrdersSummary(
+    RestaurantSettings settings, {
     DateTime? from,
-    DateTime? to,
   }) async {
+    final liveStart =
+        settings.currentBusinessDayStart.subtract(const Duration(days: _liveReportDays));
+    if (from != null && !from.isBefore(liveStart)) {
+      return summarizeOrders(await _ordersSince(from));
+    }
+
+    try {
+      await _saveFinishedDays(settings, liveStart);
+      final total = await _savedDaysBefore(settings.businessDayKeyOf(liveStart), from, settings);
+      final live = DaySummary();
+      (await _ordersSince(liveStart)).forEach(live.addOrder);
+      return (total..merge(live)).toReport();
+    } on FirebaseException {
+      // من لا يقدر على حفظ الملخصات يبقى يرى التقرير، بقراءة الطلبات مباشرة
+      return summarizeOrders(await _ordersSince(from));
+    }
+  }
+
+  static Future<List<OrderModel>> _ordersSince(DateTime? from) async {
     Query<Map<String, dynamic>> query = _db.collection(_colOrders);
     if (from != null) {
       query = query.where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(from));
     }
-    if (to != null) {
-      query = query.where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(to));
-    }
-
     final snap = await query.get();
-    return summarizeOrders(
+    return snap.docs.map((d) => OrderModel.fromMap(d.data(), d.id)).toList();
+  }
+
+  // يلخص مرة واحدة ما انتهى من أيام منذ آخر حفظ. مستند _meta يحدد ما تم تلخيصه
+  static Future<void> _saveFinishedDays(RestaurantSettings settings, DateTime before) async {
+    final metaRef = _db.collection(_colDaySummaries).doc('_meta');
+    final savedUntil = (await metaRef.get()).data()?['savedUntil'] as Timestamp?;
+    if (savedUntil != null && !savedUntil.toDate().isBefore(before)) return;
+
+    Query<Map<String, dynamic>> query = _db
+        .collection(_colOrders)
+        .where('createdAt', isLessThan: Timestamp.fromDate(before));
+    if (savedUntil != null) {
+      query = query.where('createdAt', isGreaterThanOrEqualTo: savedUntil);
+    }
+    final snap = await query.get();
+    final days = summarizeByDay(
       snap.docs.map((d) => OrderModel.fromMap(d.data(), d.id)).toList(),
-    );
+      settings.businessDayKeyOf,
+    ).entries.toList();
+
+    // الدفعة الواحدة في Firestore لا تتجاوز 500 كتابة
+    for (var i = 0; i < days.length; i += 400) {
+      final batch = _db.batch();
+      for (final day in days.skip(i).take(400)) {
+        batch.set(_db.collection(_colDaySummaries).doc(day.key), day.value.toMap());
+      }
+      await batch.commit();
+    }
+    await metaRef.set({'savedUntil': Timestamp.fromDate(before)});
+  }
+
+  static Future<DaySummary> _savedDaysBefore(
+    String beforeKey,
+    DateTime? from,
+    RestaurantSettings settings,
+  ) async {
+    Query<Map<String, dynamic>> query = _db
+        .collection(_colDaySummaries)
+        .where(FieldPath.documentId, isLessThan: beforeKey);
+    if (from != null) {
+      query = query.where(
+        FieldPath.documentId,
+        isGreaterThanOrEqualTo: settings.businessDayKeyOf(from),
+      );
+    }
+    final snap = await query.get();
+    final total = DaySummary();
+    for (final doc in snap.docs) {
+      total.merge(DaySummary.fromMap(doc.data()));
+    }
+    return total;
   }
 
   // تقرير إغلاق يوم عمل واحد يبدأ من dayStart

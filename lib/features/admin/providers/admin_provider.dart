@@ -20,7 +20,7 @@ final allUsersProvider = StreamProvider<List<UserModel>>((ref) {
 // التحكم كملخص سريع يومي، ونطاق قابل للاختيار في شاشة التقارير)
 final adminOrderStatsProvider = FutureProvider.family<
     Map<String, dynamic>, ({DateTime? from, DateTime? to})>((ref, range) async {
-  return OrderService.getOrdersSummary(from: range.from, to: range.to);
+  return OrderService.getOrdersSummary(ref.watch(settingsProvider), from: range.from);
 });
 
 final closingReportProvider =

@@ -217,6 +217,8 @@ service cloud.firestore {
     match /promo_banners/{id}    { allow read: if true; allow write: if hasPerm('content'); }
     match /popup_ads/{id}        { allow read: if true; allow write: if hasPerm('content'); }
     match /splash_images/{id}    { allow read: if true; allow write: if hasPerm('content'); }
+    // ملخصات الأيام المنتهية، يحفظها التقرير حتى لا يعيد قراءة كل الطلبات
+    match /daily_summaries/{id}  { allow read, write: if hasPerm('reports'); }
     // مستند واحد تكتبه عدة شاشات: الإعدادات والمظهر وساعات العمل والتوصيل والكولاج
     // وزر فتح المطعم وإغلاقه في لوحة التحكم
     match /settings/{docId} {
