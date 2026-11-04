@@ -467,8 +467,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   // الطلب موجود أصلاً بحالة "بانتظار الدفع"، والتأكيد الحقيقي يصل لاحقاً
   // عبر webhook من لين لا من رد الواجهة هنا (راجع cloudflare/lean-payments).
   //
-  // نستخدم حزمة الويب الرسمية للين عبر dart:js (سكربت محمَّل في
-  // web/index.html) — وليس حزمة lean_sdk_flutter لـ Flutter، لأنها مخصَّصة
+  // عند إعادة التفعيل: حمّل سكربت لين قبل استدعاء هذه الدالة، لأنه أُزيل من
+  // web/index.html حتى لا يحمّله كل زائر (1.7MB وخدمات خارجية):
+  // https://cdn.leantech.me/link/loader/prod/sa/latest/lean-link-loader.min.js
+  //
+  // نستخدم حزمة الويب الرسمية للين عبر dart:js — وليس حزمة lean_sdk_flutter لـ Flutter، لأنها مخصَّصة
   // فقط لأندرويد/iOS عبر WebView أصلي ولا تعمل إطلاقاً على تطبيق ويب
   // (وهذا سبب فشل أول محاولة تجريبية: "تعذّر فتح الدفع البنكي")
   // ignore: unused_element
