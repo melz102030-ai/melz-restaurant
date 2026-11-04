@@ -9,6 +9,15 @@
 // من التوكن لا يُستخدم إلا لبناء مسار الطلب؛ إن كان مزوَّراً فسيفشل التحقق عند
 // Firestore نفسها لأن التوقيع الكامل للتوكن يصبح غير صالح.
 
+import {
+  canManageOrders,
+  receiptDownloadUrl,
+  receiptFormat,
+  receiptPublicId,
+  sha1Hex,
+  signCloudinary,
+} from "./receipts.js";
+
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -58,7 +67,6 @@ async function isAdminCaller(env, idToken, uid) {
 const IMAGE_FORMATS = "jpg,jpeg,png,webp,gif,heic";
 const RECEIPT_FORMATS = "jpg,jpeg,png,pdf";
 const IMAGES_FOLDER = "melz_restaurant";
-const RECEIPTS_FOLDER = "melz_restaurant/receipts";
 
 // توقيع رفع إلى Cloudinary: المتصفح يرفع مباشرة، لكن بعد موافقة الخادم فقط.
 // المدير يرفع صور القائمة، والعميل يرفع إيصالاً واحداً لطلب تحويل بنكي يملكه.
@@ -89,9 +97,9 @@ async function handleSignUpload(request, env, idToken, uid) {
     // معرّف ثابت لكل طلب بلا استبدال، فلا يمكن رفع أكثر من ملف واحد للطلب نفسه
     params = {
       allowed_formats: RECEIPT_FORMATS,
-      folder: RECEIPTS_FOLDER,
       overwrite: "false",
-      public_id: `receipt_${orderId}`,
+      public_id: receiptPublicId(orderId),
+      type: "authenticated",
     };
   } else {
     const publicId = body.publicId;
@@ -103,14 +111,45 @@ async function handleSignUpload(request, env, idToken, uid) {
   }
 
   params.timestamp = String(Math.floor(Date.now() / 1000));
-  const toSign = Object.keys(params).sort().map((k) => `${k}=${params[k]}`).join("&");
-  const signature = await sha1Hex(`${toSign}${env.CLOUDINARY_API_SECRET}`);
+  const signature = await signCloudinary(params, env.CLOUDINARY_API_SECRET);
   return json({ ...params, signature, api_key: env.CLOUDINARY_API_KEY });
 }
 
-async function sha1Hex(str) {
-  const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(str));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+// رابط مؤقت لإيصال طلب، لمن له صلاحية الطلبات فقط. يُبنى من معرّف الطلب، فلا يتبع
+// أي رابط مكتوب في الطلب.
+async function handleReceiptUrl(request, env, idToken, uid) {
+  let orderId;
+  try {
+    orderId = (await request.json()).orderId;
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  if (typeof orderId !== "string" || !/^[\w-]+$/.test(orderId)) {
+    return json({ error: "invalid-body" }, 400);
+  }
+  if (isAnonymousToken(idToken)) return json({ error: "permission-denied" }, 403);
+
+  const documents = `https://firestore.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+  const headers = { Authorization: `Bearer ${idToken}` };
+  const userRes = await fetch(`${documents}/users/${uid}`, { headers });
+  if (!userRes.ok || !canManageOrders((await userRes.json()).fields)) {
+    return json({ error: "permission-denied" }, 403);
+  }
+
+  const orderRes = await fetch(`${documents}/orders/${orderId}`, { headers });
+  if (!orderRes.ok) return json({ error: "permission-denied" }, 403);
+  const format = receiptFormat((await orderRes.json()).fields?.paymentReceiptUrl?.stringValue);
+  if (!format) return json({ error: "no-receipt" }, 404);
+
+  const url = await receiptDownloadUrl({
+    cloudName: env.CLOUDINARY_CLOUD_NAME,
+    apiKey: env.CLOUDINARY_API_KEY,
+    apiSecret: env.CLOUDINARY_API_SECRET,
+    orderId,
+    format,
+    nowSeconds: Math.floor(Date.now() / 1000),
+  });
+  return json({ url });
 }
 
 export default {
@@ -131,6 +170,9 @@ export default {
 
     if (new URL(request.url).pathname === "/sign-upload") {
       return handleSignUpload(request, env, idToken, uid);
+    }
+    if (new URL(request.url).pathname === "/receipt-url") {
+      return handleReceiptUrl(request, env, idToken, uid);
     }
 
     let publicId;

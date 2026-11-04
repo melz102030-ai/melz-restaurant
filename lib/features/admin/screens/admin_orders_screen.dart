@@ -7,6 +7,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
 import '../../../core/providers/settings_provider.dart';
+import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/order_service.dart';
 import '../../../core/services/receipt_print_service.dart';
 import '../../../shared/utils/async_utils.dart';
@@ -314,6 +315,45 @@ class _PaymentReceiptRow extends StatelessWidget {
     );
   }
 
+  // الرابط يُطلب من الخادم أولاً، ثم يُفتح بضغطة في النافذة لأن المتصفح قد يمنع فتح
+  // صفحة جديدة بعد الانتظار
+  Future<void> _openReceipt(BuildContext context) async {
+    final stored = order.paymentReceiptUrl!;
+    final isOldLink =
+        stored.startsWith('https://res.cloudinary.com/${CloudinaryService.cloudName}/');
+    try {
+      final url = isOldLink ? stored : await CloudinaryService.receiptUrl(order.id);
+      if (!context.mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('إيصال التحويل'),
+          content: Text(isOldLink ? 'إيصال قديم' : 'الرابط صالح لمدة ١٠ دقائق'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('إغلاق'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+              },
+              child: const Text('فتح الإيصال'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(e.toString().replaceAll('Exception: ', '')),
+          backgroundColor: AppColors.error,
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final paid = order.paymentStatus == PaymentStatus.paid;
@@ -342,8 +382,7 @@ class _PaymentReceiptRow extends StatelessWidget {
         const SizedBox(height: 8),
         if (order.paymentReceiptUrl != null)
           OutlinedButton.icon(
-            onPressed: () => launchUrl(Uri.parse(order.paymentReceiptUrl!),
-                mode: LaunchMode.externalApplication),
+            onPressed: () => _openReceipt(context),
             icon: const Icon(Icons.receipt_long, size: 18),
             label: const Text('عرض إيصال التحويل'),
           )

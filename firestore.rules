@@ -149,9 +149,11 @@ service cloud.firestore {
             .hasOnly(['status', 'updatedAt'])) ||
         // 4) العميل أيضاً: رفع إيصال التحويل البنكي اليدوي على طلبه هو فقط،
         //    لطلبات التحويل البنكي غير المُلغاة — حقل واحد بلا أي صلاحية أخرى.
+        //    القيمة صيغة الملف فقط وليست رابطاً، فلا يمرر العميل رابطاً تفتحه الإدارة.
         (resource.data.customerId == request.auth.uid &&
           resource.data.paymentMethod == 'manualBankTransfer' &&
           resource.data.status != 'cancelled' &&
+          request.resource.data.paymentReceiptUrl.matches('receipt[.](jpg|jpeg|png|pdf)') &&
           request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['paymentReceiptUrl', 'updatedAt']))
       );

@@ -1346,13 +1346,12 @@ class _BankTransferSheetState extends ConsumerState<_BankTransferSheet> {
     if (_pickedFile == null) return;
     setState(() => _uploading = true);
     try {
-      final url = await CloudinaryService.uploadImage(
+      final receipt = await CloudinaryService.uploadReceipt(
         _pickedFile!.bytes!,
         _pickedFile!.name,
-        receiptOrderId: widget.orderId,
+        widget.orderId,
       );
-      if (url == null) throw Exception('فشل رفع الملف');
-      await OrderService.attachPaymentReceipt(widget.orderId, url);
+      await OrderService.attachPaymentReceipt(widget.orderId, receipt);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('تم إرسال الإيصال، سيراجعه المطعم قريباً'),

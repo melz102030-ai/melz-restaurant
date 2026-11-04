@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 22
       - run: |
-          if ! node --test cloudflare/lean-payments/pricing.test.mjs cloudflare/lean-payments/staff.test.mjs > "$RUNNER_TEMP/out.log" 2>&1; then
+          if ! node --test cloudflare/receipts.test.mjs cloudflare/lean-payments/pricing.test.mjs cloudflare/lean-payments/staff.test.mjs > "$RUNNER_TEMP/out.log" 2>&1; then
             grep -E "✖|AssertionError|Error:" "$RUNNER_TEMP/out.log" | head -n 10 | sed 's/^/::error::/'
             exit 1
           fi

@@ -171,9 +171,11 @@ test("الطلبات: الحالة تتقدم بالترتيب ولا ترجع،
 });
 
 test("الطلبات: رفع الإيصال لطلب التحويل البنكي فقط", async () => {
-  const attach = () => updateDoc(doc(guest("guest1"), "orders/o1"), { paymentReceiptUrl: "x" });
+  const attach = (value = "receipt.pdf") =>
+    updateDoc(doc(guest("guest1"), "orders/o1"), { paymentReceiptUrl: value });
   await assertFails(attach());
   await seed((db) => setDoc(doc(db, "orders/o1"), order({ paymentMethod: "manualBankTransfer" })));
+  await assertFails(attach("https://evil.example/receipt.pdf"));
   await assertSucceeds(attach());
 });
 

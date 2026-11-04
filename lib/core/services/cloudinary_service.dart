@@ -46,25 +46,54 @@ class CloudinaryService {
         .map((k, v) => MapEntry(k, v.toString()));
   }
 
-  // receiptOrderId: إيصال تحويل بنكي لطلب العميل، بدل صورة من لوحة الإدارة
-  static Future<String?> uploadImage(
-    Uint8List imageBytes,
-    String fileName, {
-    String? receiptOrderId,
-  }) async {
-    final url = Uri.parse(
-      'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
-    );
-
+  static Future<String?> uploadImage(Uint8List imageBytes, String fileName) async {
     final nameWithoutExt = fileName.contains('.')
         ? fileName.substring(0, fileName.lastIndexOf('.'))
         : fileName;
     final safeId = '${DateTime.now().millisecondsSinceEpoch}_'
         '${nameWithoutExt.replaceAll(RegExp(r'[^\w\-]'), '_')}';
+    final uploaded = await _upload(imageBytes, fileName, {'publicId': safeId});
+    return uploaded['secure_url'] as String?;
+  }
 
-    final signed = await _signUpload(
-      receiptOrderId != null ? {'receiptOrderId': receiptOrderId} : {'publicId': safeId},
+  // إيصال تحويل بنكي لطلب العميل: يُخزن خاصاً، ويرجع ما يُحفظ في الطلب (صيغة الملف
+  // فقط). لا تفتحه الإدارة إلا برابط مؤقت من receiptUrl
+  static Future<String> uploadReceipt(
+    Uint8List bytes,
+    String fileName,
+    String orderId,
+  ) async {
+    final uploaded = await _upload(bytes, fileName, {'receiptOrderId': orderId});
+    return 'receipt.${uploaded['format']}';
+  }
+
+  static Future<String> receiptUrl(String orderId) async {
+    final idToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (idToken == null) throw Exception('سجّل الدخول وحاول مجدداً');
+    final response = await http.post(
+      Uri.parse('$_deleteWorkerUrl/receipt-url'),
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'orderId': orderId}),
     );
+    if (response.statusCode != 200) {
+      throw Exception('تعذّر فتح الإيصال (${response.statusCode})');
+    }
+    return (jsonDecode(response.body) as Map<String, dynamic>)['url'] as String;
+  }
+
+  static Future<Map<String, dynamic>> _upload(
+    Uint8List imageBytes,
+    String fileName,
+    Map<String, String> signBody,
+  ) async {
+    final url = Uri.parse(
+      'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+    );
+
+    final signed = await _signUpload(signBody);
 
     final request = http.MultipartRequest('POST', url)
       ..fields.addAll(signed)
@@ -78,8 +107,7 @@ class CloudinaryService {
     final responseBody = await response.stream.bytesToString();
 
     if (response.statusCode == 200) {
-      final json = jsonDecode(responseBody) as Map<String, dynamic>;
-      return json['secure_url'] as String?;
+      return jsonDecode(responseBody) as Map<String, dynamic>;
     }
 
     final errorJson = jsonDecode(responseBody) as Map<String, dynamic>?;

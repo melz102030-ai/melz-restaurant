@@ -234,9 +234,9 @@ class OrderService {
 
   // يُستدعى من العميل نفسه بعد تحويل بنكي يدوي — مسموح حسب قاعدة أمان
   // مخصَّصة في firestore.rules تقيّد الكتابة على هذا الحقل وحده فقط
-  static Future<void> attachPaymentReceipt(String orderId, String receiptUrl) async {
+  static Future<void> attachPaymentReceipt(String orderId, String receipt) async {
     await _db.collection(_colOrders).doc(orderId).update({
-      'paymentReceiptUrl': receiptUrl,
+      'paymentReceiptUrl': receipt,
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     });
   }
