@@ -35,8 +35,6 @@ class MenuItemModel {
   final List<OptionGroup> optionGroups;
   final bool isBestSeller;
   final bool isNew;
-  // تركيبات اختيار جاهزة (اختيارية) تملأ كل مجموعات الخيارات دفعة واحدة
-  final List<ItemPreset> presets;
   // معرّفات أصناف أخرى يقترحها الأدمن كـ"غالباً ما يُطلب معه"
   final List<String> suggestedItemIds;
   final int? calories;
@@ -78,7 +76,6 @@ class MenuItemModel {
     this.optionGroups = const [],
     this.isBestSeller = false,
     this.isNew = false,
-    this.presets = const [],
     this.suggestedItemIds = const [],
     this.calories,
     this.allergens = const [],
@@ -195,9 +192,6 @@ class MenuItemModel {
           .toList(),
       isBestSeller: map['isBestSeller'] ?? false,
       isNew: map['isNew'] ?? false,
-      presets: (map['presets'] as List? ?? [])
-          .map((p) => ItemPreset.fromMap(Map<String, dynamic>.from(p as Map)))
-          .toList(),
       suggestedItemIds: List<String>.from(map['suggestedItemIds'] ?? []),
       // (map['calories'] as num?)?.toInt() بدل تحويل مباشر — Firestore على
       // الويب قد يعيد الأرقام كـdouble حتى لو كُتبت أصلاً كـint، فيكسر أي
@@ -229,7 +223,6 @@ class MenuItemModel {
       'optionGroups': optionGroups.map((g) => g.toMap()).toList(),
       'isBestSeller': isBestSeller,
       'isNew': isNew,
-      'presets': presets.map((p) => p.toMap()).toList(),
       'suggestedItemIds': suggestedItemIds,
       'calories': calories,
       'allergens': allergens,
@@ -258,7 +251,6 @@ class MenuItemModel {
     List<OptionGroup>? optionGroups,
     bool? isBestSeller,
     bool? isNew,
-    List<ItemPreset>? presets,
     List<String>? suggestedItemIds,
     int? calories,
     List<String>? allergens,
@@ -285,7 +277,6 @@ class MenuItemModel {
       optionGroups: optionGroups ?? this.optionGroups,
       isBestSeller: isBestSeller ?? this.isBestSeller,
       isNew: isNew ?? this.isNew,
-      presets: presets ?? this.presets,
       suggestedItemIds: suggestedItemIds ?? this.suggestedItemIds,
       calories: calories ?? this.calories,
       allergens: allergens ?? this.allergens,

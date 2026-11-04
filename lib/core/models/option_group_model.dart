@@ -119,45 +119,6 @@ class OptionGroup {
 // sentinel لتمييز "لم يُمرَّر" عن "مُمرَّر null" صراحةً في copyWith
 const Object _sentinel = Object();
 
-// تركيبة اختيار جاهزة يحدّدها الأدمن لصنف معيّن (مثال: "الأشهر")، تملأ كل
-// مجموعات الخيارات دفعة واحدة بدل اختيارها يدوياً واحدة تلو الأخرى
-class ItemPreset {
-  final String id;
-  final String label;
-  final Map<String, List<String>> selections; // groupId -> معرّفات الخيارات المختارة
-
-  const ItemPreset({
-    required this.id,
-    required this.label,
-    required this.selections,
-  });
-
-  Map<String, dynamic> toMap() => {
-        'id': id,
-        'label': label,
-        'selections': selections,
-      };
-
-  factory ItemPreset.fromMap(Map<String, dynamic> m) => ItemPreset(
-        id: m['id'] ?? const Uuid().v4(),
-        label: m['label'] ?? '',
-        // Map<String, dynamic>.from(...) بدل (as Map?) مباشرة — أكثر تسامحاً
-        // مع نوع الخريطة الفعلي الذي يعيده Firestore على الويب لبيانات
-        // متداخلة (Map داخل List)، بعكس (as Map<String, dynamic>) الذي يفشل
-        // فوراً إن لم يطابق النوع تماماً
-        selections: Map<String, dynamic>.from(m['selections'] as Map? ?? {}).map(
-          (k, v) => MapEntry(k, List<String>.from(v as List? ?? const [])),
-        ),
-      );
-
-  ItemPreset copyWith({String? label, Map<String, List<String>>? selections}) =>
-      ItemPreset(
-        id: id,
-        label: label ?? this.label,
-        selections: selections ?? this.selections,
-      );
-}
-
 // Holds customer's selections for one group
 class SelectedOptionGroup {
   final String groupId;

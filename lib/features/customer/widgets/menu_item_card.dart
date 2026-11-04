@@ -801,9 +801,6 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   // مجموعة إجبارية ناقصة يُشار إليها بالأحمر بعد محاولة إضافة فاشلة — تُمسح
   // تلقائياً بمجرد أي اختيار جديد من المستخدم
   String? _invalidGroupId;
-  // التركيبة الجاهزة المطبَّقة حالياً (إن وُجدت) — تُمسح فور أي تعديل يدوي
-  // لأي خيار حتى لا تبقى "مُختارة" بصرياً رغم أن الاختيار الفعلي تغيّر عنها
-  String? _activePresetId;
 
   @override
   void initState() {
@@ -887,7 +884,6 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
       } else {
         _optionQty['${group.id}/$optId'] = qty;
       }
-      _activePresetId = null;
     });
   }
 
@@ -971,115 +967,6 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     _addToCart();
   }
 
-  // يبدّل تركيبة جاهزة: الضغط عليها وهي غير مُختارة يملأ كل مجموعات الخيارات
-  // بمحتواها دفعة واحدة (يبقى قابلاً للتعديل يدوياً بعدها)، والضغط عليها
-  // مجدداً وهي المُختارة حالياً يُلغي اختيارها ويعيد مجموعاتها لحالتها
-  // الافتراضية بدل تركها كما تركتها التركيبة
-  void _togglePreset(ItemPreset preset) {
-    final deselecting = _activePresetId == preset.id;
-    setState(() {
-      for (final group in widget.item.optionGroups) {
-        if (deselecting) {
-          if (preset.selections.containsKey(group.id)) {
-            _selections[group.id] = _defaultSelectionFor(group);
-            _optionQty.removeWhere((k, _) => k.startsWith('${group.id}/'));
-          }
-        } else {
-          _selections[group.id] = Set<String>.from(preset.selections[group.id] ?? const []);
-          _optionQty.removeWhere((k, _) => k.startsWith('${group.id}/'));
-        }
-      }
-      _activePresetId = deselecting ? null : preset.id;
-    });
-  }
-
-  Widget _buildPresetsRow() {
-    // تُستبعد التركيبات التي لم يُحدَّد لها أي خيار فعلياً من الأدمن (نتيجة
-    // إنشاء تركيبة بلا اختيار خيارات داخلها) — لا فائدة من عرضها للعميل
-    final validPresets = widget.item.presets
-        .where((p) => p.selections.values.any((ids) => ids.isNotEmpty))
-        .toList();
-    if (validPresets.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: validPresets.map((preset) {
-          // يُبنى اسم كل خيار مختار داخل التركيبة ليظهر كمعاينة تحت اسمها،
-          // بدل شارة فارغة لا توضح ماذا يختار الضغط عليها فعلياً — وسعرها
-          // الإضافي الفعلي (مجموع فروقات أسعار خياراتها) يظهر بجانب الاسم
-          final selectedNames = <String>[];
-          double extra = 0;
-          for (final group in widget.item.optionGroups) {
-            final ids = preset.selections[group.id] ?? const [];
-            for (final opt in group.options) {
-              if (ids.contains(opt.id)) {
-                selectedNames.add(opt.name);
-                extra += opt.priceAdjustment;
-              }
-            }
-          }
-          final isActive = _activePresetId == preset.id;
-          final fg = isActive ? Colors.white : AppColors.purple;
-          return GestureDetector(
-            onTap: () => _togglePreset(preset),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              constraints: const BoxConstraints(maxWidth: 220),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: isActive ? AppColors.purple : AppColors.purple.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                    color: isActive ? AppColors.purple : AppColors.purple.withValues(alpha: 0.4)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(isActive ? Icons.check_circle : Icons.flash_on, size: 14, color: fg),
-                      const SizedBox(width: 4),
-                      Flexible(
-                        child: Text(
-                          preset.label.isEmpty ? 'تركيبة جاهزة' : preset.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      if (extra != 0) ...[
-                        const SizedBox(width: 4),
-                        Text(
-                          '${extra > 0 ? '+' : ''}${extra.toStringAsFixed(0)} ${AppStrings.sar}',
-                          style: TextStyle(color: fg, fontSize: 11.5, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (selectedNames.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      selectedNames.join('، '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: isActive ? Colors.white.withValues(alpha: 0.85) : AppColors.textSecondary,
-                          fontSize: 11.5),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
   Widget _buildSuggestedItems() {
     final itemsAsync = ref.watch(adminMenuItemsProvider);
     return itemsAsync.maybeWhen(
@@ -1133,7 +1020,6 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
             padding: const EdgeInsets.symmetric(horizontal: -20),
             child: widget.header,
           ),
-        if (widget.item.presets.isNotEmpty) _buildPresetsRow(),
         ...widget.item.optionGroups.map((group) {
         final isInvalid = _invalidGroupId == group.id;
         return AnimatedContainer(
@@ -1203,7 +1089,6 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                       k.startsWith('${group.id}/') &&
                       !nowSelected.contains(k.substring(group.id.length + 1)));
                   if (_invalidGroupId == group.id) _invalidGroupId = null;
-                  _activePresetId = null;
                 }),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
