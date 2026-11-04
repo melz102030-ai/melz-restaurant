@@ -396,6 +396,12 @@ class RestaurantSettings {
     };
   }
 
+  // للحقول النصية الاختيارية: عدم تمرير القيمة يبقيها، والنص الفارغ يمسحها
+  static String? _keepOrClear(String? value, String? current) {
+    if (value == null) return current;
+    return value.trim().isEmpty ? null : value;
+  }
+
   RestaurantSettings copyWith({
     String? restaurantName,
     String? logoUrl,
@@ -441,9 +447,9 @@ class RestaurantSettings {
       estimatedPrepTime: estimatedPrepTime ?? this.estimatedPrepTime,
       whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       restaurantPhone: restaurantPhone ?? this.restaurantPhone,
-      googleReviewUrl: googleReviewUrl ?? this.googleReviewUrl,
-      address: address ?? this.address,
-      welcomeMessage: welcomeMessage ?? this.welcomeMessage,
+      googleReviewUrl: _keepOrClear(googleReviewUrl, this.googleReviewUrl),
+      address: _keepOrClear(address, this.address),
+      welcomeMessage: _keepOrClear(welcomeMessage, this.welcomeMessage),
       allowOrders: allowOrders ?? this.allowOrders,
       deliveryEnabled: deliveryEnabled ?? this.deliveryEnabled,
       restaurantLat: restaurantLat ?? this.restaurantLat,
@@ -454,12 +460,12 @@ class RestaurantSettings {
       gameHeartImageUrl: gameHeartImageUrl ?? this.gameHeartImageUrl,
       gameObstacleImageUrl: gameObstacleImageUrl ?? this.gameObstacleImageUrl,
       bankTransferEnabled: bankTransferEnabled ?? this.bankTransferEnabled,
-      bankIban: bankIban ?? this.bankIban,
-      bankAccountHolderName: bankAccountHolderName ?? this.bankAccountHolderName,
-      bankName: bankName ?? this.bankName,
+      bankIban: _keepOrClear(bankIban, this.bankIban),
+      bankAccountHolderName: _keepOrClear(bankAccountHolderName, this.bankAccountHolderName),
+      bankName: _keepOrClear(bankName, this.bankName),
       driverSystemMode: driverSystemMode ?? this.driverSystemMode,
       supportMode: supportMode ?? this.supportMode,
-      supportWhatsappNumber: supportWhatsappNumber ?? this.supportWhatsappNumber,
+      supportWhatsappNumber: _keepOrClear(supportWhatsappNumber, this.supportWhatsappNumber),
       splashCollageEnabled: splashCollageEnabled ?? this.splashCollageEnabled,
     );
   }

@@ -116,24 +116,18 @@ class _AdminSettingsScreenState extends ConsumerState<AdminSettingsScreen> {
         estimatedPrepTime: prepTime,
         whatsappNumber: _whatsappCtrl.text.trim(),
         restaurantPhone: _phoneCtrl.text.trim(),
-        googleReviewUrl:
-            _reviewUrlCtrl.text.trim().isEmpty ? null : _reviewUrlCtrl.text.trim(),
-        address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
-        welcomeMessage: _welcomeMsgCtrl.text.trim().isEmpty
-            ? null
-            : _welcomeMsgCtrl.text.trim(),
+        // الحقل الفارغ يمسح القيمة المحفوظة (انظر copyWith)
+        googleReviewUrl: _reviewUrlCtrl.text.trim(),
+        address: _addressCtrl.text.trim(),
+        welcomeMessage: _welcomeMsgCtrl.text.trim(),
         bankTransferEnabled: _bankTransferEnabled,
-        bankIban: _bankIbanCtrl.text.trim().isEmpty
-            ? null
-            : _bankIbanCtrl.text.trim().toUpperCase().replaceAll(' ', ''),
-        bankAccountHolderName:
-            _bankHolderCtrl.text.trim().isEmpty ? null : _bankHolderCtrl.text.trim(),
-        bankName: _bankNameCtrl.text.trim().isEmpty ? null : _bankNameCtrl.text.trim(),
+        bankIban: _bankIbanCtrl.text.trim().toUpperCase().replaceAll(' ', ''),
+        bankAccountHolderName: _bankHolderCtrl.text.trim(),
+        bankName: _bankNameCtrl.text.trim(),
         cashPaymentPolicy: _cashPolicy,
         driverSystemMode: _driverSystemMode,
         supportMode: _supportMode,
-        supportWhatsappNumber:
-            _supportWhatsappCtrl.text.trim().isEmpty ? null : _supportWhatsappCtrl.text.trim(),
+        supportWhatsappNumber: _supportWhatsappCtrl.text.trim(),
       );
 
       await SettingsService.updateSettings(settings);
