@@ -82,6 +82,26 @@ async function waitForDoc(path, predicate, timeout = 20000) {
   throw new Error(`لم يتحدث ${path}: ${JSON.stringify(last).slice(0, 400)}`);
 }
 
+// تشخيص مؤقت: أين تذهب ضغطة زر الزيادة، وأي طريقة ضغط يستجيب لها
+async function diagnosePlusButton(page) {
+  const addLabel = async () => (await semantics(page)).map((n) => n.text).find((t) => /أضف للسلة/.test(t)) ?? "";
+  const hit = await waitForLabel(page, /^زيادة$/);
+  const seen = await page.evaluate(({ x, y }) => {
+    const el = document.elementFromPoint(x, y);
+    const brief = (e) => (e ? e.outerHTML.slice(0, 140) : "");
+    return `${brief(el)} << ${brief(el?.parentElement)}`;
+  }, hit);
+  report(`عند الزر: ${seen}`);
+  const before = await addLabel();
+  await page.mouse.click(hit.x, hit.y);
+  await page.waitForTimeout(600);
+  const afterMouse = await addLabel();
+  await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.click(), hit);
+  await page.waitForTimeout(600);
+  const afterClick = await addLabel();
+  report(`قبل: ${before} / بعد الماوس: ${afterMouse} / بعد click: ${afterClick}`);
+}
+
 async function customerPlacesOrder(browser) {
   step = "العميل: فتح صنف الصوصات";
   const context = await browser.newContext({ viewport: { width: 430, height: 1400 }, locale: "ar" });
@@ -94,6 +114,7 @@ async function customerPlacesOrder(browser) {
 
   step = "العميل: اختيار ٥ كوكتيل و٣ كاتشب";
   await tap(page, /صوص كوكتيل/);
+  await diagnosePlusButton(page);
   for (let i = 0; i < 4; i++) await tap(page, /^زيادة$/);
   await tap(page, /صوص كاتشب/);
   // يُقاس الزر قبل كل ضغطة، لأن ظهور العداد قد يحرك الصفوف
