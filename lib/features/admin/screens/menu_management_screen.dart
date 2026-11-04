@@ -801,7 +801,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
         imageOffsetY: _imageOffsetY,
       );
       if (widget.item != null && !widget.isDuplicate) {
-        await MenuService.updateMenuItem(newItem);
+        await MenuService.updateMenuItem(newItem, original: widget.item!);
         // حذف الصورة القديمة من Cloudinary بعد نجاح استبدالها فعلياً (وليس عند
         // التكرار — النسخة المكرَّرة تشارك نفس الصورة حتى تُغيَّر لاحقاً)
         if (_imageBytes != null && widget.item!.imageUrl != null && widget.item!.imageUrl != finalImageUrl) {

@@ -94,8 +94,17 @@ class MenuService {
     return ref.id;
   }
 
-  static Future<void> updateMenuItem(MenuItemModel item) async {
-    await _db.collection(_colItems).doc(item.id).update(item.toMap());
+  // original هو الصنف كما فُتحت به نافذة التعديل، حتى لا يلغي الحفظ توقيفات المطبخ
+  static Future<void> updateMenuItem(MenuItemModel item, {required MenuItemModel original}) {
+    final ref = _db.collection(_colItems).doc(item.id);
+    return _db.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      final latest = MenuItemModel.fromMap(snap.data() ?? const {}, item.id);
+      final merged = snap.exists
+          ? item.withLatestAvailability(original: original, latest: latest)
+          : item;
+      tx.update(ref, merged.toMap());
+    });
   }
 
   static Future<void> deleteMenuItem(String itemId) async {

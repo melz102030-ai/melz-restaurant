@@ -101,6 +101,40 @@ class MenuItemModel {
   // السعر الأساسي الداخل فعلياً في حساب السلة والطلب (صفر إن كان مستثنى)
   double get chargedBasePrice => excludeBasePrice ? 0 : finalPrice;
 
+  // نافذة التعديل قد تبقى مفتوحة بينما يوقف المطبخ صنفاً أو خياراً نفد. عند الحفظ
+  // تؤخذ حالة التوفر من أحدث نسخة، إلا ما غيّره المدير بنفسه في النافذة. هذا الصنف
+  // هو نسخة المدير، وoriginal ما فتح به النافذة، وlatest الموجود الآن في القاعدة.
+  MenuItemModel withLatestAvailability({
+    required MenuItemModel original,
+    required MenuItemModel latest,
+  }) {
+    ItemOption? findOption(MenuItemModel item, String groupId, String optionId) {
+      final group = item.optionGroups.where((g) => g.id == groupId).firstOrNull;
+      return group?.options.where((o) => o.id == optionId).firstOrNull;
+    }
+
+    return copyWith(
+      isAvailable: isAvailable == original.isAvailable ? latest.isAvailable : isAvailable,
+      optionGroups: [
+        for (final group in optionGroups)
+          group.copyWith(
+            options: [
+              for (final option in group.options)
+                () {
+                  final before = findOption(original, group.id, option.id);
+                  final now = findOption(latest, group.id, option.id);
+                  final changedByAdmin =
+                      before == null || before.isAvailable != option.isAvailable;
+                  return changedByAdmin || now == null
+                      ? option
+                      : option.copyWith(isAvailable: now.isAvailable);
+                }(),
+            ],
+          ),
+      ],
+    );
+  }
+
   bool get hasDiscount => discountPercent != null && discountPercent! > 0;
   bool get hasOptions => optionGroups.isNotEmpty;
 
