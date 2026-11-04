@@ -40,17 +40,17 @@ class MenuService {
     await _db.collection(_colCategories).doc(cat.id).update(cat.toMap());
   }
 
+  // لا تُحذف فئة فيها أصناف، لأن الحذف نهائي ولا نسخة احتياطية للرجوع إليها
   static Future<void> deleteCategory(String catId) async {
     final items = await _db
         .collection(_colItems)
         .where('categoryId', isEqualTo: catId)
+        .limit(1)
         .get();
-    final batch = _db.batch();
-    for (final doc in items.docs) {
-      batch.delete(doc.reference);
+    if (items.docs.isNotEmpty) {
+      throw Exception('الفئة فيها أصناف. انقلها لفئة أخرى أو احذفها أولاً، أو أوقف الفئة لإخفائها');
     }
-    batch.delete(_db.collection(_colCategories).doc(catId));
-    await batch.commit();
+    await _db.collection(_colCategories).doc(catId).delete();
   }
 
   // ─── Menu Items ───────────────────────────────────────────────

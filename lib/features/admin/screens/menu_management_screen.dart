@@ -632,15 +632,17 @@ class _CategoryTile extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('حذف الفئة'),
-        content: Text('سيتم حذف الفئة "${cat.name}" وجميع عناصرها. هل أنت متأكد؟'),
+        content: Text('هل تريد حذف الفئة "${cat.name}"؟ لا يمكن حذف فئة فيها أصناف.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('إلغاء')),
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              runOrShowError(context, () => MenuService.deleteCategory(cat.id),
-                  successMessage: 'تم حذف الفئة');
-              CloudinaryService.deleteImage(cat.imageUrl);
+              runOrShowError(context, () async {
+                await MenuService.deleteCategory(cat.id);
+                // بعد نجاح الحذف فقط، حتى لا تفقد فئة باقية صورتها
+                await CloudinaryService.deleteImage(cat.imageUrl);
+              }, successMessage: 'تم حذف الفئة');
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
