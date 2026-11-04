@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../shared/utils/format_utils.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/category_model.dart';
 import '../../../core/models/menu_item_model.dart';
@@ -339,12 +340,13 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
         (allItemsAsync.hasError && !allItemsAsync.hasValue);
 
     // Filter items by search query (flat list, no grouping during search)
+    final normalizedQuery = normalizeForSearch(searchQuery);
     final filteredItems = searchQuery.isEmpty
         ? allItems
         : allItems
             .where((i) =>
-                i.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-                i.description.toLowerCase().contains(searchQuery.toLowerCase()))
+                normalizeForSearch(i.name).contains(normalizedQuery) ||
+                normalizeForSearch(i.description).contains(normalizedQuery))
             .toList();
 
     final screenWidth = MediaQuery.of(context).size.width;

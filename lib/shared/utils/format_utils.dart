@@ -33,3 +33,22 @@ String formatCountdown(Duration d) {
   final s = (d.inSeconds % 60).toString().padLeft(2, '0');
   return '$m:$s';
 }
+
+// يوحّد اختلافات الكتابة العربية قبل البحث: «جبنه» تجد «جبنة»، و«احمد» تجد «أحمد»
+final _arabicMarks = RegExp('[\u0640\u064B-\u0652]');
+final _spaces = RegExp(r'\s+');
+const _arabicVariants = {
+  'أ': 'ا',
+  'إ': 'ا',
+  'آ': 'ا',
+  'ة': 'ه',
+  'ى': 'ي',
+  'ئ': 'ي',
+  'ؤ': 'و',
+};
+
+String normalizeForSearch(String text) {
+  var out = text.toLowerCase().replaceAll(_arabicMarks, '').trim().replaceAll(_spaces, ' ');
+  _arabicVariants.forEach((from, to) => out = out.replaceAll(from, to));
+  return out;
+}
