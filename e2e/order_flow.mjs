@@ -52,10 +52,17 @@ async function waitForLabel(page, pattern, timeout = 60000) {
   throw new Error(`لم يظهر: ${pattern}`);
 }
 
+async function press(page, x, y) {
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.waitForTimeout(300);
+  await page.mouse.up();
+  await page.waitForTimeout(350);
+}
+
 async function tap(page, pattern) {
   const hit = await waitForLabel(page, pattern);
-  await page.mouse.click(hit.x, hit.y);
-  await page.waitForTimeout(350);
+  await press(page, hit.x, hit.y);
 }
 
 async function typeInto(page, pattern, text) {
@@ -96,8 +103,7 @@ async function customerPlacesOrder(browser) {
     assert.equal(pluses.length, 2, "لازم عدادين للخيارين المختارين");
     const ketchupRow = (await waitForLabel(page, /صوص كاتشب/)).y;
     const ketchupPlus = pluses.reduce((a, b) => (Math.abs(a.y - ketchupRow) < Math.abs(b.y - ketchupRow) ? a : b));
-    await page.mouse.click(ketchupPlus.x, ketchupPlus.y);
-    await page.waitForTimeout(300);
+    await press(page, ketchupPlus.x, ketchupPlus.y);
   }
 
   step = "العميل: زر الإضافة بالسعر الصحيح وبلا عدّاد كمية عام";
