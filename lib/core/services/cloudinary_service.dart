@@ -26,6 +26,13 @@ class CloudinaryService {
     return url.replaceFirst('/upload/', '/upload/$transform/');
   }
 
+  // عرض صورة بعرض الشاشة حسب كثافة بكسلاتها، حتى لا يحمّل الجوال أكبر مما يعرضه.
+  // بدرجات 200 بكسل، حتى يعيد Cloudinary استخدام نفس النسخ المحفوظة عنده
+  static int fullWidthImageSize(double screenWidth, double pixelRatio) {
+    final needed = (screenWidth * pixelRatio / 200).ceil() * 200;
+    return needed.clamp(400, 1200);
+  }
+
   // الرفع يتم من المتصفح مباشرة لكن بتوقيع من الخادم (cloudflare/worker.js)، فلا
   // يستطيع أحد الرفع على الحساب بلا صلاحية: المدير للصور، والعميل لإيصال طلبه
   static Future<Map<String, String>> _signUpload(Map<String, String> body) async {

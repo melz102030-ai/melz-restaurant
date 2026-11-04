@@ -1282,12 +1282,16 @@ class _PromoCarouselState extends State<_PromoCarousel> {
   @override
   Widget build(BuildContext context) {
     final height = widget.screenWidth * 0.55;
+    final imageSize = CloudinaryService.fullWidthImageSize(
+      widget.screenWidth,
+      MediaQuery.devicePixelRatioOf(context),
+    );
 
     // لا بانرات نشطة — نعود لسلوك الغلاف الثابت القديم كـ fallback
     if (widget.banners.isEmpty) {
       if (widget.fallbackImageUrl == null) return const SizedBox.shrink();
       return Image.network(
-        CloudinaryService.optimized(widget.fallbackImageUrl, width: 1200),
+        CloudinaryService.optimized(widget.fallbackImageUrl, width: imageSize),
         width: widget.screenWidth,
         fit: BoxFit.fitWidth,
         errorBuilder: (_, __, ___) => _fallbackGradient(height),
@@ -1309,7 +1313,7 @@ class _PromoCarouselState extends State<_PromoCarousel> {
                 behavior: HitTestBehavior.opaque,
                 onTap: () => widget.onBannerTap(banner),
                 child: Image.network(
-                  CloudinaryService.optimized(banner.imageUrl, width: 1200),
+                  CloudinaryService.optimized(banner.imageUrl, width: imageSize),
                   width: widget.screenWidth,
                   height: height,
                   fit: BoxFit.cover,
