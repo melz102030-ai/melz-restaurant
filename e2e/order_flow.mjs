@@ -82,6 +82,29 @@ async function waitForDoc(path, predicate, timeout = 20000) {
   throw new Error(`لم يتحدث ${path}: ${JSON.stringify(last).slice(0, 400)}`);
 }
 
+// يضغط العنصر نفسه بدل إحداثياته، للأزرار التي لا تصلها الضغطة بالإحداثيات
+async function tapElement(page, pattern) {
+  await waitForLabel(page, pattern);
+  const clicked = await page.evaluate((source) => {
+    const re = new RegExp(source);
+    const label = (n) => {
+      const own = [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join(" ");
+      return (n.getAttribute("aria-label") || own || "").trim();
+    };
+    const area = (n) => {
+      const r = n.getBoundingClientRect();
+      return r.width * r.height;
+    };
+    const hit = [...document.querySelectorAll("flt-semantics")]
+      .filter((n) => re.test(label(n)) && area(n) > 0)
+      .sort((a, b) => area(a) - area(b))[0];
+    hit?.click();
+    return Boolean(hit);
+  }, pattern.source);
+  assert.ok(clicked, `لا يوجد زر: ${pattern}`);
+  await page.waitForTimeout(350);
+}
+
 // زر الزيادة صغير ومكانه في شجرة أدوات الوصول قد يقع خارج حدود الشاشة، فيُضغط العنصر
 // نفسه: الأقرب إلى الصف المطلوب، وعدد مرات الضغط يُتحقق منه في زر الإضافة
 async function tapPlusInRow(page, rowPattern) {
@@ -119,7 +142,7 @@ async function customerPlacesOrder(browser) {
   step = "العميل: زر الإضافة بالسعر الصحيح وبلا عدّاد كمية عام";
   const labels = (await semantics(page)).map((n) => n.text);
   assert.ok(!labels.includes("زيادة الكمية"), "صنف غير محتسب السعر لا يعرض عداد كمية عام");
-  await tap(page, /أضف للسلة.*8/);
+  await tapElement(page, /أضف للسلة.*8/);
 
   step = "العميل: السلة";
   await page.waitForTimeout(800);
@@ -129,14 +152,14 @@ async function customerPlacesOrder(browser) {
   await waitForLabel(page, /الكمية: 8/);
 
   step = "العميل: إرسال الطلب كضيف";
-  await tap(page, /إتمام الطلب.*8\.00/);
+  await tapElement(page, /إتمام الطلب.*8\.00/);
   await waitForLabel(page, /بيانات التواصل/);
   await typeInto(page, /^الاسم/, "عميل الاختبار");
   await typeInto(page, /رقم الجوال/, "0512345678");
-  await tap(page, /متابعة الطلب/);
+  await tapElement(page, /متابعة الطلب/);
 
   step = "العميل: تأكيد استلام الطلب";
-  await tap(page, /حسناً، تتبّع طلبي/);
+  await tapElement(page, /حسناً، تتبّع طلبي/);
   await page.waitForFunction(() => window.location.hash.startsWith("#/track/"), null, { timeout: 20000 });
   const orderId = (await page.evaluate(() => window.location.hash)).split("/").pop();
 
@@ -222,7 +245,7 @@ async function adminSeesClosingReport(browser) {
   await page.goto(`${BASE}/#/staff-login`);
   await typeInto(page, /رقم الجوال/, ADMIN.phone);
   await typeInto(page, /كلمة المرور/, ADMIN.password);
-  await tap(page, /^دخول$/);
+  await tapElement(page, /^دخول$/);
   await page.waitForFunction(() => window.location.hash.startsWith("#/admin"), null, { timeout: 30000 });
 
   step = "الإدارة: تقرير إغلاق اليوم";
