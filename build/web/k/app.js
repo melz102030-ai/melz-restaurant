@@ -1056,23 +1056,69 @@ function buildReceiptPlainText(order) {
 // فتح تطبيق آخر، فلا يغادر كروم المقدّمة إطلاقاً ولا تُعاد صفحة المطبخ من
 // جديد بعد الطباعة (كانت هذه المشكلة الجذرية مع كل الطرق السابقة التي
 // تعتمد على فتح تطبيق منفصل عبر رابط sunmiprint://)
-function printViaSunmiBridge(order) {
-  try {
-    var text = buildReceiptPlainText(order);
-    fetch('http://127.0.0.1:9898/print', { method: 'POST', body: text }).catch(function (e) {
-      console.warn('Sunmi bridge print failed', e);
-    });
-    return true;
-  } catch (e) {
-    console.warn('Sunmi bridge print failed', e);
-    return false;
-  }
+var BRIDGE_SEEN_KEY = 'kitchen_print_bridge_seen';
+var BRIDGE_TIMEOUT_MS = 10000;
+
+// يرجع نص رد تطبيق الجسر، أو يرفض إن لم يرد خلال المهلة أو لم يكن موجوداً
+function sendToPrintBridge(text) {
+  var timeout = new Promise(function (_, reject) {
+    setTimeout(function () { reject(new Error('print-bridge-timeout')); }, BRIDGE_TIMEOUT_MS);
+  });
+  var request = fetch('http://127.0.0.1:9898/print', { method: 'POST', body: text })
+    .then(function (res) { return res.text(); });
+  return Promise.race([request, timeout]);
 }
 
-// هذه الصفحة مخصَّصة لأجهزة Sunmi التي عليها تطبيق الجسر دائماً (راجع
-// sunmi_print_bridge/) — تستدعيه مباشرة بلا أي خطة بديلة تلقائية.
-function printOrder(order) {
-  printViaSunmiBridge(order);
+function bridgeSeenOnThisDevice() {
+  try { return localStorage.getItem(BRIDGE_SEEN_KEY) === '1'; } catch (e) { return false; }
+}
+
+function openPrintFailedModal(order, reason) {
+  var body = el('div', { class: 'modal-body' }, [
+    el('div', { class: 'confirm-text' }, [
+      'لم تُطبع فاتورة الطلب رقم ' + pad4(order.orderNumber) + '. ' + reason,
+    ]),
+  ]);
+  var actions = el('div', { class: 'modal-actions' }, [
+    el('button', { class: 'btn-ghost', onclick: closeModal }, ['إغلاق']),
+    el('button', {
+      class: 'btn-ghost',
+      style: 'background:var(--purple);color:#fff',
+      onclick: function () { closeModal(); printOrder(order, true); },
+    }, ['إعادة الطباعة']),
+  ]);
+  openModal('تعذّرت الطباعة', body, [actions]);
+}
+
+// هذه الصفحة مخصَّصة لأجهزة Sunmi التي عليها تطبيق الجسر (راجع
+// sunmi_print_bridge/). الفشل يظهر للموظف حتى لا يضيع طلب مؤكد بلا تذكرة، وجهاز
+// لم يتصل به الجسر قط (مثل كمبيوتر المدير) يكتفي بتنبيه صغير بدل نافذة مع كل طلب.
+function printOrder(order, isRetry) {
+  var text;
+  try {
+    text = buildReceiptPlainText(order);
+  } catch (e) {
+    console.warn('Receipt build failed', e);
+    openPrintFailedModal(order, 'حدث خطأ أثناء تجهيز الفاتورة.');
+    return;
+  }
+  sendToPrintBridge(text).then(function (reply) {
+    try { localStorage.setItem(BRIDGE_SEEN_KEY, '1'); } catch (e) {}
+    if (reply.indexOf('تمت الطباعة') === 0) return;
+    if (reply.indexOf('طُبعت هذه الفاتورة') === 0) {
+      // الجسر يتجاهل تكرار نفس الفاتورة خلال ٥ ثوانٍ، حتى لو فشلت المحاولة السابقة
+      if (isRetry) openPrintFailedModal(order, 'انتظر ٥ ثوانٍ ثم أعد المحاولة.');
+      return;
+    }
+    openPrintFailedModal(order, reply);
+  }).catch(function (e) {
+    console.warn('Sunmi bridge print failed', e);
+    if (bridgeSeenOnThisDevice()) {
+      openPrintFailedModal(order, 'تطبيق الطباعة لا يستجيب. تأكد أنه يعمل على الجهاز.');
+    } else {
+      toast('لم تُطبع الفاتورة: لا يوجد تطبيق طباعة على هذا الجهاز');
+    }
+  });
 }
 
 // ─── إدارة توفر الأصناف ───────────────────────────────────────────────────────
