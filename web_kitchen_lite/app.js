@@ -25,6 +25,7 @@ var state = {
   knownPendingIds: null, // null = لم يُحمَّل بعد (لا تنبيه عند أول تحميل)
   alarmPlaying: false,
   expandedCards: {},     // orderId -> bool
+  orderDrafts: {},       // orderId -> { time, notes } ما كتبه الموظف ولم يُحفظ بعد
   deliveredExpanded: false,
   unsubOrders: null,
   unsubRecent: null,
@@ -498,12 +499,27 @@ function render() {
   });
 
   var root = $('#ordersRoot');
+  // البطاقات تُبنى من جديد مع كل تحديث، فيُعاد المؤشر إلى الحقل الذي كان الموظف يكتب فيه
+  var focused = document.activeElement;
+  var focusedDraft = focused && root.contains(focused) ? focused.getAttribute('data-draft') : null;
+  var caret = null;
+  if (focusedDraft) {
+    try { caret = focused.selectionStart; } catch (e) {}
+  }
   root.innerHTML = '';
   root.appendChild(buildSection('طلبات جديدة', groups.pending, 'var(--st-pending)', 'لا توجد طلبات جديدة'));
   root.appendChild(buildSection('قيد التنفيذ', groups.inProgress, 'var(--st-preparing)', 'لا توجد طلبات قيد التنفيذ'));
   root.appendChild(buildSection('جاهزة', groups.ready, 'var(--st-ready)', 'لا توجد طلبات جاهزة'));
   root.appendChild(buildSection('التوصيل', groups.outForDelivery, 'var(--st-delivery)', 'لا توجد طلبات في الطريق حالياً'));
   root.appendChild(buildSection('مُسلَّمة', groups.delivered, 'var(--st-delivered)', 'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات', true, true));
+  if (focusedDraft) {
+    var field = root.querySelector('[data-draft="' + focusedDraft + '"]');
+    if (field) {
+      field.focus();
+      // حقل الأرقام لا يدعم تحديد موضع المؤشر
+      try { if (caret != null) field.setSelectionRange(caret, caret); } catch (e) {}
+    }
+  }
 }
 
 function buildSection(label, orders, color, emptyMsg, collapsible, hideCount) {
@@ -705,8 +721,22 @@ function buildOrderCard(order, index) {
 
   // Expand (time/notes inputs)
   var expanded = !!state.expandedCards[order.id];
-  var timeInput = el('input', { type: 'number', inputmode: 'numeric', placeholder: 'مثال: 20', value: order.estimatedMinutes || '' });
-  var notesInput = el('textarea', { rows: '2', placeholder: 'مثال: تأخير بسيط...' }, [order.kitchenNotes || '']);
+  var draft = state.orderDrafts[order.id] || {};
+  function saveDraft(key, value) {
+    state.orderDrafts[order.id] = state.orderDrafts[order.id] || {};
+    state.orderDrafts[order.id][key] = value;
+  }
+  var timeInput = el('input', {
+    type: 'number', inputmode: 'numeric', placeholder: 'مثال: 20',
+    value: draft.time != null ? draft.time : (order.estimatedMinutes || ''),
+    'data-draft': order.id + ':time',
+    oninput: function (e) { saveDraft('time', e.target.value); },
+  });
+  var notesInput = el('textarea', {
+    rows: '2', placeholder: 'مثال: تأخير بسيط...',
+    'data-draft': order.id + ':notes',
+    oninput: function (e) { saveDraft('notes', e.target.value); },
+  }, [draft.notes != null ? draft.notes : (order.kitchenNotes || '')]);
   var expandWrap = el('div', { class: 'order-expand' + (expanded ? ' open' : '') }, [
     el('label', { style: 'font-size:11.5px;color:var(--text-secondary);font-weight:600' }, ['وقت التحضير (دقائق)']),
     timeInput,
@@ -746,6 +776,7 @@ function buildOrderCard(order, index) {
     }
     db.collection('orders').doc(order.id).update(update)
       .then(function () {
+        delete state.orderDrafts[order.id];
         if (newStatus === 'confirmed') printOrder(order);
       })
       .catch(function (e) { toast('خطأ: ' + e.message); })
