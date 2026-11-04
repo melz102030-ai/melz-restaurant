@@ -76,25 +76,56 @@ class _OrdersList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(allOrdersProvider(status));
+    final limit = ref.watch(recentOrdersLimitProvider);
+    final mayHaveOlder = (ref.watch(recentOrdersProvider).valueOrNull?.length ?? 0) >= limit;
+
+    void loadOlder() =>
+        ref.read(recentOrdersLimitProvider.notifier).state = limit + adminOrdersPageSize;
 
     return ordersAsync.when(
       data: (orders) {
         if (orders.isEmpty) {
-          return const EmptyState(
-            message: 'لا توجد طلبات',
-            icon: Icons.receipt_long_outlined,
+          return Column(
+            children: [
+              const Expanded(
+                child: EmptyState(
+                  message: 'لا توجد طلبات',
+                  icon: Icons.receipt_long_outlined,
+                ),
+              ),
+              if (mayHaveOlder) _LoadOlderButton(onPressed: loadOlder),
+            ],
           );
         }
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: orders.length,
-          itemBuilder: (_, i) => _AdminOrderCard(order: orders[i], index: i),
+          itemCount: orders.length + (mayHaveOlder ? 1 : 0),
+          itemBuilder: (_, i) => i < orders.length
+              ? _AdminOrderCard(order: orders[i], index: i)
+              : _LoadOlderButton(onPressed: loadOlder),
         );
       },
       loading: () => const LoadingWidget(),
       error: (e, _) => EmptyState(message: 'خطأ: $e', icon: Icons.error),
     );
   }
+}
+
+class _LoadOlderButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  const _LoadOlderButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.all(12),
+        child: Center(
+          child: OutlinedButton.icon(
+            onPressed: onPressed,
+            icon: const Icon(Icons.history, size: 18),
+            label: const Text('عرض طلبات أقدم'),
+          ),
+        ),
+      );
 }
 
 class _AdminOrderCard extends StatefulWidget {

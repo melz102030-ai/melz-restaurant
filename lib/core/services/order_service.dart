@@ -87,23 +87,15 @@ class OrderService {
             snap.exists ? OrderModel.fromMap(snap.data()!, snap.id) : null);
   }
 
-  // آخر الطلبات (admin) — بحد أقصى حتى لا تثقل اللوحة مع تراكم الطلبات، وفلترة
-  // الحالة في Dart لتجنب Composite Index. أرقام اللوحة والتقارير من
-  // getOrdersSummary بنطاق تاريخ مستقل، فلا يؤثر هذا الحد عليها
-  static const int _recentOrdersLimit = 500;
-
-  static Stream<List<OrderModel>> streamAllOrders({OrderStatus? status}) {
+  // آخر الطلبات (admin)، بعدد تزيده شاشة الطلبات عند طلب الأقدم. أرقام اللوحة
+  // والتقارير من getOrdersSummary بنطاق تاريخ مستقل، فلا يؤثر هذا الحد عليها
+  static Stream<List<OrderModel>> streamRecentOrders(int limit) {
     return _db
         .collection(_colOrders)
         .orderBy('createdAt', descending: true)
-        .limit(_recentOrdersLimit)
+        .limit(limit)
         .snapshots()
-        .map((snap) {
-      final orders = snap.docs.map((d) => OrderModel.fromMap(d.data(), d.id));
-      return status == null
-          ? orders.toList()
-          : orders.where((o) => o.status == status).toList();
-    });
+        .map((snap) => snap.docs.map((d) => OrderModel.fromMap(d.data(), d.id)).toList());
   }
 
   // دعوات تعيين لم يردّ عليها المندوب بعد — تُعرض له كـ"قبول/رفض" بغض النظر عن

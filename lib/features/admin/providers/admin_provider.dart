@@ -7,8 +7,20 @@ import '../../../core/services/order_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/menu_service.dart';
 
-final allOrdersProvider = StreamProvider.family<List<OrderModel>, OrderStatus?>((ref, status) {
-  return OrderService.streamAllOrders(status: status);
+// اتصال واحد مشترك لكل شاشات الإدارة وتبويباتها: لكل قراءة ثمن، فلا يفتح كل تبويب
+// اتصالاً خاصاً به، ولا تُقرأ طلبات قديمة إلا إذا طلبها المدير
+const int adminOrdersPageSize = 100;
+
+final recentOrdersLimitProvider = StateProvider<int>((ref) => adminOrdersPageSize);
+
+final recentOrdersProvider = StreamProvider<List<OrderModel>>((ref) {
+  return OrderService.streamRecentOrders(ref.watch(recentOrdersLimitProvider));
+});
+
+final allOrdersProvider = Provider.family<AsyncValue<List<OrderModel>>, OrderStatus?>((ref, status) {
+  return ref.watch(recentOrdersProvider).whenData(
+        (orders) => status == null ? orders : orders.where((o) => o.status == status).toList(),
+      );
 });
 
 final allUsersProvider = StreamProvider<List<UserModel>>((ref) {
