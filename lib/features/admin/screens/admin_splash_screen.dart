@@ -7,6 +7,7 @@ import '../../../core/providers/settings_provider.dart';
 import '../../../core/services/cloudinary_service.dart';
 import '../../../core/services/settings_service.dart';
 import '../../../core/services/splash_image_service.dart';
+import '../../../shared/utils/async_utils.dart';
 
 final _adminSplashImagesProvider = StreamProvider<List<SplashImageModel>>((ref) {
   return SplashImageService.streamImages();
@@ -100,6 +101,13 @@ class _SplashImagesGridState extends ConsumerState<_SplashImagesGrid> {
           await SplashImageService.addImage(url, nextOrder++);
         }
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('تعذّر رفع الصورة: ${e.toString().replaceAll('Exception: ', '')}'),
+          backgroundColor: AppColors.error,
+        ));
+      }
     } finally {
       if (mounted) setState(() => _uploading = false);
     }
@@ -123,9 +131,12 @@ class _SplashImagesGridState extends ConsumerState<_SplashImagesGrid> {
         ],
       ),
     );
-    if (confirm == true) {
-      SplashImageService.deleteImage(img.id);
-      CloudinaryService.deleteImage(img.imageUrl);
+    if (confirm == true && mounted) {
+      // الصورة تُحذف بعد نجاح حذف سجلها، وأي فشل تظهر له رسالة
+      await runOrShowError(context, () async {
+        await SplashImageService.deleteImage(img.id);
+        await CloudinaryService.deleteImage(img.imageUrl);
+      });
     }
   }
 

@@ -208,11 +208,11 @@ class _AdTile extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(dialogContext);
-              runOrShowError(context, () => PopupAdService.deleteAd(ad.id),
-                  successMessage: 'تم حذف الإعلان');
-              for (final url in ad.imageUrls) {
-                CloudinaryService.deleteImage(url);
-              }
+              // الصور تُحذف بعد نجاح حذف الإعلان، حتى لا يبقى إعلان بلا صور
+              runOrShowError(context, () async {
+                await PopupAdService.deleteAd(ad.id);
+                await Future.wait(ad.imageUrls.map(CloudinaryService.deleteImage));
+              }, successMessage: 'تم حذف الإعلان');
             },
             child: const Text('حذف', style: TextStyle(color: AppColors.error)),
           ),
