@@ -65,10 +65,31 @@ async function tap(page, pattern) {
   await press(page, hit.x, hit.y);
 }
 
+// حقول الإدخال عناصر input داخل شجرة أدوات الوصول، وليست نصوصاً فيها
+async function textFields(page) {
+  return page.evaluate(() =>
+    [...document.querySelectorAll("flt-semantics input, flt-semantics textarea")].map(
+      (n) => n.getAttribute("aria-label") || ""
+    )
+  );
+}
+
 async function typeInto(page, pattern, text) {
-  await tap(page, pattern);
+  const end = Date.now() + 30000;
+  let index = -1;
+  while (index < 0 && Date.now() < end) {
+    index = (await textFields(page)).findIndex((label) => pattern.test(label));
+    if (index < 0) await page.waitForTimeout(250);
+  }
+  assert.ok(index >= 0, `لا يوجد حقل: ${pattern}`);
+  await page.evaluate((i) => {
+    const field = document.querySelectorAll("flt-semantics input, flt-semantics textarea")[i];
+    field.focus();
+    field.click();
+  }, index);
+  await page.waitForTimeout(250);
   await page.keyboard.insertText(text);
-  await page.waitForTimeout(150);
+  await page.waitForTimeout(200);
 }
 
 async function waitForDoc(path, predicate, timeout = 20000) {
@@ -153,7 +174,7 @@ async function customerPlacesOrder(browser) {
 
   step = "العميل: إرسال الطلب كضيف";
   await tapElement(page, /إتمام الطلب.*8\.00/);
-  await waitForLabel(page, /بيانات التواصل/);
+  await waitForLabel(page, /متابعة الطلب/);
   await typeInto(page, /^الاسم/, "عميل الاختبار");
   await typeInto(page, /رقم الجوال/, "0512345678");
   await tapElement(page, /متابعة الطلب/);
@@ -289,6 +310,7 @@ async function reportFailure(e) {
       report(`الرابط: ${activePage.url()}`);
       const shown = (await semantics(activePage)).map((n) => n.text).join(" / ");
       report(`الظاهر: ${shown || (await activePage.locator("body").innerText()).slice(0, 800)}`);
+      report(`الحقول: ${(await textFields(activePage)).join(" / ")}`);
     } catch (readError) {
       report(`تعذرت قراءة الشاشة: ${readError.message}`);
     }
