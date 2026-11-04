@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_model.dart';
 
@@ -299,6 +301,31 @@ class AuthService {
     } finally {
       await tempApp.delete();
     }
+  }
+
+  static String? get currentUserId => _auth.currentUser?.uid;
+
+  // المدير يعيّن كلمة مرور جديدة لموظف نسيها، عبر الخادم لأنها تتطلب صلاحية إدارية
+  static Future<void> resetStaffPassword(String userId, String newPassword) async {
+    const failure = 'تعذّر تغيير كلمة المرور، حاول مجدداً';
+    final idToken = await _auth.currentUser?.getIdToken();
+    if (idToken == null) throw Exception(failure);
+    final res = await http.post(
+      Uri.parse('https://melz-lean-payments.melz102030.workers.dev/staff/reset-password'),
+      headers: {
+        'Authorization': 'Bearer $idToken',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({'userId': userId, 'newPassword': newPassword}),
+    );
+    if (res.statusCode == 200) return;
+    String? message;
+    try {
+      message = (jsonDecode(res.body) as Map<String, dynamic>)['message'] as String?;
+    } on FormatException {
+      message = null;
+    }
+    throw Exception(message ?? failure);
   }
 
   // ─── المناديب ─────────────────────────────────────────────────────────────

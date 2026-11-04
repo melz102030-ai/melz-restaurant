@@ -869,12 +869,15 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
     super.dispose();
   }
 
+  // صاحب الحساب يؤكد كلمته الحالية، أما المدير فيعيّن كلمة جديدة لموظف قد يكون نسيها
+  bool get _isSelf => widget.user.id == AuthService.currentUserId;
+
   Future<void> _save() async {
     final current = _currentCtrl.text.trim();
     final newPw = _newCtrl.text.trim();
     final confirm = _confirmCtrl.text.trim();
 
-    if (current.isEmpty || newPw.isEmpty || confirm.isEmpty) {
+    if ((_isSelf && current.isEmpty) || newPw.isEmpty || confirm.isEmpty) {
       setState(() => _error = 'جميع الحقول مطلوبة');
       return;
     }
@@ -889,8 +892,21 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
 
     setState(() { _isSaving = true; _error = null; });
     try {
-      await AuthService.changeStaffPassword(widget.user.phone, current, newPw);
-      if (mounted) Navigator.pop(context);
+      if (_isSelf) {
+        await AuthService.changeStaffPassword(widget.user.phone, current, newPw);
+      } else {
+        await AuthService.resetStaffPassword(widget.user.id, newPw);
+      }
+      if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
+        Navigator.pop(context);
+        messenger.showSnackBar(SnackBar(
+          content: Text(_isSelf
+              ? 'تم تغيير كلمة المرور'
+              : 'تم تغيير كلمة مرور ${widget.user.name}، وعليه الدخول بالكلمة الجديدة'),
+          backgroundColor: AppColors.success,
+        ));
+      }
     } catch (e) {
       if (mounted) {
         setState(() => _error = e.toString().replaceAll('Exception: ', ''));
@@ -912,19 +928,22 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _PasswordField(
-            controller: _currentCtrl,
-            label: 'كلمة المرور الحالية',
-            obscure: _obscureCurrent,
-            onToggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
-            autofocus: true,
-          ),
-          const SizedBox(height: 12),
+          if (_isSelf) ...[
+            _PasswordField(
+              controller: _currentCtrl,
+              label: 'كلمة المرور الحالية',
+              obscure: _obscureCurrent,
+              onToggle: () => setState(() => _obscureCurrent = !_obscureCurrent),
+              autofocus: true,
+            ),
+            const SizedBox(height: 12),
+          ],
           _PasswordField(
             controller: _newCtrl,
             label: 'كلمة المرور الجديدة',
             obscure: _obscureNew,
             onToggle: () => setState(() => _obscureNew = !_obscureNew),
+            autofocus: !_isSelf,
           ),
           const SizedBox(height: 12),
           _PasswordField(

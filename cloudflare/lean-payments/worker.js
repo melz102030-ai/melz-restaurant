@@ -24,6 +24,7 @@
 // إن لزم.
 
 import { priceOrder, removeUnavailableItems, setOptionAvailability, OrderRejected } from "./pricing.js";
+import { canResetStaffPassword } from "./staff.js";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -104,13 +105,13 @@ function base64url(input) {
 
 // توكن وصول Google بصلاحية إدارية (Service Account JWT bearer) — للكتابة
 // على Firestore متجاوزاً قواعد أمان العميل، تماماً كعمل Admin SDK
-async function getFirestoreAdminToken(env) {
+async function getFirestoreAdminToken(env, scope = "https://www.googleapis.com/auth/datastore") {
   const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON);
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const claims = {
     iss: sa.client_email,
-    scope: "https://www.googleapis.com/auth/datastore",
+    scope,
     aud: "https://oauth2.googleapis.com/token",
     iat: now,
     exp: now + 3600,
@@ -694,6 +695,74 @@ async function handleOptionAvailability(request, env) {
   }
 }
 
+// المدير يعيّن كلمة مرور جديدة لموظف نسيها — يتطلب صلاحية حساب الخدمة، فلا يمكن من
+// المتصفح. بعدها تُبطَل جلسات الموظف المفتوحة حتى يدخل بالكلمة الجديدة.
+async function handleResetStaffPassword(request, env) {
+  const authHeader = request.headers.get("Authorization") || "";
+  const idToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const uid = idToken ? decodeUid(idToken) : null;
+  if (!uid || !/^[\w-]+$/.test(uid)) return json({ error: "unauthenticated" }, 401);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  const { userId, newPassword } = body;
+  if (typeof userId !== "string" || !/^[\w-]+$/.test(userId)) {
+    return json({ error: "invalid-body", message: "طلب غير صحيح" }, 400);
+  }
+  if (typeof newPassword !== "string" || newPassword.length < 6 || newPassword.length > 128) {
+    return json({ error: "weak-password", message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }, 400);
+  }
+
+  const denied = { error: "permission-denied", message: "لا تملك صلاحية تغيير كلمة مرور هذا الموظف" };
+  const failure = { error: "reset-failed", message: "تعذّر تغيير كلمة المرور، حاول مجدداً" };
+  try {
+    // قراءة ملف المتصل بتوكنه تتحقق من صحته
+    const callerRes = await fsFetch(env, idToken, `/users/${uid}`);
+    if (!callerRes.ok) return json(denied, 403);
+    const caller = docFields((await callerRes.json()).fields);
+
+    const adminToken = await getFirestoreAdminToken(env);
+    const targetRes = await fsFetch(env, adminToken, `/users/${userId}`);
+    if (!targetRes.ok) return json({ error: "user-not-found", message: "لم يُعثر على هذا الموظف" }, 404);
+    const target = docFields((await targetRes.json()).fields);
+
+    const claims = JSON.parse(atob(idToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const allowed = canResetStaffPassword({
+      caller,
+      target,
+      isAnonymous: claims.firebase?.sign_in_provider === "anonymous",
+      isSelf: uid === userId,
+    });
+    if (!allowed) return json(denied, 403);
+
+    const authToken = await getFirestoreAdminToken(env, "https://www.googleapis.com/auth/identitytoolkit");
+    const res = await fetch(
+      `https://identitytoolkit.googleapis.com/v1/projects/${env.FIREBASE_PROJECT_ID}/accounts:update`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${authToken}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          localId: userId,
+          password: newPassword,
+          validSince: String(Math.floor(Date.now() / 1000)),
+        }),
+      }
+    );
+    if (!res.ok) {
+      console.error("reset-password-failed", res.status, await res.text());
+      return json(failure, 502);
+    }
+    return json({ ok: true });
+  } catch (e) {
+    console.error("reset-password-error", String(e));
+    return json(failure, 502);
+  }
+}
+
 // فحص تشخيصي بلا حاجة لعميل حقيقي أو طلب فعلي — يختبر فقط أن أسرار لين
 // وحساب خدمة Firebase صالحة وتُصدر توكن وصول بنجاح. لا يكشف أي قيمة سرّية
 // في الرد، فقط ok/error لكل جزء. يُزال أو يُقيَّد لاحقاً بعد التأكد النهائي.
@@ -730,6 +799,7 @@ export default {
     if (request.method !== "POST") return json({ error: "method-not-allowed" }, 405);
     if (url.pathname === "/orders") return handleCreateOrder(request, env);
     if (url.pathname === "/menu/option-availability") return handleOptionAvailability(request, env);
+    if (url.pathname === "/staff/reset-password") return handleResetStaffPassword(request, env);
     if (url.pathname === "/orders/acknowledge-unavailable") {
       return handleAcknowledgeUnavailable(request, env);
     }
