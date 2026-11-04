@@ -40,6 +40,11 @@ class ComboModel {
     this.includedNames = const [],
   });
 
+  // تُطلب فقط إذا توفرت كل أصنافها الثابتة، وخيار واحد على الأقل إن كان لها خيارات
+  bool canBeOrdered(bool Function(String itemId) isAvailable) =>
+      items.every((ref) => isAvailable(ref.itemId)) &&
+      (optionItemIds.isEmpty || optionItemIds.any(isAvailable));
+
   factory ComboModel.fromMap(Map<String, dynamic> map, String id) => ComboModel(
         id: id,
         name: map['name'] ?? '',

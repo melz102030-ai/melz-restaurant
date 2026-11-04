@@ -112,6 +112,27 @@ test("التركيبة: السعر في سطر الرأس وأصنافها بس�
   assert.equal(r.items[1].name, "↳ برجر");
 });
 
+test("رفض التركيبة: صنف ثابت متوقف أو محذوف، أو خيار مختار متوقف", () => {
+  const priceWith = (items) =>
+    priceOrder({
+      request: {
+        paymentMethod: "cash",
+        orderType: "pickup",
+        combos: [{ comboId: "c1", quantity: 1, optionItemId: "sauces" }],
+      },
+      settings: OPEN_SETTINGS,
+      zones: [],
+      itemsById: new Map(items),
+      combosById,
+    });
+  const off = (item) => ({ ...item, isAvailable: false });
+
+  rejectsWith(() => priceWith([["sauces", sauces], ["burger", off(burger)]]), "item-unavailable");
+  rejectsWith(() => priceWith([["sauces", sauces]]), "item-unavailable");
+  rejectsWith(() => priceWith([["sauces", off(sauces)], ["burger", burger]]), "item-unavailable");
+  assert.equal(priceWith([["sauces", sauces], ["burger", burger]]).total, 30);
+});
+
 test("رفض: مبلغ معروض مختلف، خيار متوقف، خيار إجباري ناقص، زيادة عدد غير مسموحة", () => {
   const sauce = { itemId: "sauces", quantity: 1, options: [{ groupId: "g1", selectedIds: ["garlic"] }] };
   rejectsWith(() => price({ items: [sauce, sauce, sauce, sauce], expectedTotal: 1 }), "price-changed");

@@ -216,7 +216,13 @@ export function buildOrderLines(request, itemsById, combosById) {
     ];
     for (const id of subIds) {
       const sub = itemsById.get(id);
-      if (!sub) continue;
+      if (!sub || sub.isAvailable === false) {
+        throw new OrderRejected(
+          "item-unavailable",
+          `تركيبة "${combo.name}" غير متوفرة حالياً لتوقف أحد أصنافها، احذفها من السلة`,
+          409
+        );
+      }
       lines.push(
         orderLine({
           menuItemId: sub.id,

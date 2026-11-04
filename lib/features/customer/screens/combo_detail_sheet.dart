@@ -67,8 +67,9 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
   @override
   Widget build(BuildContext context) {
     final combo = widget.combo;
-    final allItems =
-        ref.watch(menuItemsStreamProvider(null)).valueOrNull ?? const <MenuItemModel>[];
+    final loadedItems = ref.watch(menuItemsStreamProvider(null)).valueOrNull;
+    final allItems = loadedItems ?? const <MenuItemModel>[];
+    final isLoaded = loadedItems != null;
 
     final resolvedItems = combo.items
         .map((r) => allItems.where((i) => i.id == r.itemId).firstOrNull)
@@ -78,10 +79,16 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
     final optionItems = combo.optionItemIds
         .map((id) => allItems.where((i) => i.id == id).firstOrNull)
         .whereType<MenuItemModel>()
+        .where((item) => item.isAvailable)
         .toList();
 
     final hasOptions = optionItems.isNotEmpty;
-    final canAdd = !hasOptions || _selectedOptionId != null;
+    final canBeOrdered = isLoaded &&
+        combo.canBeOrdered(
+            (id) => allItems.any((item) => item.id == id && item.isAvailable));
+    // الخيار المختار قد يتوقف والنافذة مفتوحة، فيختفي ويُلغى اختياره
+    final hasSelection = optionItems.any((item) => item.id == _selectedOptionId);
+    final canAdd = canBeOrdered && (!hasOptions || hasSelection);
 
     return Container(
       decoration: BoxDecoration(
@@ -166,9 +173,14 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
                           color: AppColors.purple, size: 18),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(item.name,
+                        child: Text(
+                            item.isAvailable
+                                ? item.name
+                                : '${item.name} (غير متوفر حالياً)',
                             style: TextStyle(
-                                color: AppColors.textPrimary,
+                                color: item.isAvailable
+                                    ? AppColors.textPrimary
+                                    : AppColors.error,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w500)),
                       ),
@@ -280,9 +292,13 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
                   borderRadius: BorderRadius.circular(12)),
             ),
             child: Text(
-              hasOptions && _selectedOptionId == null
-                  ? 'اختر خياراً أولاً'
-                  : 'أضف للسلة · ${combo.price.toStringAsFixed(2)} ${AppStrings.sar}',
+              !isLoaded
+                  ? 'جارٍ التحميل...'
+                  : !canBeOrdered
+                      ? 'غير متوفرة حالياً'
+                      : hasOptions && !hasSelection
+                          ? 'اختر خياراً أولاً'
+                          : 'أضف للسلة · ${combo.price.toStringAsFixed(2)} ${AppStrings.sar}',
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
