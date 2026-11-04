@@ -128,10 +128,24 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
                           color: AppColors.purple,
                         ),
                         _SummaryCard(
-                          title: 'إجمالي الإيرادات',
+                          title: 'الإيرادات شامل التوصيل',
                           value: '${(stats['totalRevenue'] as double).toStringAsFixed(2)}',
                           subtitle: AppStrings.sar,
                           icon: Icons.monetization_on,
+                          color: AppColors.manjawi,
+                        ),
+                        _SummaryCard(
+                          title: 'مبيعات الأصناف',
+                          value: '${(stats['salesTotal'] as double).toStringAsFixed(2)}',
+                          subtitle: AppStrings.sar,
+                          icon: Icons.restaurant_menu,
+                          color: AppColors.purple,
+                        ),
+                        _SummaryCard(
+                          title: 'رسوم التوصيل',
+                          value: '${(stats['deliveryFees'] as double).toStringAsFixed(2)}',
+                          subtitle: AppStrings.sar,
+                          icon: Icons.delivery_dining,
                           color: AppColors.manjawi,
                         ),
                         _SummaryCard(
@@ -600,6 +614,19 @@ class _ClosingReportCardState extends ConsumerState<_ClosingReportCard> {
           amount: r.cancelledTotal,
           color: r.cancelledCount > 0 ? AppColors.error : null,
         ),
+        if (r.refundDueCount > 0)
+          _ClosingRow(
+            label: 'مبالغ يجب استرجاعها',
+            count: r.refundDueCount,
+            amount: r.refundDueTotal,
+            color: AppColors.warning,
+          ),
+        if (r.refundedCount > 0)
+          _ClosingRow(
+            label: 'مبالغ مسترجعة',
+            count: r.refundedCount,
+            amount: r.refundedTotal,
+          ),
         if (r.openCount > 0) ...[
           _ClosingRow(
             label: 'طلبات لم تكتمل بعد',

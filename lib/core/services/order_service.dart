@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import '../constants/app_config.dart';
 import '../models/closing_report.dart';
+import '../models/orders_summary.dart';
 import '../models/order_model.dart';
 import '../models/settings_model.dart';
 
@@ -318,35 +319,9 @@ class OrderService {
     }
 
     final snap = await query.get();
-    final orders = snap.docs.map((d) => OrderModel.fromMap(d.data(), d.id)).toList();
-
-    double totalRevenue = 0;
-    int completedOrders = 0;
-    int cancelledOrders = 0;
-    final itemSales = <String, int>{};
-
-    for (final order in orders) {
-      if (order.status == OrderStatus.delivered) {
-        totalRevenue += order.total;
-        completedOrders++;
-        for (final item in order.items) {
-          itemSales[item.name] = (itemSales[item.name] ?? 0) + item.shownQuantity;
-        }
-      } else if (order.status == OrderStatus.cancelled) {
-        cancelledOrders++;
-      }
-    }
-
-    final sortedItems = itemSales.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
-    return {
-      'totalOrders': orders.length,
-      'totalRevenue': totalRevenue,
-      'completedOrders': completedOrders,
-      'cancelledOrders': cancelledOrders,
-      'topItems': sortedItems.take(5).map((e) => {'name': e.key, 'count': e.value}).toList(),
-    };
+    return summarizeOrders(
+      snap.docs.map((d) => OrderModel.fromMap(d.data(), d.id)).toList(),
+    );
   }
 
   // تقرير إغلاق يوم عمل واحد يبدأ من dayStart

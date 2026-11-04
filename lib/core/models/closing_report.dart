@@ -19,6 +19,11 @@ class ClosingReport {
   // طلبات لم تكتمل بعد، فأرقام اليوم ليست نهائية ما دامت موجودة
   final int openCount;
   final double openTotal;
+  // طلبات ملغاة دُفعت قيمتها: تبقى ظاهرة حتى يسجل المدير استرجاع المبلغ
+  final int refundDueCount;
+  final double refundDueTotal;
+  final int refundedCount;
+  final double refundedTotal;
 
   const ClosingReport({
     required this.totalOrders,
@@ -36,6 +41,10 @@ class ClosingReport {
     required this.cancelledTotal,
     required this.openCount,
     required this.openTotal,
+    required this.refundDueCount,
+    required this.refundDueTotal,
+    required this.refundedCount,
+    required this.refundedTotal,
   });
 
   factory ClosingReport.fromOrders(List<OrderModel> orders) {
@@ -43,11 +52,20 @@ class ClosingReport {
     var transferPendingCount = 0, electronicCount = 0, cancelledCount = 0, openCount = 0;
     var deliveredTotal = 0.0, cashTotal = 0.0, transferConfirmedTotal = 0.0;
     var transferPendingTotal = 0.0, electronicTotal = 0.0, cancelledTotal = 0.0, openTotal = 0.0;
+    var refundDueCount = 0, refundedCount = 0;
+    var refundDueTotal = 0.0, refundedTotal = 0.0;
 
     for (final o in orders) {
       if (o.status == OrderStatus.cancelled) {
         cancelledCount++;
         cancelledTotal += o.total;
+        if (o.paymentStatus == PaymentStatus.paid) {
+          refundDueCount++;
+          refundDueTotal += o.total;
+        } else if (o.paymentStatus == PaymentStatus.refunded) {
+          refundedCount++;
+          refundedTotal += o.total;
+        }
         continue;
       }
       final isDelivered = o.status == OrderStatus.delivered;
@@ -101,6 +119,10 @@ class ClosingReport {
       cancelledTotal: cancelledTotal,
       openCount: openCount,
       openTotal: openTotal,
+      refundDueCount: refundDueCount,
+      refundDueTotal: refundDueTotal,
+      refundedCount: refundedCount,
+      refundedTotal: refundedTotal,
     );
   }
 }

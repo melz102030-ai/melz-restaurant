@@ -315,6 +315,30 @@ class _PaymentReceiptRow extends StatelessWidget {
     );
   }
 
+  void _confirmRefund(BuildContext context) {
+    final amount = '${order.total.toStringAsFixed(2)} ${AppStrings.sar}';
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('تسجيل استرجاع المبلغ'),
+        content: Text('هل أعدت مبلغ $amount إلى "${order.customerName}"؟'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('تراجع')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              runOrShowError(
+                context,
+                () => OrderService.updatePaymentStatus(order.id, PaymentStatus.refunded),
+              );
+            },
+            child: const Text('تم الاسترجاع'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // الرابط يُطلب من الخادم أولاً، ثم يُفتح بضغطة في النافذة لأن المتصفح قد يمنع فتح
   // صفحة جديدة بعد الانتظار
   Future<void> _openReceipt(BuildContext context) async {
@@ -357,6 +381,8 @@ class _PaymentReceiptRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final paid = order.paymentStatus == PaymentStatus.paid;
+    final refunded = order.paymentStatus == PaymentStatus.refunded;
+    final refundDue = paid && order.status == OrderStatus.cancelled;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -390,7 +416,16 @@ class _PaymentReceiptRow extends StatelessWidget {
           Text('لم يُرفق العميل إيصالاً بعد',
               style: TextStyle(color: AppColors.textHint, fontSize: 12.5)),
         const SizedBox(height: 8),
-        if (paid)
+        if (refundDue)
+          OutlinedButton.icon(
+            onPressed: () => _confirmRefund(context),
+            style: OutlinedButton.styleFrom(foregroundColor: AppColors.warning),
+            icon: const Icon(Icons.currency_exchange, size: 18),
+            label: const Text('الطلب ملغى: سجّل استرجاع المبلغ'),
+          )
+        else if (refunded)
+          const SizedBox.shrink()
+        else if (paid)
           TextButton.icon(
             onPressed: () => _confirmPayment(context, paid: false),
             icon: const Icon(Icons.undo, size: 18),
