@@ -233,12 +233,16 @@ async function main() {
 
     await adminSeesClosingReport(browser);
     console.log("نجحت رحلة الطلب كاملة");
+  } catch (e) {
+    // تُقرأ الشاشة هنا قبل إغلاق المتصفح
+    await reportFailure(e);
+    process.exitCode = 1;
   } finally {
     await browser.close();
   }
 }
 
-main().catch(async (e) => {
+async function reportFailure(e) {
   report(`فشل عند: ${step}`);
   report(e.message);
   if (activePage && !activePage.isClosed()) {
@@ -251,5 +255,9 @@ main().catch(async (e) => {
     }
   }
   for (const err of consoleErrors.slice(-4)) report(`خطأ المتصفح: ${err}`);
-  process.exit(1);
+}
+
+main().catch((e) => {
+  report(`فشل قبل بدء الرحلة: ${e.message}`);
+  process.exitCode = 1;
 });
