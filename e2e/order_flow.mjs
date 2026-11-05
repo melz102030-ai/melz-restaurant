@@ -31,7 +31,10 @@ const semantics = (page) =>
     nodes
       .map((n) => {
         const r = n.getBoundingClientRect();
-        const own = [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => c.textContent).join(" ");
+        const own = [...n.childNodes]
+          .filter((c) => c.nodeType === 3 || (c.nodeType === 1 && !c.tagName.startsWith("FLT-SEMANTICS")))
+          .map((c) => c.textContent)
+          .join(" ");
         return {
           text: (n.getAttribute("aria-label") || own || "").trim(),
           x: r.x + r.width / 2,
@@ -288,6 +291,7 @@ async function main() {
     step = "العميل: يرى اكتمال طلبه في التتبع";
     const tracking = context.pages()[0];
     activePage = tracking;
+    await tracking.bringToFront();
     await waitForLabel(tracking, /تم التسليم/, 20000);
     await context.close();
 
