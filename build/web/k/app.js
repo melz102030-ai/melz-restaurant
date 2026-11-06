@@ -1341,7 +1341,7 @@ function buildAvailItem(item) {
       .finally(function () { toggle.disabled = false; });
   });
 
-  var hasOptions = (item.optionGroups || []).some(function (g) { return (g.options || []).length; });
+  var hasOptions = kitchenGroups(item).length > 0;
   var isOpen = !!availExpanded[item.id];
 
   var row = el('div', {
@@ -1360,7 +1360,7 @@ function buildAvailItem(item) {
   var wrap = el('div', {}, [row]);
   if (isOpen) {
     wrap.appendChild(hasOptions ? buildAvailOptions(item) : el('div', { class: 'avail-options' }, [
-      el('div', { class: 'avail-no-opts' }, ['لا توجد خيارات لهذا الصنف']),
+      el('div', { class: 'avail-no-opts' }, ['لا توجد خيارات يتحكم بها المطبخ في هذا الصنف']),
     ]));
   }
   return wrap;
@@ -1385,10 +1385,20 @@ function setOptionAvailable(itemId, groupId, optionId, isAvailable) {
 
 // لوحة خيارات الصنف — كل مجموعة وخياراتها مع مفتاح تفعيل/إيقاف لكل خيار
 // على حِدة (مثال: إيقاف "جبنة إضافية" مؤقتاً لنفادها دون إيقاف الصنف كله)
+// أقسام الخيارات التي سمحت الإدارة للمطبخ بالتحكم بتوفرها، وكل قسم مرة واحدة
+// حتى لو كان محفوظاً مكرراً في بيانات قديمة
+function kitchenGroups(item) {
+  var seen = {};
+  return (item.optionGroups || []).filter(function (g) {
+    if (g.kitchenControl !== true || !(g.options || []).length || seen[g.id]) return false;
+    seen[g.id] = true;
+    return true;
+  });
+}
+
 function buildAvailOptions(item) {
   var panel = el('div', { class: 'avail-options' });
-  (item.optionGroups || []).forEach(function (group) {
-    if (!(group.options || []).length) return;
+  kitchenGroups(item).forEach(function (group) {
     var rows = group.options.map(function (opt) {
       var optAvailable = opt.isAvailable !== false;
       var optToggle = el('input', { type: 'checkbox' });

@@ -7,21 +7,21 @@ _.d=null
 _.e=$
 _.c=_.a=null
 _.$ti=d},
-bBj:function bBj(d){this.a=d},
-bBi:function bBi(d,e){this.a=d
-this.b=e},
 bBl:function bBl(d){this.a=d},
-bBg:function bBg(d,e,f){this.a=d
+bBk:function bBk(d,e){this.a=d
+this.b=e},
+bBn:function bBn(d){this.a=d},
+bBi:function bBi(d,e,f){this.a=d
 this.b=e
 this.c=f},
-bBk:function bBk(d){this.a=d},
-bBh:function bBh(d){this.a=d},
+bBm:function bBm(d){this.a=d},
+bBj:function bBj(d){this.a=d},
 VN:function VN(d,e,f,g){var _=this
 _.e=d
 _.c=e
 _.a=f
 _.$ti=g},
-bOj(d,e){var x,w,v,u,t,s,r="createdAt",q="updatedAt",p=J.a4(d),o=p.i(d,"customerId")
+bOl(d,e){var x,w,v,u,t,s,r="createdAt",q="updatedAt",p=J.a4(d),o=p.i(d,"customerId")
 if(o==null)o=""
 x=p.i(d,"customerName")
 if(x==null)x=""
@@ -68,7 +68,7 @@ au(){var x,w=this
 w.aG()
 x=w.a
 x.toString
-x=B.bSC(x.$ti.c)
+x=B.bSE(x.$ti.c)
 w.e=x
 w.Bu()},
 aP(d){var x,w=this
@@ -86,7 +86,7 @@ return w.yF(d,x)},
 m(){this.a2n()
 this.ar()},
 Bu(){var x,w=this
-w.d=w.a.c.lI(new A.bBj(w),new A.bBk(w),new A.bBl(w))
+w.d=w.a.c.lI(new A.bBl(w),new A.bBm(w),new A.bBn(w))
 w.a.toString
 x=w.e
 x===$&&B.a()
@@ -113,31 +113,31 @@ v=B.U(w).h("I<1,a6<c,@>>")
 w=B.Q(new B.I(w,new A.b6o(),v),v.h("az.E"))
 return B.ak(["customerId",u.b,"customerName",u.c,"customerPhone",u.d,"category",u.e,"status",u.f.b,"createdAt",t,"updatedAt",x,"messages",w],y.w,y.b)}}
 var z=a.updateTypes(["p3(@)","a6<c,@>(p3)"])
-A.bBj.prototype={
+A.bBl.prototype={
 $1(d){var x=this.a
-x.C(new A.bBi(x,d))},
+x.C(new A.bBk(x,d))},
 $S(){return this.a.$ti.h("~(1)")}}
-A.bBi.prototype={
+A.bBk.prototype={
 $0(){var x=this.a,w=x.a
 w.toString
 x.e===$&&B.a()
 x.e=new B.fm(C.DT,this.b,null,null,w.$ti.h("fm<1>"))},
 $S:0}
-A.bBl.prototype={
+A.bBn.prototype={
 $2(d,e){var x=this.a
-x.C(new A.bBg(x,d,e))},
+x.C(new A.bBi(x,d,e))},
 $S:14}
-A.bBg.prototype={
+A.bBi.prototype={
 $0(){var x=this.a,w=x.a
 w.toString
 x.e===$&&B.a()
 x.e=new B.fm(C.DT,null,this.b,this.c,w.$ti.h("fm<1>"))},
 $S:0}
-A.bBk.prototype={
+A.bBm.prototype={
 $0(){var x=this.a
-x.C(new A.bBh(x))},
+x.C(new A.bBj(x))},
 $S:0}
-A.bBh.prototype={
+A.bBj.prototype={
 $0(){var x,w=this.a
 w.a.toString
 x=w.e
@@ -156,9 +156,9 @@ $1(d){return d.eN()},
 $S:z+1};(function inheritance(){var x=a.inherit,w=a.inheritMany
 x(A.tx,B.R)
 x(A.a1v,B.X)
-w(B.hA,[A.bBj,A.b6n,A.b6o])
-w(B.ks,[A.bBi,A.bBg,A.bBk,A.bBh])
-x(A.bBl,B.k3)
+w(B.hA,[A.bBl,A.b6n,A.b6o])
+w(B.ks,[A.bBk,A.bBi,A.bBm,A.bBj])
+x(A.bBn,B.k3)
 x(A.VN,A.tx)
 w(B.r1,[A.aiH,A.aiF])
 w(B.A,[A.p3,A.dD])})()
@@ -169,5 +169,5 @@ C.vL=new A.aiF(0,"customer")
 C.kL=new A.aiF(1,"admin")
 C.hz=new A.aiH(0,"open")
 C.mH=new A.aiH(1,"closed")})();(function lazyInitializers(){var x=a.lazyFinal
-x($,"ctJ","NC",()=>B.q3())})()};
-(a=>{a["t+Sfq7LMLIn1wdUb9HqfavYkbts="]=a.current})($__dart_deferred_initializers__);
+x($,"ctL","NC",()=>B.q3())})()};
+(a=>{a["fboKoz1MSxmi+U8s8NFJjtI1hFQ="]=a.current})($__dart_deferred_initializers__);
