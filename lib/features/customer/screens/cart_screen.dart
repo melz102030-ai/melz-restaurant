@@ -1083,6 +1083,8 @@ class _CartItemTile extends ConsumerWidget {
                                     cart.addItem(removed.item, removed.selectedOptions, removed.note, removed.combo),
                               ),
                               duration: const Duration(seconds: 4),
+                              // له زر تراجع، ومع ذلك يختفي بعد المدة
+                              persist: false,
                             ));
                         }
                       },
@@ -1130,6 +1132,8 @@ class _CartItemTile extends ConsumerWidget {
                           },
                         ),
                         duration: const Duration(seconds: 4),
+                              // له زر تراجع، ومع ذلك يختفي بعد المدة
+                              persist: false,
                       ));
                   },
                   child: Container(
