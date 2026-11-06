@@ -357,17 +357,33 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
                   const SizedBox(height: 12),
                   Builder(builder: (_) {
                     final remaining = order.remainingTime!;
-                    final isLate = remaining.isNegative;
-                    final isNear = !isLate && remaining.inMinutes < 3;
-                    final chipColor = isLate
-                        ? AppColors.error
-                        : isNear
-                            ? AppColors.warning
-                            : AppColors.success;
+                    // بعد انتهاء الوقت لا يرى العميل تأخيراً ولا عداداً سالباً،
+                    // بل عبارة لطيفة بأن طلبه على وشك أن يجهز
+                    if (remaining.isNegative) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.purple.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.purple.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          'طلبك على وشك أن يجهز، بقي القليل',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.purple,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    }
+                    final isNear = remaining.inMinutes < 3;
+                    final chipColor = isNear ? AppColors.warning : AppColors.success;
                     return Column(
                       children: [
                         Text(
-                          isLate ? 'تجاوز الوقت المتوقع' : 'الوقت المتبقي',
+                          'الوقت المتبقي',
                           style: TextStyle(
                             color: chipColor.withOpacity(0.8),
                             fontSize: 12,
