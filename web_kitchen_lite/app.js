@@ -791,16 +791,12 @@ function buildOrderCard(order, index) {
     var itemChildren = [
       el('div', { class: 'item-name' + (isUnavail ? ' unavail-name' : '') }, [item.name]),
     ];
-    // كل خيار في سطر مستقل وبخط واضح وعنوان مجموعته فوقه، والوجبة سطر واحد
-    // "اسمها (اختياره)". صنف لا يُحتسب سعره: خياراته هي محتواه، فتظهر بلا عنوان
+    // كل خيار في سطر مستقل وبخط واضح، بلا عناوين المجموعات (مثل الفاتورة)،
+    // والوجبة سطر واحد "اسمها (اختياره)"
     optGroups.forEach(function (o) {
       if (o.isMeal) {
         itemChildren.push(el('div', { class: 'item-opt-group' }, [mealLine(o)]));
         return;
-      }
-      if (!item.displayQuantity) {
-        var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
-        itemChildren.push(el('div', { class: 'item-opt-group' }, [o.groupName + extra]));
       }
       o.selectedNames.forEach(function (name) {
         itemChildren.push(el('div', { class: 'item-opts item-opt-line' }, ['• ' + name]));
