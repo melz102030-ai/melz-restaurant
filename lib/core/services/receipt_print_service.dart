@@ -41,6 +41,8 @@ class ReceiptPrintService {
     }
     b.writeln(sep);
     for (final item in order.items) {
+      // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
+      if (item != order.items.first) b.writeln('. . . . . . . . . .');
       b.writeln('×${item.shownQuantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
       for (final line in _optionsReceiptLines(item)) {
         b.writeln('   $line');
@@ -63,13 +65,15 @@ class ReceiptPrintService {
   static String _buildReceiptHtml(OrderModel order, RestaurantSettings settings) {
     final df = DateFormat('dd/MM/yyyy - hh:mm a');
 
-    final itemsRows = order.items.map((item) {
+    final itemsRows = order.items.indexed.map((entry) {
+      final (index, item) = entry;
       final optionsLine = _optionsReceiptLines(item)
           .map((line) =>
               '<div style="font-size:14px;font-weight:bold;color:#000;padding-right:14px">${_esc(line)}</div>')
           .join();
+      // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
       return '''
-        <tr>
+        <tr${index > 0 ? ' style="border-top:1px dotted #000"' : ''}>
           <td style="width:28px;font-weight:bold">×${item.shownQuantity}</td>
           <td>${_esc(item.name)}$optionsLine</td>
           <td style="text-align:left;white-space:nowrap">${item.total.toStringAsFixed(2)}</td>
@@ -123,27 +127,15 @@ class ReceiptPrintService {
 ''';
   }
 
-  // نسخة من ملخّص خيارات الصنف مخصّصة للطباعة فقط — تضيف سعر كل مجموعة
-  // خيارات مدفوعة (مثل "مشروب: بيبسي (+3.00)") غير الظاهر في optionsSummary
-  // العادي (المستخدم في شاشات العميل حيث يكفي الإجمالي الكلي للصنف)
-  // صنف لا يُحتسب سعره (displayQuantity): كل خيار بسطر مستقل مع عدده، لأنه هو
-  // محتوى الصنف الفعلي؛ وباقي الأصناف سطر واحد كما هي
-  static List<String> _optionsReceiptLines(OrderItem item) {
-    final groups = item.selectedOptions.where((o) => o.selectedNames.isNotEmpty);
-    if (item.displayQuantity != null) {
-      return groups.expand((o) => o.selectedNames).toList();
-    }
-    // عنوان كل مجموعة (أو وجبة) ثم كل خيار في سطر مستقل
-    return [
-      for (final o in item.selectedOptions)
-        if (o.isMeal)
-          o.mealLine
-        else if (o.selectedNames.isNotEmpty) ...[
-          '${o.groupName}:${o.extra > 0 ? ' (+${o.extra.toStringAsFixed(2)})' : ''}',
-          for (final name in o.selectedNames) '- $name',
-        ],
-    ];
-  }
+  // كل خيار في سطر مستقل تحت صنفه، بلا عناوين المجموعات (الإضافات، الخيارات...)،
+  // والوجبة سطر واحد "اسمها (اختياره)"
+  static List<String> _optionsReceiptLines(OrderItem item) => [
+        for (final o in item.selectedOptions)
+          if (o.isMeal)
+            '- ${o.mealLine}'
+          else
+            for (final name in o.selectedNames) '- $name',
+      ];
 
   static String _esc(String s) => s
       .replaceAll('&', '&amp;')
