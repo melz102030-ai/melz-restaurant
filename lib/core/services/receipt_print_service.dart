@@ -42,7 +42,7 @@ class ReceiptPrintService {
     b.writeln(sep);
     for (final item in order.items) {
       // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
-      if (item != order.items.first) b.writeln('. . . . . . . . . .');
+      if (item != order.items.first) b.writeln('______________________');
       b.writeln('×${item.shownQuantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
       for (final line in _optionsReceiptLines(item)) {
         b.writeln('   $line');
@@ -69,11 +69,11 @@ class ReceiptPrintService {
       final (index, item) = entry;
       final optionsLine = _optionsReceiptLines(item)
           .map((line) =>
-              '<div style="font-size:14px;font-weight:bold;color:#000;padding-right:14px">${_esc(line)}</div>')
+              '<div style="font-size:15px;font-weight:bold;color:#000;padding-right:14px">${_esc(line)}</div>')
           .join();
       // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
       return '''
-        <tr${index > 0 ? ' style="border-top:1px dotted #000"' : ''}>
+        <tr${index > 0 ? ' style="border-top:1px solid #000"' : ''}>
           <td style="width:28px;font-weight:bold">×${item.shownQuantity}</td>
           <td>${_esc(item.name)}$optionsLine</td>
           <td style="text-align:left;white-space:nowrap">${item.total.toStringAsFixed(2)}</td>
