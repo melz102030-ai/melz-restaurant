@@ -1168,6 +1168,20 @@ function closeModal() {
 // نسخة نصية بسيطة بلا HTML — تُرسَل لتطبيق الجسر المرافق المثبَّت على جهاز
 // Sunmi (sunmi_print_bridge/) عبر رابط sunmiprint://، لأن طابعة Sunmi
 // الداخلية غير مرئية لنافذة طباعة أندرويد القياسية (window.print)
+// "+5" بجوار الخيار المدفوع، ولا شيء للمجاني
+function priceTag(n) {
+  n = Number(n || 0);
+  if (n <= 0) return '';
+  return ' +' + (Number.isInteger(n) ? n : n.toFixed(2));
+}
+
+// سعر الخيار رقم i في مجموعته. الطلبات الأقدم بلا أسعار لكل خيار: يُعرف السعر
+// فقط إن كان في المجموعة خيار واحد
+function optionExtra(o, i) {
+  if (Array.isArray(o.selectedExtras)) return o.selectedExtras[i] || 0;
+  return (o.selectedNames || []).length === 1 ? o.extra : 0;
+}
+
 function buildReceiptPlainText(order) {
   var df = new Intl.DateTimeFormat('ar', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' });
   // أقصر من قبل (كان 32) — لأن الطباعة عبر تطبيق الجسر تستخدم خطاً أكبر
@@ -1185,18 +1199,21 @@ function buildReceiptPlainText(order) {
   lines.push(sep);
   order.items.forEach(function (item, index) {
     // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
-    if (index > 0) lines.push('______________________');
+    if (index > 0) lines.push('____________________');
     // جرَّبنا printColumnsText (عمودين بسطر واحد) مرتين وبعرضين مختلفين —
     // في الحالتين اختفى اسم الصنف بالكامل من الطباعة الفعلية (يبدو أن
     // الدالة لا تحسب عرض النص العربي بشكل صحيح على هذه الطابعة). رجعنا
     // لسطرين منفصلين لأنها الطريقة الوحيدة المؤكَّد عملها فعلياً
     lines.push('×' + (item.displayQuantity || item.quantity) + ' ' + item.name);
     lines.push((item.price * item.quantity).toFixed(2) + ' ر.س');
-    // كل خيار في سطر مستقل تحت صنفه، بلا عناوين المجموعات (الإضافات، الخيارات...)
+    // كل خيار في سطر مستقل تحت صنفه، بلا عناوين المجموعات (الإضافات، الخيارات...)،
+    // والمدفوع منها بجواره سعره "+5"
     (item.selectedOptions || []).filter(function (o) { return o.isMeal || (o.selectedNames || []).length; })
       .forEach(function (o) {
-        if (o.isMeal) { lines.push('- ' + mealLine(o)); return; }
-        o.selectedNames.forEach(function (name) { lines.push('- ' + name); });
+        if (o.isMeal) { lines.push('- ' + mealLine(o) + priceTag(o.extra)); return; }
+        o.selectedNames.forEach(function (name, i) {
+          lines.push('- ' + name + priceTag(optionExtra(o, i)));
+        });
       });
     if (item.note && item.note.trim()) lines.push('ملاحظة: ' + item.note);
   });
