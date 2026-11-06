@@ -10,7 +10,7 @@ B=a.updateHolder(c[13],B)
 D=c[39]
 B.xT.prototype={
 k(d,e){if(e==null)return!1
-if(J.an(e)!==C.E(this))return!1
+if(J.ao(e)!==C.E(this))return!1
 return e instanceof B.xT},
 gB(d){return C.Y("tnum",1,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a,A.a)},
 j(d){return"FontFeature('tnum', 1)"}}
@@ -18,4 +18,4 @@ var z=a.updateTypes([]);(function inheritance(){var y=a.inherit
 y(B.xT,C.A)})();(function constants(){var y=a.makeConstList
 D.a2C=new B.xT()
 D.Ih=y([D.a2C],C.a5("z<xT>"))})()};
-(a=>{a["Y/ROy48JMc5eObIr4u/l3cbTLUY="]=a.current})($__dart_deferred_initializers__);
+(a=>{a["5ilDuaJSWg4qKnfaUMFq/0NnC70="]=a.current})($__dart_deferred_initializers__);
