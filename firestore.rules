@@ -61,6 +61,23 @@ service cloud.firestore {
         me().get('permissions', {}).get(key, false) == true);
     }
 
+    // مسح السجل نهائياً: للمدير الأعلى، أو لمن منحه إياها صراحة. لا تشملها
+    // «كل الصلاحيات» للمدير بلا صلاحيات محددة ولا لمساعد المدير
+    function canClearHistory() {
+      return isSuperAdmin() ||
+        (isAdmin() && me().get('permissions', {}).get('clearHistory', false) == true);
+    }
+
+    // لا يمنح صلاحية المسح ولا يسحبها إلا المدير الأعلى
+    function clearHistoryGrant(data) {
+      return data.get('permissions', {}).get('clearHistory', false) == true;
+    }
+
+    function clearHistoryGrantUnchanged() {
+      return isSuperAdmin() ||
+        clearHistoryGrant(request.resource.data) == clearHistoryGrant(resource.data);
+    }
+
     // المدير الأعلى لا يعدّله غيره، ومساعد المدير لا يعدّله إلا نفسه والمدير الأعلى
     function canManageUser(userId, target) {
       return request.auth.uid == userId || isSuperAdmin() ||
@@ -109,7 +126,7 @@ service cloud.firestore {
       // إنشاء الحساب: المستخدم نفسه كعميل عادي بلا صلاحيات (الضيف عند أول طلب)،
       // أو الأدمن عند إنشاء موظف مطبخ/مندوب من لوحة التحكم.
       allow create: if isSignedIn() && (
-        hasPerm('users') ||
+        (hasPerm('users') && (isSuperAdmin() || !clearHistoryGrant(request.resource.data))) ||
         (request.auth.uid == userId && isPlainCustomerProfile() && profileTextOk())
       );
 
@@ -120,7 +137,7 @@ service cloud.firestore {
       allow update: if isSignedIn() &&
         (request.resource.data.get('phone', '') == resource.data.get('phone', '') ||
           !isSuperPhone(request.resource.data.get('phone', ''))) && (
-        (hasPerm('users') && canManageUser(userId, resource.data) &&
+        (hasPerm('users') && canManageUser(userId, resource.data) && clearHistoryGrantUnchanged() &&
           (isSuperAdmin() ||
             request.resource.data.get('systemRole', 'none') == resource.data.get('systemRole', 'none')) &&
           (request.auth.uid != userId || isSystemAdmin() || privilegedFieldsUnchanged())) ||
@@ -174,7 +191,7 @@ service cloud.firestore {
             .hasOnly(['paymentReceiptUrl', 'updatedAt']))
       );
 
-      allow delete: if hasPerm('orders');
+      allow delete: if hasPerm('orders') || canClearHistory();
 
       // الطلب يتقدم خطوة خطوة ولا يرجع، والمسلَّم والملغى نهائيان حتى للمدير
       function _statusChangeAllowed() {
@@ -218,7 +235,7 @@ service cloud.firestore {
     match /popup_ads/{id}        { allow read: if true; allow write: if hasPerm('content'); }
     match /splash_images/{id}    { allow read: if true; allow write: if hasPerm('content'); }
     // ملخصات الأيام المنتهية، يحفظها التقرير حتى لا يعيد قراءة كل الطلبات
-    match /daily_summaries/{id}  { allow read, write: if hasPerm('reports'); }
+    match /daily_summaries/{id}  { allow read, write: if hasPerm('reports') || canClearHistory(); }
     // مستند واحد تكتبه عدة شاشات: الإعدادات والمظهر وساعات العمل والتوصيل والكولاج
     // وزر فتح المطعم وإغلاقه في لوحة التحكم
     match /settings/{docId} {
@@ -237,7 +254,7 @@ service cloud.firestore {
     // أرقام العملاء التي وثّقها المطبخ بعد الاتصال بهم — بيانات عملاء، فلا تُقرأ
     // ولا تُكتب إلا من المطبخ والأدمن
     match /verified_phones/{phone} {
-      allow read, write: if isKitchen() || hasPerm('kitchen') || hasPerm('orders');
+      allow read, write: if isKitchen() || hasPerm('kitchen') || hasPerm('orders') || canClearHistory();
     }
 
     // ───────────────────────── تذاكر الدعم الفني ────────────────────────────
@@ -273,6 +290,8 @@ service cloud.firestore {
           supportMessageOk(request.resource.data.messages[resource.data.messages.size()]) &&
           request.resource.data.messages.size() <= 200)
       );
+
+      allow delete: if canClearHistory();
     }
   }
 }

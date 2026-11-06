@@ -222,6 +222,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
             builder: (_, __) => _adminPage(() => admin.AdminSplashScreen()),
           ),
           GoRoute(
+            path: '/admin/clear-history',
+            builder: (_, __) => _adminPage(() => admin.AdminClearHistoryScreen()),
+          ),
+          GoRoute(
             path: '/admin/support',
             builder: (_, __) => _adminPage(() => admin.AdminSupportScreen()),
           ),
@@ -274,6 +278,7 @@ const Map<String, String> _adminRoutePermissions = {
   '/admin/reports': Perm.reports,
   '/admin/support': Perm.support,
   '/admin/settings': Perm.settings,
+  '/admin/clear-history': Perm.clearHistory,
   '/admin': Perm.dashboard,
 };
 

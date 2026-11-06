@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../constants/app_permissions.dart';
 import '../constants/system_admins.dart';
 
 enum UserRole { customer, admin, kitchen, driver }
@@ -70,6 +71,11 @@ class UserModel {
   /// — الأدمن العادي بلا permissions مُعيَّنة: وصول كامل (تهيئة قديمة)
   /// — الأدمن العادي بـ permissions مُعيَّنة: حسب القيمة المخزَّنة
   bool hasPermission(String key) {
+    // المسح النهائي للمدير الأعلى، أو لمن مُنحه صراحة
+    if (Perm.explicitOnly.contains(key)) {
+      if (isSuperAdmin) return permissions[key] != false;
+      return role == UserRole.admin && permissions[key] == true;
+    }
     if (isSystemAdmin) {
       // يحترم الإيقاف الصريح حتى يتمكن المدير/المساعد من تخفيف زحمة الواجهة
       if (permissions[key] == false) return false;

@@ -12,11 +12,17 @@ abstract class Perm {
   static const String content    = 'content';      // البانرات / الإعلانات / الكولاج
   static const String support    = 'support';      // الدعم الفني
   static const String kitchen    = 'kitchen';      // الوصول لواجهة المطبخ
+  // مسح سجل الطلبات والدعم نهائياً. لا تشمله «كل الصلاحيات» القديمة ولا زر
+  // «تفعيل الكل»، ولا يمنحه إلا المدير الأعلى
+  static const String clearHistory = 'clearHistory';
 
   static const List<String> all = [
     dashboard, orders, menu, users, reports, settings,
-    delivery, workHours, appearance, content, support, kitchen,
+    delivery, workHours, appearance, content, support, kitchen, clearHistory,
   ];
+
+  /// صلاحيات لا تُمنح إلا صراحة وواحدة واحدة
+  static const List<String> explicitOnly = [clearHistory];
 
   static const Map<String, String> labels = {
     dashboard:  'لوحة التحكم',
@@ -31,6 +37,7 @@ abstract class Perm {
     content:    'البانرات والإعلانات',
     support:    'الدعم الفني',
     kitchen:    'وصول واجهة المطبخ',
+    clearHistory: 'مسح السجل نهائياً',
   };
 
   /// صلاحيات الأدمن الجديد الافتراضية — محدودة ويُفتح المطلوب يدوياً
@@ -47,5 +54,6 @@ abstract class Perm {
     content:    false,
     support:    false,
     kitchen:    false,
+    clearHistory: false,
   };
 }

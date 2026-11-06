@@ -310,3 +310,34 @@ test("الدعم: التذكرة الجديدة باسم العميل وبرسا
   await assertFails(addDoc(col, ticket({ messages: [{ senderRole: "admin", text: "مزيف" }] })));
   await assertFails(addDoc(col, ticket({ status: "closed" })));
 });
+
+test("مسح السجل: للمدير الأعلى ولمن منحه إياها فقط", async () => {
+  await seed(async (d) => {
+    await setDoc(doc(d, "users/cleaner"), { role: "admin", name: "ماسح", phone: "0577777777", permissions: { clearHistory: true } });
+    await setDoc(doc(d, "daily_summaries/2026-11-01"), { totalOrders: 1 });
+    await setDoc(doc(d, "verified_phones/0500000000"), { verifiedBy: "x" });
+  });
+
+  // المدير بلا صلاحيات محددة ومساعد المدير لا يمسحان التذاكر
+  await assertFails(deleteDoc(doc(staff("admin1"), "support_tickets/t1")));
+  await assertFails(deleteDoc(doc(staff("assistant1"), "support_tickets/t1")));
+  await assertFails(deleteDoc(doc(staff("ordersAdmin"), "support_tickets/t1")));
+  await assertFails(deleteDoc(doc(guest("guest1"), "support_tickets/t1")));
+
+  const cleaner = staff("cleaner");
+  await assertSucceeds(deleteDoc(doc(cleaner, "orders/o1")));
+  await assertSucceeds(deleteDoc(doc(cleaner, "daily_summaries/2026-11-01")));
+  await assertSucceeds(deleteDoc(doc(cleaner, "verified_phones/0500000000")));
+  await assertSucceeds(deleteDoc(doc(cleaner, "support_tickets/t1")));
+  await assertSucceeds(getDocs(collection(cleaner, "orders")));
+});
+
+test("مسح السجل: لا يمنحها إلا المدير الأعلى", async () => {
+  const users = staff("usersAdmin");
+  await assertFails(updateDoc(doc(users, "users/ordersAdmin"), { permissions: { orders: true, clearHistory: true } }));
+  await assertSucceeds(updateDoc(doc(users, "users/ordersAdmin"), { permissions: { orders: true, menu: true } }));
+  await assertFails(setDoc(doc(users, "users/newAdmin"), { role: "admin", name: "جديد", phone: "0588888888", permissions: { clearHistory: true } }));
+  await assertFails(updateDoc(doc(staff("assistant1"), "users/assistant1"), { permissions: { clearHistory: true } }));
+  await assertSucceeds(updateDoc(doc(staff("super1"), "users/ordersAdmin"), { permissions: { orders: true, clearHistory: true } }));
+  await assertSucceeds(deleteDoc(doc(staff("ordersAdmin"), "support_tickets/t1")));
+});

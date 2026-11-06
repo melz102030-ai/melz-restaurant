@@ -585,6 +585,9 @@ class _PermissionsDialogState extends ConsumerState<_PermissionsDialog> {
   late Map<String, bool> _perms;
   bool _isSaving = false;
 
+  // الصلاحيات الخطرة يمنحها المدير الأعلى فقط (وكذلك في قواعد Firestore)
+  bool get _canGrantExplicit => ref.read(authProvider)?.isSuperAdmin == true;
+
   @override
   void initState() {
     super.initState();
@@ -645,7 +648,9 @@ class _PermissionsDialogState extends ConsumerState<_PermissionsDialog> {
             Expanded(
               child: ListView(
                 shrinkWrap: true,
-                children: Perm.all.map((key) {
+                children: Perm.all
+                    .where((key) => !Perm.explicitOnly.contains(key) || _canGrantExplicit)
+                    .map((key) {
                   return SwitchListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
@@ -654,7 +659,7 @@ class _PermissionsDialogState extends ConsumerState<_PermissionsDialog> {
                       style: TextStyle(color: AppColors.textPrimary, fontSize: 13),
                     ),
                     value: _perms[key] ?? false,
-                    activeColor: AppColors.purple,
+                    activeColor: Perm.explicitOnly.contains(key) ? AppColors.error : AppColors.purple,
                     onChanged: (v) => setState(() => _perms[key] = v),
                   );
                 }).toList(),
@@ -668,7 +673,9 @@ class _PermissionsDialogState extends ConsumerState<_PermissionsDialog> {
                 children: [
                   TextButton(
                     onPressed: () => setState(() {
-                      for (final k in Perm.all) _perms[k] = true;
+                      for (final k in Perm.all) {
+                        if (!Perm.explicitOnly.contains(k)) _perms[k] = true;
+                      }
                     }),
                     child: const Text('تفعيل الكل'),
                   ),

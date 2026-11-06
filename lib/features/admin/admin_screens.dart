@@ -16,3 +16,4 @@ export 'screens/admin_banners_screen.dart';
 export 'screens/admin_splash_screen.dart';
 export 'screens/admin_support_screen.dart';
 export 'screens/admin_support_ticket_screen.dart';
+export 'screens/admin_clear_history_screen.dart';
