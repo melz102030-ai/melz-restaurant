@@ -226,7 +226,7 @@ service cloud.firestore {
       allow write: if hasPerm('menu');
       // المطبخ: تبديل "متوفر/نفد من المطعم" فقط — بلا أي صلاحية أخرى
       // (شاشة توفر الأصناف في واجهة المطبخ تحتاج هذا تحديداً)
-      allow update: if isKitchen() &&
+      allow update: if (isKitchen() || hasPerm('kitchen')) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isAvailable']);
     }
     match /option_templates/{id} { allow read: if true; allow write: if hasPerm('menu'); }

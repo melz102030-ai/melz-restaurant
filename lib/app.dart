@@ -1,10 +1,13 @@
+import 'dart:js' as js;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/constants/app_colors.dart';
 import 'core/constants/app_permissions.dart';
+import 'core/models/order_model.dart';
 import 'core/models/user_model.dart';
+import 'features/customer/providers/orders_provider.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/app_theme_provider.dart';
 import 'core/theme/app_theme.dart';
@@ -373,6 +376,55 @@ String _getHomeRoute(UserRole role) {
   }
 }
 
+// إذا أبلغ المطبخ بنفاد أصناف من طلب العميل، يصله التنبيه أينما كان في التطبيق:
+// تُفتح صفحة تتبع الطلب (وفيها نافذة القرار)، ويصله إشعار المتصفح إن سمح به
+class _UnavailableItemsWatcher extends ConsumerStatefulWidget {
+  final GoRouter router;
+  final Widget child;
+  const _UnavailableItemsWatcher({required this.router, required this.child});
+
+  @override
+  ConsumerState<_UnavailableItemsWatcher> createState() => _UnavailableItemsWatcherState();
+}
+
+class _UnavailableItemsWatcherState extends ConsumerState<_UnavailableItemsWatcher> {
+  // الطلبات التي فُتحت لها الصفحة، حتى لا تُفتح مع كل تحديث للطلب
+  final Set<String> _handled = {};
+
+  void _check(List<OrderModel> orders) {
+    if (ref.read(authProvider)?.role != UserRole.customer) return;
+    for (final order in orders) {
+      final waiting = order.unavailableItemIds.isNotEmpty &&
+          order.status != OrderStatus.delivered &&
+          order.status != OrderStatus.cancelled;
+      if (!waiting) {
+        _handled.remove(order.id);
+        continue;
+      }
+      if (!_handled.add(order.id)) continue;
+      final path = '/track/${order.id}';
+      if (widget.router.routerDelegate.currentConfiguration.uri.path != path) {
+        widget.router.go(path);
+      }
+      try {
+        js.context.callMethod('showOrderReadyNotification', [
+          'أصناف غير متوفرة في طلبك',
+          'افتح طلبك #${order.orderNumberLabel} لتختار كيف نكمل',
+        ]);
+      } catch (_) {}
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<OrderModel>>>(customerOrdersStreamProvider, (_, next) {
+      final orders = next.valueOrNull;
+      if (orders != null) _check(orders);
+    });
+    return widget.child;
+  }
+}
+
 class MelzApp extends ConsumerWidget {
   const MelzApp({super.key});
 
@@ -404,7 +456,7 @@ class MelzApp extends ConsumerWidget {
       builder: (context, child) {
         return Directionality(
           textDirection: TextDirection.rtl,
-          child: child!,
+          child: _UnavailableItemsWatcher(router: router, child: child!),
         );
       },
     );
