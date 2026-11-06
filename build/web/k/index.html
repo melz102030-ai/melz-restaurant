@@ -324,14 +324,18 @@
     box-shadow: 0 6px 18px rgba(106,13,173,.35);
   }
   .item-opts.item-opt-line { font-weight: 700; font-size: 15px; color: var(--text-primary); margin-top: 2px; }
+  /* الرأس بلون مختلف عن التفاصيل، حتى يُعرف أنه مكان الضغط للفتح والطي */
   .order-top {
     display: flex; align-items: center; gap: 10px; padding: 10px 14px; cursor: pointer;
     user-select: none; -webkit-tap-highlight-color: transparent;
+    background: var(--purple-soft);
   }
-  .order-top .order-id { font-size: 15px; color: var(--text-primary); }
+  .order-top:active { filter: brightness(.95); }
+  .order-top .order-id { font-size: 15px; color: var(--text-primary); background: var(--surface); }
+  .order-top .pill { font-size: 15px; padding: 4px 10px; background: var(--surface); }
+  .order-top + .order-head { padding-top: 12px; }
   .order-total { margin-inline-start: auto; font-weight: bold; font-size: 15px; color: var(--purple); white-space: nowrap; }
-  .fold-icon { font-size: 12px; color: var(--text-hint); }
-  .order-top + .order-head { padding-top: 0; }
+  .fold-icon { font-size: 13px; color: var(--text-secondary); }
   .item-opt-group { font-size: 13px; font-weight: 700; color: var(--purple, #6A0DAD); margin-top: 7px; }
 </style>
 </head>
