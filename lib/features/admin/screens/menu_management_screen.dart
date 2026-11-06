@@ -2809,7 +2809,7 @@ class _ComboEditDialogState extends ConsumerState<_ComboEditDialog> {
               ),
               Padding(
                 padding: const EdgeInsets.only(top: 2, bottom: 6),
-                child: Text('تظهر في صفحة الصنف قبل الضغط على التركيبة',
+                child: Text('تظهر للعميل بعد الضغط على الوجبة فقط',
                     style: TextStyle(color: AppColors.textHint, fontSize: 11)),
               ),
               if (_includedNames.isNotEmpty)

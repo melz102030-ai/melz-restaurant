@@ -110,6 +110,8 @@ test("التركيبة: السعر في سطر الرأس وأصنافها بس�
   assert.equal(r.total, 60);
   assert.deepEqual(r.items.map((l) => l.price), [30, 0, 0]);
   assert.equal(r.items[0].menuItemId, "combo_c1");
+  // العميل والمطبخ والفاتورة يرون اسم الوجبة وحده
+  assert.equal(r.items[0].name, "وجبة");
   assert.equal(r.items[1].name, "↳ برجر");
 });
 

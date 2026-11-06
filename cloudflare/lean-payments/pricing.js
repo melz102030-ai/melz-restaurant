@@ -200,11 +200,11 @@ export function buildOrderLines(request, itemsById, combosById) {
     const combo = combosById.get(req?.comboId);
     const quantity = validQty(req?.quantity);
     if (!combo || combo.isActive === false) {
-      throw new OrderRejected("item-unavailable", "إحدى التركيبات في السلة لم تعد متوفرة، احذفها وحاول مجدداً", 409);
+      throw new OrderRejected("item-unavailable", "إحدى الوجبات في السلة لم تعد متوفرة، احذفها وحاول مجدداً", 409);
     }
     const optionIds = Array.isArray(combo.optionItemIds) ? combo.optionItemIds : [];
     if (optionIds.length > 0 && !optionIds.includes(req.optionItemId)) {
-      throw new OrderRejected("required-option-missing", `اختر صنفاً من تركيبة "${combo.name}"`);
+      throw new OrderRejected("required-option-missing", `اختر صنفاً من "${combo.name}"`);
     }
 
     const price = Number(combo.price ?? 0);
@@ -212,7 +212,7 @@ export function buildOrderLines(request, itemsById, combosById) {
     lines.push(
       orderLine({
         menuItemId: `combo_${combo.id}`,
-        name: `تركيبة: ${combo.name}`,
+        name: combo.name,
         price,
         quantity,
         imageUrl: combo.imageUrl,
@@ -229,7 +229,7 @@ export function buildOrderLines(request, itemsById, combosById) {
       if (!sub || sub.isAvailable === false) {
         throw new OrderRejected(
           "item-unavailable",
-          `تركيبة "${combo.name}" غير متوفرة حالياً لتوقف أحد أصنافها، احذفها من السلة`,
+          `"${combo.name}" غير متوفرة حالياً لتوقف أحد أصنافها، احذفها من السلة`,
           409
         );
       }

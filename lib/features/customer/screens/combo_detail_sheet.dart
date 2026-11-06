@@ -28,6 +28,32 @@ class _ComboSheet extends ConsumerStatefulWidget {
 class _ComboSheetState extends ConsumerState<_ComboSheet> {
   String? _selectedOptionId;
 
+  // الوجبة المختارة سابقاً تُفتح باختيارها، ليعدّله العميل أو يلغيها
+  ComboCartEntry? get _existing =>
+      ref.read(comboCartProvider).where((e) => e.combo.id == widget.combo.id).firstOrNull;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedOptionId = _existing?.chosenOptionId;
+  }
+
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        content: Text(text),
+        backgroundColor: AppColors.success,
+        duration: const Duration(seconds: 2),
+      ));
+  }
+
+  void _removeFromCart() {
+    ref.read(comboCartProvider.notifier).deleteCombo(widget.combo.id);
+    Navigator.pop(context);
+    _showMessage('تم إلغاء ${widget.combo.name}');
+  }
+
   void _addToCart(List<MenuItemModel> allItems) {
     final combo = widget.combo;
     final fixedItems = combo.items
@@ -50,18 +76,18 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
       allSubs = fixedItems;
     }
 
-    ref.read(comboCartProvider.notifier).add(ComboCartEntry(
-          combo: combo,
-          subSelections: allSubs,
-        ));
+    final notifier = ref.read(comboCartProvider.notifier);
+    final existing = _existing;
+    if (existing != null) {
+      notifier.replace(
+        existing.cartKey,
+        ComboCartEntry(combo: combo, subSelections: allSubs, quantity: existing.quantity),
+      );
+    } else {
+      notifier.add(ComboCartEntry(combo: combo, subSelections: allSubs));
+    }
     Navigator.pop(context);
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(SnackBar(
-        content: Text('تمت إضافة ${combo.name} للسلة'),
-        backgroundColor: AppColors.success,
-        duration: const Duration(seconds: 2),
-      ));
+    _showMessage(existing != null ? 'تم تعديل ${combo.name}' : 'تمت إضافة ${combo.name} للسلة');
   }
 
   @override
@@ -89,6 +115,8 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
     // الخيار المختار قد يتوقف والنافذة مفتوحة، فيختفي ويُلغى اختياره
     final hasSelection = optionItems.any((item) => item.id == _selectedOptionId);
     final canAdd = canBeOrdered && (!hasOptions || hasSelection);
+    final isSelected =
+        ref.watch(comboCartProvider).any((e) => e.combo.id == combo.id);
 
     return Container(
       decoration: BoxDecoration(
@@ -282,6 +310,8 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
                 )),
           ],
           const SizedBox(height: 20),
+          // المختارة بلا خيارات لا يُعدَّل فيها شيء، فيبقى زر الإلغاء وحده
+          if (!isSelected || hasOptions)
           FilledButton(
             onPressed: canAdd ? () => _addToCart(allItems) : null,
             style: FilledButton.styleFrom(
@@ -298,10 +328,27 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
                       ? 'غير متوفرة حالياً'
                       : hasOptions && !hasSelection
                           ? 'اختر خياراً أولاً'
-                          : 'أضف للسلة · ${combo.price.toStringAsFixed(2)} ${AppStrings.sar}',
+                          : isSelected
+                              ? 'حفظ التعديل'
+                              : 'أضف للسلة · ${combo.price.toStringAsFixed(2)} ${AppStrings.sar}',
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),
+          if (isSelected) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: _removeFromCart,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.error,
+                side: BorderSide(color: AppColors.error.withOpacity(0.6)),
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              icon: const Icon(Icons.close, size: 18),
+              label: Text('إلغاء ${combo.name}',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            ),
+          ],
         ],
       ),
     );

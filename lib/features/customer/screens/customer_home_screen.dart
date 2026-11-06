@@ -1420,7 +1420,7 @@ class _CombosSection extends StatelessWidget {
                 Icon(Icons.layers_outlined, color: AppColors.purple, size: 18),
                 const SizedBox(width: 6),
                 Text(
-                  'التركيبات',
+                  'الوجبات',
                   style: TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 17,
@@ -1455,7 +1455,10 @@ class _ComboCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final qty = ref.watch(comboCartProvider.notifier).getQuantity(combo.id);
+    final qty = ref
+        .watch(comboCartProvider)
+        .where((e) => e.combo.id == combo.id)
+        .fold(0, (sum, e) => sum + e.quantity);
 
     return GestureDetector(
       onTap: () => showComboSheet(context, combo),
@@ -1463,12 +1466,11 @@ class _ComboCard extends ConsumerWidget {
         width: 180,
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.cardBackground,
+          color: qty > 0 ? AppColors.purple.withOpacity(0.12) : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: qty > 0
-                ? AppColors.purple.withOpacity(0.5)
-                : AppColors.divider,
+            color: qty > 0 ? AppColors.purple : AppColors.divider,
+            width: qty > 0 ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(
@@ -1522,7 +1524,7 @@ class _ComboCard extends ConsumerWidget {
                     fontSize: 13,
                   ),
                 ),
-                Icon(Icons.add_circle_outline,
+                Icon(qty > 0 ? Icons.check_circle : Icons.add_circle_outline,
                     color: AppColors.purple, size: 20),
               ],
             ),

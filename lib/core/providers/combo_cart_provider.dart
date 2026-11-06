@@ -36,6 +36,12 @@ class ComboCartEntry {
         .join(',');
     return optId.isEmpty ? 'combo_${combo.id}' : 'combo_${combo.id}_opt_$optId';
   }
+  /// الصنف الذي اختاره العميل من خيارات الوجبة، إن وُجدت
+  String? get chosenOptionId => subSelections
+      .where((s) => combo.optionItemIds.contains(s.item.id))
+      .map((s) => s.item.id)
+      .firstOrNull;
+
   double get unitPrice => combo.price;
   double get total => unitPrice * quantity;
 
@@ -63,7 +69,7 @@ class ComboCartEntry {
   List<OrderItem> toOrderItems() {
     final header = OrderItem(
       menuItemId: 'combo_${combo.id}',
-      name: 'تركيبة: ${combo.name}',
+      name: combo.name,
       price: combo.price,
       quantity: quantity,
       imageUrl: combo.imageUrl,
@@ -119,6 +125,24 @@ class ComboCartNotifier extends StateNotifier<List<ComboCartEntry>> {
 
   void delete(String cartKey) {
     state = state.where((e) => e.cartKey != cartKey).toList();
+  }
+
+  /// تعديل اختيار سابق في مكانه، ويُدمج مع سطر مطابق إن وُجد
+  void replace(String oldKey, ComboCartEntry entry) {
+    final pos = state.indexWhere((e) => e.cartKey == oldKey);
+    final rest = state.where((e) => e.cartKey != oldKey).toList();
+    final same = rest.indexWhere((e) => e.cartKey == entry.cartKey);
+    if (same >= 0) {
+      rest[same] = rest[same].copyWith(quantity: rest[same].quantity + entry.quantity);
+    } else {
+      rest.insert(pos < 0 ? rest.length : pos, entry);
+    }
+    state = rest;
+  }
+
+  /// إلغاء اختيار الوجبة كلها من السلة
+  void deleteCombo(String comboId) {
+    state = state.where((e) => e.combo.id != comboId).toList();
   }
 
   void clear() => state = [];

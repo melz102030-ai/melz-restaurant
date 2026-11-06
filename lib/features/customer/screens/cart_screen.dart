@@ -1765,30 +1765,11 @@ class _ComboCartTile extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: AppColors.purple.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text('تركيبة',
-                          style: TextStyle(
-                              color: AppColors.purple,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(entry.combo.name,
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                              fontSize: 14)),
-                    ),
-                  ],
-                ),
+                Text(entry.combo.name,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        fontSize: 14)),
                 const SizedBox(height: 4),
                 ...entry.subSelections.map((s) => Text(
                       '• ${s.summary}',

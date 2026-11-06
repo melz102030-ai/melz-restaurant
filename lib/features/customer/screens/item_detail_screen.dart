@@ -5,6 +5,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/combo_model.dart';
 import '../../../core/models/menu_item_model.dart';
+import '../../../core/providers/combo_cart_provider.dart';
 import '../../../core/services/cloudinary_service.dart';
 import '../../../shared/widgets/menu_item_image.dart';
 import '../providers/menu_provider.dart';
@@ -177,33 +178,12 @@ class _ItemHeader extends StatelessWidget {
               ],
               if (linkedCombos.isNotEmpty) ...[
                 const SizedBox(height: 14),
+                // محتوى الوجبة يظهر بعد الضغط عليها فقط، داخل نافذتها
                 ...linkedCombos.map((combo) => Padding(
                   padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _ComboDetailChip(combo: combo),
-                      if (combo.includedNames.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 12,
-                          runSpacing: 4,
-                          children: combo.includedNames.map((name) => Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.check_circle_outline,
-                                  color: AppColors.purple, size: 14),
-                              const SizedBox(width: 4),
-                              Text(name,
-                                  style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12.5)),
-                            ],
-                          )).toList(),
-                        ),
-                      ],
-                    ],
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: _ComboDetailChip(combo: combo),
                   ),
                 )),
               ],
@@ -291,31 +271,35 @@ class _NutritionInfo extends StatelessWidget {
   }
 }
 
-// chip التركيبة في صفحة التفاصيل — أكبر من نظيرتها في البطاقة المضغوطة
-class _ComboDetailChip extends StatelessWidget {
+// زر الوجبة في صفحة الصنف: مظلل إذا كانت في السلة، والضغط عليه يفتحها
+// لتعديل اختيارها أو إلغائه
+class _ComboDetailChip extends ConsumerWidget {
   final ComboModel combo;
   const _ComboDetailChip({required this.combo});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selected = ref.watch(comboCartProvider).any((e) => e.combo.id == combo.id);
+    final fg = selected ? Colors.white : AppColors.purple;
     return GestureDetector(
       onTap: () => showComboSheet(context, combo),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.purple.withOpacity(0.08),
+          color: selected ? AppColors.purple : AppColors.purple.withOpacity(0.08),
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.purple.withOpacity(0.4)),
+          border: Border.all(color: selected ? AppColors.purple : AppColors.purple.withOpacity(0.4)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add_circle_outline, color: AppColors.purple, size: 16),
+            Icon(selected ? Icons.check_circle : Icons.add_circle_outline, color: fg, size: 16),
             const SizedBox(width: 6),
             Text(
               combo.name,
               style: TextStyle(
-                color: AppColors.purple,
+                color: fg,
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
               ),
@@ -324,7 +308,7 @@ class _ComboDetailChip extends StatelessWidget {
             Text(
               '${combo.price.toStringAsFixed(0)} ${AppStrings.sar}',
               style: TextStyle(
-                color: AppColors.purple.withOpacity(0.7),
+                color: fg.withOpacity(0.8),
                 fontSize: 12,
               ),
             ),
