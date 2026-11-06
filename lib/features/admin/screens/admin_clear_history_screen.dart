@@ -4,7 +4,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/history_cleanup_service.dart';
 import '../providers/admin_provider.dart';
 
-/// مسح سجل التجارب نهائياً قبل بدء التشغيل الفعلي
+/// مسح سجل الطلبات الماضية (التجارب) نهائياً قبل بدء التشغيل الفعلي
 class AdminClearHistoryScreen extends ConsumerStatefulWidget {
   const AdminClearHistoryScreen({super.key});
 
@@ -15,43 +15,23 @@ class AdminClearHistoryScreen extends ConsumerStatefulWidget {
 class _AdminClearHistoryScreenState extends ConsumerState<AdminClearHistoryScreen> {
   static const _confirmWord = 'مسح';
 
-  static const Map<HistoryPart, ({String title, String hint, IconData icon})> _parts = {
-    HistoryPart.orders: (
-      title: 'الطلبات والتقارير',
-      hint: 'كل الطلبات وملخصات التقارير المحفوظة',
-      icon: Icons.receipt_long_outlined,
-    ),
-    HistoryPart.support: (
-      title: 'تذاكر الدعم الفني',
-      hint: 'كل المحادثات مع العملاء',
-      icon: Icons.support_agent_outlined,
-    ),
-    HistoryPart.verifiedPhones: (
-      title: 'الأرقام الموثّقة',
-      hint: 'أرقام العملاء التي وثّقها المطبخ بالاتصال',
-      icon: Icons.verified_user_outlined,
-    ),
-  };
-
-  final Set<HistoryPart> _selected = {HistoryPart.orders, HistoryPart.support};
-  final Map<HistoryPart, int?> _counts = {};
+  int? _count;
+  bool _countFailed = false;
   bool _running = false;
   int _deleted = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadCounts();
+    _loadCount();
   }
 
-  Future<void> _loadCounts() async {
-    for (final part in HistoryPart.values) {
-      try {
-        final n = await HistoryCleanupService.count(part);
-        if (mounted) setState(() => _counts[part] = n);
-      } catch (_) {
-        if (mounted) setState(() => _counts[part] = null);
-      }
+  Future<void> _loadCount() async {
+    try {
+      final n = await HistoryCleanupService.countOrders();
+      if (mounted) setState(() => _count = n);
+    } catch (_) {
+      if (mounted) setState(() => _countFailed = true);
     }
   }
 
@@ -61,13 +41,13 @@ class _AdminClearHistoryScreenState extends ConsumerState<AdminClearHistoryScree
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('مسح نهائي'),
+          title: const Text('مسح سجل الطلبات'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'سيُمسح ما اخترته ولا يمكن استرجاعه أبداً.\n'
+                'ستُمسح كل الطلبات الماضية ولا يمكن استرجاعها أبداً.\n'
                 'للتأكيد اكتب كلمة «$_confirmWord»:',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
               ),
@@ -101,38 +81,43 @@ class _AdminClearHistoryScreenState extends ConsumerState<AdminClearHistoryScree
   }
 
   Future<void> _clear() async {
-    if (_selected.isEmpty || !await _confirm()) return;
+    if (!await _confirm()) return;
     setState(() {
       _running = true;
       _deleted = 0;
     });
     String message;
     try {
-      final total = await HistoryCleanupService.clear(
-        _selected,
+      final total = await HistoryCleanupService.clearOrders(
         onProgress: (n) {
           if (mounted) setState(() => _deleted = n);
         },
       );
-      message = 'تم مسح $total سجل';
+      message = 'تم مسح $total طلب';
     } catch (e) {
-      message = 'توقف المسح بعد $_deleted سجل، حاول مرة أخرى';
+      message = 'توقف المسح بعد $_deleted طلب، حاول مرة أخرى';
     }
-    // الأرقام المعروضة في التقارير ولوحة التحكم تُقرأ من جديد
+    // أرقام التقارير ولوحة التحكم تُقرأ من جديد
     ref.invalidate(adminOrderStatsProvider);
     ref.invalidate(dailyStatsProvider);
     ref.invalidate(closingReportProvider);
     if (!mounted) return;
     setState(() => _running = false);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-    _loadCounts();
+    _loadCount();
   }
 
   @override
   Widget build(BuildContext context) {
+    final countText = _countFailed
+        ? 'تعذّر حساب عدد الطلبات'
+        : _count == null
+            ? 'جارٍ حساب عدد الطلبات...'
+            : 'عدد الطلبات الحالية: $_count';
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('مسح السجل')),
+      appBar: AppBar(title: const Text('مسح سجل الطلبات')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -150,8 +135,9 @@ class _AdminClearHistoryScreenState extends ConsumerState<AdminClearHistoryScree
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'للتخلص من بيانات التجارب قبل التشغيل الفعلي. المسح نهائي ولا يمكن '
-                    'استرجاعه.\nالقائمة والأسعار والإعدادات والموظفون لا تتأثر.',
+                    'يمسح كل الطلبات الماضية وأرقامها في التقارير، للتخلص من طلبات '
+                    'التجارب قبل التشغيل الفعلي. المسح نهائي ولا يمكن استرجاعه.\n'
+                    'القائمة والأسعار والإعدادات والموظفون والدعم الفني لا تتأثر.',
                     style: TextStyle(color: AppColors.textPrimary, fontSize: 13, height: 1.6),
                   ),
                 ),
@@ -159,28 +145,9 @@ class _AdminClearHistoryScreenState extends ConsumerState<AdminClearHistoryScree
             ),
           ),
           const SizedBox(height: 16),
-          Card(
-            color: AppColors.cardBackground,
-            child: Column(
-              children: [
-                for (final part in HistoryPart.values)
-                  CheckboxListTile(
-                    value: _selected.contains(part),
-                    onChanged: _running
-                        ? null
-                        : (v) => setState(() => v == true ? _selected.add(part) : _selected.remove(part)),
-                    activeColor: AppColors.error,
-                    secondary: Icon(_parts[part]!.icon, color: AppColors.textSecondary),
-                    title: Text(_parts[part]!.title,
-                        style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
-                    subtitle: Text(
-                      '${_parts[part]!.hint}${_counts.containsKey(part) ? ' · ${_counts[part] ?? '؟'}' : ''}',
-                      style: TextStyle(color: AppColors.textHint, fontSize: 12),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+          Text(countText,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
           const SizedBox(height: 20),
           if (_running) ...[
             const LinearProgressIndicator(),
@@ -194,9 +161,9 @@ class _AdminClearHistoryScreenState extends ConsumerState<AdminClearHistoryScree
                 backgroundColor: AppColors.error,
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              onPressed: _selected.isEmpty ? null : _clear,
+              onPressed: _count == 0 ? null : _clear,
               icon: const Icon(Icons.delete_forever_outlined),
-              label: const Text('مسح المحدد نهائياً'),
+              label: const Text('مسح كل الطلبات الماضية'),
             ),
         ],
       ),

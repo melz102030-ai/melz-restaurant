@@ -61,7 +61,7 @@ service cloud.firestore {
         me().get('permissions', {}).get(key, false) == true);
     }
 
-    // مسح السجل نهائياً: للمدير الأعلى، أو لمن منحه إياها صراحة. لا تشملها
+    // مسح سجل الطلبات نهائياً: للمدير الأعلى، أو لمن منحه إياها صراحة. لا تشملها
     // «كل الصلاحيات» للمدير بلا صلاحيات محددة ولا لمساعد المدير
     function canClearHistory() {
       return isSuperAdmin() ||
@@ -254,7 +254,7 @@ service cloud.firestore {
     // أرقام العملاء التي وثّقها المطبخ بعد الاتصال بهم — بيانات عملاء، فلا تُقرأ
     // ولا تُكتب إلا من المطبخ والأدمن
     match /verified_phones/{phone} {
-      allow read, write: if isKitchen() || hasPerm('kitchen') || hasPerm('orders') || canClearHistory();
+      allow read, write: if isKitchen() || hasPerm('kitchen') || hasPerm('orders');
     }
 
     // ───────────────────────── تذاكر الدعم الفني ────────────────────────────
@@ -290,8 +290,6 @@ service cloud.firestore {
           supportMessageOk(request.resource.data.messages[resource.data.messages.size()]) &&
           request.resource.data.messages.size() <= 200)
       );
-
-      allow delete: if canClearHistory();
     }
   }
 }

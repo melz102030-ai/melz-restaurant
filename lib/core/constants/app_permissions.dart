@@ -12,7 +12,7 @@ abstract class Perm {
   static const String content    = 'content';      // البانرات / الإعلانات / الكولاج
   static const String support    = 'support';      // الدعم الفني
   static const String kitchen    = 'kitchen';      // الوصول لواجهة المطبخ
-  // مسح سجل الطلبات والدعم نهائياً. لا تشمله «كل الصلاحيات» القديمة ولا زر
+  // مسح سجل الطلبات الماضية نهائياً. لا تشمله «كل الصلاحيات» القديمة ولا زر
   // «تفعيل الكل»، ولا يمنحه إلا المدير الأعلى
   static const String clearHistory = 'clearHistory';
 
@@ -37,7 +37,7 @@ abstract class Perm {
     content:    'البانرات والإعلانات',
     support:    'الدعم الفني',
     kitchen:    'وصول واجهة المطبخ',
-    clearHistory: 'مسح السجل نهائياً',
+    clearHistory: 'مسح سجل الطلبات',
   };
 
   /// صلاحيات الأدمن الجديد الافتراضية — محدودة ويُفتح المطلوب يدوياً
