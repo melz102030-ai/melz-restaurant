@@ -161,6 +161,10 @@ test("الطلبات: الحالة تتقدم بالترتيب ولا ترجع،
   await assertFails(set(admin, "cancelled"));
   await assertFails(set(admin, "ready"));
 
+  // قبول الطلب ينقله من الانتظار إلى التحضير مباشرة
+  await seed((db) => setDoc(doc(db, "orders/o1"), order({ status: "pending" })));
+  await assertSucceeds(set(kitchen, "preparing"));
+
   await seed((db) => setDoc(doc(db, "orders/o1"), order({ status: "cancelled" })));
   await assertFails(set(admin, "pending"));
   await assertFails(set(kitchen, "confirmed"));

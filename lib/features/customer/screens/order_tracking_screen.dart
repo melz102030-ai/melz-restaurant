@@ -258,7 +258,6 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
 
     final steps = [
       OrderStatus.pending,
-      OrderStatus.confirmed,
       OrderStatus.preparing,
       OrderStatus.ready,
       if (order.orderType == OrderType.delivery) OrderStatus.outForDelivery,
@@ -454,8 +453,8 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
                   ...steps.asMap().entries.map((e) {
                     final stepIndex = e.key;
                     final stepStatus = e.value;
-                    final isDone = currentStep > stepIndex;
-                    final isCurrent = currentStep == stepIndex;
+                    final isDone = currentStep > stepStatus.step;
+                    final isCurrent = currentStep == stepStatus.step;
                     final color = isDone || isCurrent ? AppColors.purple : AppColors.textHint;
 
                     return Column(

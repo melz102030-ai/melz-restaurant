@@ -240,7 +240,7 @@ async function kitchenPreparesOrder(browser, orderId) {
   step = "المطبخ: التأكيد والطباعة";
   await page.getByRole("button", { name: "تأكيد", exact: true }).click();
   await page.getByRole("button", { name: "15 د", exact: true }).click();
-  await waitForDoc(`orders/${orderId}`, (o) => o.status === "confirmed");
+  await waitForDoc(`orders/${orderId}`, (o) => o.status === "preparing");
   const end = Date.now() + 10000;
   while (!printed.length && Date.now() < end) await page.waitForTimeout(100);
   assert.equal(printed.length, 1, "الطباعة مرة واحدة عند التأكيد");
@@ -253,8 +253,6 @@ async function kitchenPreparesOrder(browser, orderId) {
   step = "المطبخ: التجهيز والتسليم";
   // بعد التأكيد ينطوي الطلب إلى رأسه، والضغط على الرأس يفتحه
   await page.locator("#ordersRoot .order-top").first().click();
-  await page.getByRole("button", { name: "بدء التحضير", exact: true }).click();
-  await waitForDoc(`orders/${orderId}`, (o) => o.status === "preparing");
   await page.getByRole("button", { name: "جاهز", exact: true }).click();
   await waitForDoc(`orders/${orderId}`, (o) => o.status === "ready");
   await page.getByRole("button", { name: "تم التسليم", exact: true }).click();

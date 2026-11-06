@@ -30,8 +30,6 @@ var state = {
   isOffline: false,
   knownPendingIds: null, // null = لم يُحمَّل بعد (لا تنبيه عند أول تحميل)
   alarmPlaying: false,
-  expandedCards: {},     // orderId -> bool
-  orderDrafts: {},       // orderId -> { time, notes } ما كتبه الموظف ولم يُحفظ بعد
   deliveredExpanded: false,
   openOrderId: null, // الطلب الوحيد المفتوح في الشاشة، والباقي مطوي
   unsubOrders: null,
@@ -583,7 +581,7 @@ function render() {
   }
   root.innerHTML = '';
   root.appendChild(buildSection('طلبات جديدة', groups.pending, 'var(--st-pending)', 'لا توجد طلبات جديدة'));
-  root.appendChild(buildSection('قيد التنفيذ', groups.inProgress, 'var(--st-preparing)', 'لا توجد طلبات قيد التنفيذ'));
+  root.appendChild(buildSection('قيد التحضير', groups.inProgress, 'var(--st-preparing)', 'لا توجد طلبات قيد التحضير'));
   root.appendChild(buildSection('جاهزة', groups.ready, 'var(--st-ready)', 'لا توجد طلبات جاهزة'));
   root.appendChild(buildSection('التوصيل', groups.outForDelivery, 'var(--st-delivery)', 'لا توجد طلبات في الطريق حالياً'));
   root.appendChild(buildSection('مُسلَّمة', groups.delivered, 'var(--st-delivered)', 'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات', true, true));
@@ -825,32 +823,6 @@ function buildOrderCard(order, index) {
     card.appendChild(buildDriverPanel(order));
   }
 
-  // Expand (time/notes inputs)
-  var expanded = !!state.expandedCards[order.id];
-  var draft = state.orderDrafts[order.id] || {};
-  function saveDraft(key, value) {
-    state.orderDrafts[order.id] = state.orderDrafts[order.id] || {};
-    state.orderDrafts[order.id][key] = value;
-  }
-  var timeInput = el('input', {
-    type: 'number', inputmode: 'numeric', placeholder: 'مثال: 20',
-    value: draft.time != null ? draft.time : (order.estimatedMinutes || ''),
-    'data-draft': order.id + ':time',
-    oninput: function (e) { saveDraft('time', e.target.value); },
-  });
-  var notesInput = el('textarea', {
-    rows: '2', placeholder: 'مثال: تأخير بسيط...',
-    'data-draft': order.id + ':notes',
-    oninput: function (e) { saveDraft('notes', e.target.value); },
-  }, [draft.notes != null ? draft.notes : (order.kitchenNotes || '')]);
-  var expandWrap = el('div', { class: 'order-expand' + (expanded ? ' open' : '') }, [
-    el('label', { style: 'font-size:11.5px;color:var(--text-secondary);font-weight:600' }, ['وقت التحضير (دقائق)']),
-    timeInput,
-    el('label', { style: 'font-size:11.5px;color:var(--text-secondary);font-weight:600' }, ['ملاحظة للعميل']),
-    notesInput,
-  ]);
-  card.appendChild(expandWrap);
-
   // Actions — زر أساسي واحد فقط (الخطوة التالية) بلون بنفسجي موحّد؛ الباقي
   // أزرار محايدة (ghost) ما عدا الإلغاء (نص أحمر بلا تعبئة)
   var actionsRow = el('div', { class: 'action-btns' });
@@ -866,11 +838,10 @@ function buildOrderCard(order, index) {
 
   function doUpdate(newStatus, btnEl, minutesOverride) {
     btnEl.classList.add('loading');
-    var mins = minutesOverride != null ? minutesOverride : parseInt(timeInput.value, 10);
-    if (isNaN(mins)) mins = order.estimatedMinutes == null ? (state.settings.estimatedPrepTime || 30) : null;
+    // وقت التحضير يُحدد عند القبول فقط (نافذة الوقت)، ويبقى كما هو في باقي المراحل
+    var mins = minutesOverride != null ? minutesOverride
+      : order.estimatedMinutes == null ? (state.settings.estimatedPrepTime || 30) : null;
     var update = { status: newStatus, updatedAt: firebase.firestore.Timestamp.now() };
-    var notesVal = notesInput.value.trim();
-    if (notesVal) update.kitchenNotes = notesVal;
     if (mins != null) {
       update.estimatedMinutes = mins;
       update.estimatedTime = mins + ' دقيقة';
@@ -891,10 +862,10 @@ function buildOrderCard(order, index) {
       });
     })
       .then(function () {
-        delete state.orderDrafts[order.id];
-        if (newStatus === 'confirmed') printOrder(order);
+        var accepted = order.status === 'pending' && newStatus === 'preparing';
+        if (accepted) printOrder(order);
         // بعد قبول الطلب يُطوى، ويُفتح الطلب الجديد التالي إن وُجد
-        if (newStatus === 'confirmed' && state.openOrderId === order.id) {
+        if (accepted && state.openOrderId === order.id) {
           var next = state.orders.filter(function (o) {
             return o.id !== order.id && o.status === 'pending' && !isWaitingCustomer(o);
           })[0];
@@ -915,10 +886,10 @@ function buildOrderCard(order, index) {
           openConfirmModal(
             'المندوب لم يوافق بعد',
             'المندوب "' + order.driverName + '" لم يوافق بعد على استلام هذا الطلب. يمكنك تأكيد الطلب الآن على أي حال، أو الانتظار حتى يوافق.',
-            'تأكيد الآن', function () { doUpdate('confirmed', btnEl, minutes); }
+            'تأكيد الآن', function () { doUpdate('preparing', btnEl, minutes); }
           );
         } else {
-          doUpdate('confirmed', btnEl, minutes);
+          doUpdate('preparing', btnEl, minutes);
         }
       });
     }));
@@ -942,16 +913,7 @@ function buildOrderCard(order, index) {
     }));
   }
 
-  var actionsWrap = el('div', { class: 'order-actions' }, [
-    el('button', {
-      class: 'text-btn',
-      onclick: function () {
-        state.expandedCards[order.id] = !expanded;
-        render();
-      },
-    }, [expanded ? 'إخفاء' : 'تفاصيل']),
-    actionsRow,
-  ]);
+  var actionsWrap = el('div', { class: 'order-actions' }, [actionsRow]);
   card.appendChild(actionsWrap);
 
   return card;
@@ -1199,7 +1161,7 @@ function buildReceiptPlainText(order) {
   lines.push(sep);
   order.items.forEach(function (item, index) {
     // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
-    if (index > 0) lines.push('____________________');
+    if (index > 0) lines.push('__________');
     // جرَّبنا printColumnsText (عمودين بسطر واحد) مرتين وبعرضين مختلفين —
     // في الحالتين اختفى اسم الصنف بالكامل من الطباعة الفعلية (يبدو أن
     // الدالة لا تحسب عرض النص العربي بشكل صحيح على هذه الطابعة). رجعنا

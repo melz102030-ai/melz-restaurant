@@ -29,7 +29,6 @@ class _AdminOrdersScreenState extends ConsumerState<AdminOrdersScreen>
   static const _tabs = [
     (label: 'الكل', status: null),
     (label: 'انتظار', status: OrderStatus.pending),
-    (label: 'تأكيد', status: OrderStatus.confirmed),
     (label: 'تحضير', status: OrderStatus.preparing),
     (label: 'جاهز', status: OrderStatus.ready),
     (label: 'توصيل', status: OrderStatus.outForDelivery),

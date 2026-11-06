@@ -355,7 +355,6 @@ class _OrderStatusStrip extends StatelessWidget {
 
   List<({OrderStatus status, IconData icon, String label})> get _steps => [
     (status: OrderStatus.pending, icon: Icons.hourglass_empty, label: 'انتظار'),
-    (status: OrderStatus.confirmed, icon: Icons.thumb_up, label: 'تأكيد'),
     (status: OrderStatus.preparing, icon: Icons.restaurant, label: 'تحضير'),
     (
       status: OrderStatus.ready,
@@ -402,8 +401,8 @@ class _OrderStatusStrip extends StatelessWidget {
         children: _steps.asMap().entries.map((e) {
           final i = e.key;
           final step = e.value;
-          final isDone = currentStep > i;
-          final isCurrent = currentStep == i;
+          final isDone = currentStep > step.status.step;
+          final isCurrent = currentStep == step.status.step;
           final color = isDone
               ? AppColors.success
               : isCurrent

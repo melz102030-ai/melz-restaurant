@@ -198,7 +198,7 @@ service cloud.firestore {
         let from = resource.data.status;
         let to = request.resource.data.status;
         return from == to ||
-          (from == 'pending' && to in ['confirmed', 'cancelled']) ||
+          (from == 'pending' && to in ['confirmed', 'preparing', 'cancelled']) ||
           (from == 'confirmed' && to in ['preparing', 'cancelled']) ||
           (from == 'preparing' && to in ['ready', 'cancelled']) ||
           (from == 'ready' && to in ['outForDelivery', 'delivered', 'cancelled']) ||

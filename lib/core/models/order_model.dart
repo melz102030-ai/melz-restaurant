@@ -68,8 +68,10 @@ extension OrderStatusExt on OrderStatus {
     switch (this) {
       case OrderStatus.pending:
         return 'قيد الانتظار';
+      // أُلغيت مرحلة "تم التأكيد": القبول ينقل الطلب إلى التحضير مباشرة،
+      // وما بقي من طلبات قديمة بهذه الحالة يُعرض قيد التحضير
       case OrderStatus.confirmed:
-        return 'تم التأكيد';
+        return 'قيد التحضير';
       case OrderStatus.preparing:
         return 'قيد التحضير';
       case OrderStatus.ready:
@@ -88,7 +90,7 @@ extension OrderStatusExt on OrderStatus {
       case OrderStatus.pending:
         return 0;
       case OrderStatus.confirmed:
-        return 1;
+        return 2;
       case OrderStatus.preparing:
         return 2;
       case OrderStatus.ready:
@@ -108,7 +110,7 @@ extension OrderStatusExt on OrderStatus {
       case OrderStatus.pending:
         return AppColors.statusPending;
       case OrderStatus.confirmed:
-        return AppColors.statusConfirmed;
+        return AppColors.statusPreparing;
       case OrderStatus.preparing:
         return AppColors.statusPreparing;
       case OrderStatus.ready:

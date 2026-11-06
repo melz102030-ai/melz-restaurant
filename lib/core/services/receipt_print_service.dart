@@ -42,7 +42,7 @@ class ReceiptPrintService {
     b.writeln(sep);
     for (final item in order.items) {
       // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
-      if (item != order.items.first) b.writeln('____________________');
+      if (item != order.items.first) b.writeln('__________');
       b.writeln('×${item.shownQuantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
       for (final line in _optionsReceiptLines(item)) {
         b.writeln('   $line');
@@ -73,7 +73,7 @@ class ReceiptPrintService {
           .join();
       // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
       return '''
-        <tr${index > 0 ? ' style="border-top:1px solid #000"' : ''}>
+        <tr${index > 0 ? ' class="item-sep"' : ''}>
           <td style="width:28px;font-weight:bold">×${item.shownQuantity}</td>
           <td>${_esc(item.name)}$optionsLine</td>
           <td style="text-align:left;white-space:nowrap">${item.total.toStringAsFixed(2)}</td>
@@ -102,6 +102,7 @@ class ReceiptPrintService {
   #receipt-print-area .line { border-top: 2px dashed #000; margin: 8px 0; }
   #receipt-print-area table { width: 100%; border-collapse: collapse; font-size: 17px; font-weight: bold; }
   #receipt-print-area td { padding: 3px 0; vertical-align: top; }
+  #receipt-print-area tr.item-sep td:nth-child(2) { border-top: 1px solid #000; }
   #receipt-print-area .total td { font-weight: bold; font-size: 20px; padding-top: 5px; }
 </style>
 <div class="slip">
