@@ -1257,6 +1257,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
               type: g.type,
               required: g.required,
               allowQuantity: g.allowQuantity,
+              kitchenControl: g.kitchenControl,
               options: g.options
                   .map((o) => ItemOption(
                         id: _uuid.v4(),
@@ -1439,6 +1440,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
   OptionGroupType _type = OptionGroupType.single;
   bool _required = false;
   bool _allowQuantity = false;
+  bool _kitchenControl = false;
   List<ItemOption> _options = [];
   String? _error;
 
@@ -1450,6 +1452,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
       _type = widget.group!.type;
       _required = widget.group!.required;
       _allowQuantity = widget.group!.allowQuantity;
+      _kitchenControl = widget.group!.kitchenControl;
       _options = List.from(widget.group!.options);
     }
   }
@@ -1474,7 +1477,7 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
         required: _required,
         options: _options,
         allowQuantity: _allowQuantity,
-        // يبقى الارتباط بالقالب، وإلا أضاف تعديل القالب لاحقاً المجموعة مرة ثانية للصنف
+        kitchenControl: _kitchenControl,
       ),
     );
   }
@@ -1577,6 +1580,26 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
                         Switch(
                           value: _allowQuantity,
                           onChanged: (v) => setState(() => _allowQuantity = v),
+                        ),
+                      ],
+                    ),
+                    // تحكم المطبخ بتوفر الخيارات
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('يتحكم المطبخ بتوفرها:',
+                                  style: TextStyle(color: AppColors.textSecondary)),
+                              Text('تظهر في شاشة توفر الأصناف بالمطبخ ليوقف خياراتها عند نفادها',
+                                  style: TextStyle(color: AppColors.textHint, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _kitchenControl,
+                          onChanged: (v) => setState(() => _kitchenControl = v),
                         ),
                       ],
                     ),

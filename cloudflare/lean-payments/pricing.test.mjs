@@ -257,7 +257,16 @@ test("توقيف خيار يغيّر توفره فقط ويبقي السعر و�
   const value = () => ({
     arrayValue: {
       values: [
-        { mapValue: { fields: { id: { stringValue: "g1" }, options: { arrayValue: { values: [option("a"), option("b")] } } } } },
+        {
+          mapValue: {
+            fields: {
+              id: { stringValue: "g1" },
+              kitchenControl: { booleanValue: true },
+              options: { arrayValue: { values: [option("a"), option("b")] } },
+            },
+          },
+        },
+        { mapValue: { fields: { id: { stringValue: "g2" }, options: { arrayValue: { values: [option("c")] } } } } },
       ],
     },
   });
@@ -269,6 +278,8 @@ test("توقيف خيار يغيّر توفره فقط ويبقي السعر و�
 
   rejectsWith(() => setOptionAvailability(value(), "g1", "ghost", false), "option-not-found");
   rejectsWith(() => setOptionAvailability(value(), "ghost", "a", false), "option-not-found");
+  // قسم لم تسمح الإدارة للمطبخ بالتحكم به
+  rejectsWith(() => setOptionAvailability(value(), "g2", "c", false), "option-not-allowed");
 });
 
 test("حساب المسافة قريب من القيمة المعروفة", () => {

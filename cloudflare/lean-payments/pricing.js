@@ -498,6 +498,9 @@ export function removeUnavailableItems(order) {
 export function setOptionAvailability(optionGroupsValue, groupId, optionId, isAvailable) {
   const groups = optionGroupsValue?.arrayValue?.values ?? [];
   const group = groups.find((g) => g.mapValue?.fields?.id?.stringValue === groupId);
+  if (group && group.mapValue.fields.kitchenControl?.booleanValue !== true) {
+    throw new OrderRejected("option-not-allowed", "هذه الخيارات لا يتحكم بها المطبخ", 403);
+  }
   const options = group?.mapValue?.fields?.options?.arrayValue?.values ?? [];
   const option = options.find((o) => o.mapValue?.fields?.id?.stringValue === optionId);
   if (!option) throw new OrderRejected("option-not-found", "لم يُعثر على هذا الخيار، حدّث الصفحة", 404);

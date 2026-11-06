@@ -47,6 +47,9 @@ class OptionGroup {
   // يسمح للعميل بزيادة عدد الخيار المختار (مثل: جبن إضافي ×2) بعدّاد +/−
   // بدل الاكتفاء بتحديده مرة واحدة — يتضاعف فرق سعره حسب العدد
   final bool allowQuantity;
+  // يظهر هذا القسم في شاشة توفر الأصناف بالمطبخ ليوقف خياراته ويعيدها. بدونه
+  // لا يراه المطبخ ولا يستطيع تغييره (والخادم يرفض ذلك أيضاً)
+  final bool kitchenControl;
 
   const OptionGroup({
     required this.id,
@@ -55,6 +58,7 @@ class OptionGroup {
     required this.required,
     required this.options,
     this.allowQuantity = false,
+    this.kitchenControl = false,
   });
 
   Map<String, dynamic> toMap() => {
@@ -64,6 +68,7 @@ class OptionGroup {
         'required': required,
         'options': options.map((o) => o.toMap()).toList(),
         'allowQuantity': allowQuantity,
+        'kitchenControl': kitchenControl,
       };
 
   factory OptionGroup.fromMap(Map<String, dynamic> m) => OptionGroup(
@@ -82,6 +87,7 @@ class OptionGroup {
             .map((o) => ItemOption.fromMap(Map<String, dynamic>.from(o as Map)))
             .toList(),
         allowQuantity: m['allowQuantity'] ?? false,
+        kitchenControl: m['kitchenControl'] == true,
       );
 
   // الخيارات المفعَّلة فقط — تُستخدَم في واجهة العميل حتى لا يرى/يختار
@@ -95,6 +101,7 @@ class OptionGroup {
     bool? required,
     List<ItemOption>? options,
     bool? allowQuantity,
+    bool? kitchenControl,
   }) =>
       OptionGroup(
         id: id,
@@ -103,6 +110,7 @@ class OptionGroup {
         required: required ?? this.required,
         options: options ?? this.options,
         allowQuantity: allowQuantity ?? this.allowQuantity,
+        kitchenControl: kitchenControl ?? this.kitchenControl,
       );
 }
 
