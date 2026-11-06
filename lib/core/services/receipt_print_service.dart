@@ -42,7 +42,7 @@ class ReceiptPrintService {
     b.writeln(sep);
     for (final item in order.items) {
       // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
-      if (item != order.items.first) b.writeln('______________________');
+      if (item != order.items.first) b.writeln('____________________');
       b.writeln('×${item.shownQuantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
       for (final line in _optionsReceiptLines(item)) {
         b.writeln('   $line');

@@ -1185,7 +1185,7 @@ function buildReceiptPlainText(order) {
   lines.push(sep);
   order.items.forEach(function (item, index) {
     // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
-    if (index > 0) lines.push('______________________');
+    if (index > 0) lines.push('____________________');
     // جرَّبنا printColumnsText (عمودين بسطر واحد) مرتين وبعرضين مختلفين —
     // في الحالتين اختفى اسم الصنف بالكامل من الطباعة الفعلية (يبدو أن
     // الدالة لا تحسب عرض النص العربي بشكل صحيح على هذه الطابعة). رجعنا

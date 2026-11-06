@@ -194,11 +194,7 @@ class PrintBridgeService : Service() {
                     isFirstLine = false
                 } else {
                     svc.setAlignment(2, null)
-                    // خيارات الصنف ("- ...") أصغر درجة من اسمه، والفاصل بين
-                    // الأصناف (سطر من "_") بخط صغير فيبدو خطاً نحيفاً
-                    val isRule = line.all { it == '_' }
-                    val isOption = line.startsWith("- ")
-                    svc.setFontSize(if (isRule) 16f else if (isOption) 24f else 28f, null)
+                    svc.setFontSize(28f, null)
                 }
                 svc.sendRAWData(boldOn, null)
                 svc.printText(line + "\n", null)
