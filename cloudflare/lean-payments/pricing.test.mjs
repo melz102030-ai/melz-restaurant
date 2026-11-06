@@ -242,6 +242,7 @@ test("إزالة الأصناف غير المتوفرة تعيد الحساب م
   assert.equal(r.subtotal, 37);
   assert.equal(r.total, 47);
   assert.deepEqual(r.unavailableItemIds, []);
+  assert.equal(r.status, "pending", "يعود للمطبخ طلباً جديداً");
 
   assert.equal(removeUnavailableItems({ ...order, unavailableItemIds: [] }), null, "نقرة مكررة لا تغيّر شيئاً");
   rejectsWith(() => removeUnavailableItems({ ...order, status: "cancelled" }), "order-closed");

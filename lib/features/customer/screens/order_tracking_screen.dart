@@ -20,6 +20,7 @@ import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
 import '../providers/orders_provider.dart';
+import '../utils/order_to_cart.dart';
 import '../../../core/services/order_service.dart';
 
 class OrderTrackingScreen extends ConsumerWidget {
@@ -172,50 +173,63 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
                   ]),
                 )),
             const SizedBox(height: 12),
-            if (remaining > 0)
-              Text('سيُكمَل طلبك بدونها (${remaining} صنف متبقٍّ).',
-                  style: TextStyle(color: Colors.grey[700]))
-            else
-              Text('لا تتبقى أصناف في طلبك. بإمكانك إلغاء الطلب.',
-                  style: TextStyle(color: Colors.red)),
+            Text('كيف تحب نكمل؟', style: TextStyle(color: Colors.grey[700])),
           ],
         ),
+        actionsOverflowDirection: VerticalDirection.down,
         actions: [
-          if (remaining == 0)
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _resolveUnavailable(order, () => OrderService.cancelOrder(order.id));
-              },
-              child: const Text('إلغاء الطلب', style: TextStyle(color: Colors.red)),
-            ),
           if (remaining > 0)
-            TextButton(
+            ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx);
                 _resolveUnavailable(
                   order,
                   () => OrderService.acknowledgeUnavailableItems(order),
-                  onDone: () => context.go('/home'),
                 );
               },
-              child: const Text('أكمل وأضف طلباً جديداً'),
+              child: const Text('اعتمد الطلب بدونها'),
             ),
-          ElevatedButton(
-            onPressed: remaining > 0
-                ? () {
-                    Navigator.pop(ctx);
-                    _resolveUnavailable(
-                      order,
-                      () => OrderService.acknowledgeUnavailableItems(order),
-                    );
-                  }
-                : null,
-            child: const Text('موافق، أكمل طلبي'),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _chooseAlternatives(order);
+            },
+            child: const Text('اختر أصنافاً بديلة'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _resolveUnavailable(order, () => OrderService.cancelOrder(order.id));
+            },
+            child: const Text('إلغاء الطلب', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
+  }
+
+  // يُلغى الطلب، ويعود باقيه إلى السلة بلا الأصناف الناقصة، ثم القائمة ليختار
+  // بدلها ويرسله طلباً جديداً
+  Future<void> _chooseAlternatives(OrderModel order) async {
+    try {
+      await OrderService.cancelOrder(order.id);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('تعذّر تحديث طلبك، حاول مجدداً'),
+        backgroundColor: AppColors.error,
+      ));
+      _showUnavailableDialog(order);
+      return;
+    }
+    await addOrderToCart(ref, order, skipIds: order.unavailableItemIds.toSet());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('أبقينا باقي طلبك في السلة، اختر البديل ثم أرسل الطلب'),
+      backgroundColor: AppColors.success,
+      duration: Duration(seconds: 5),
+    ));
+    context.go('/home');
   }
 
   void _notifyOrderReady() {

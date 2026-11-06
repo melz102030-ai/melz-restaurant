@@ -5,13 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
-import '../../../core/models/menu_item_model.dart';
-import '../../../core/models/option_group_model.dart';
 import '../../../core/models/order_model.dart';
-import '../../../core/providers/cart_provider.dart';
 import '../../../shared/widgets/loading_widget.dart';
-import '../providers/menu_provider.dart';
 import '../providers/orders_provider.dart';
+import '../utils/order_to_cart.dart';
 
 // سجل طلبات العميل بالكامل — مع إمكانية تكرار أي طلب سابق بضغطة واحدة
 class OrderHistoryScreen extends ConsumerWidget {
@@ -66,71 +63,9 @@ class _OrderHistoryCardState extends ConsumerState<_OrderHistoryCard> {
     if (_reordering) return;
     setState(() => _reordering = true);
     try {
-      final catalog = await ref.read(menuItemsStreamProvider(null).future);
-      final cartNotifier = ref.read(cartProvider.notifier);
-      int added = 0;
-      final skippedNames = <String>[];
-
-      for (final oi in widget.order.items) {
-        MenuItemModel? current;
-        for (final m in catalog) {
-          if (m.id == oi.menuItemId && m.isAvailable) {
-            current = m;
-            break;
-          }
-        }
-        if (current == null) {
-          skippedNames.add(oi.name);
-          continue;
-        }
-
-        // مطابقة أفضل-جهد لخيارات الطلب القديم مع الخيارات الحالية للصنف (بالاسم)
-        final selectedGroups = <SelectedOptionGroup>[];
-        for (final opt in oi.selectedOptions) {
-          OptionGroup? group;
-          for (final g in current.optionGroups) {
-            if (g.name == opt.groupName) {
-              group = g;
-              break;
-            }
-          }
-          if (group == null) continue;
-          // الأسماء قد تحمل عدداً ("جبن ×2") للمجموعات التي تسمح بزيادة العدد
-          final qtyByName = <String, int>{};
-          for (final n in opt.selectedNames) {
-            // "×2 جبن"، والطلبات الأقدم بصيغة "جبن ×2". صنف لا يُحتسب سعره
-            // يُحفظ عدد خياراته مضروباً في كمية الصنف، فيُقسم هنا لتفادي مضاعفته
-            final m = RegExp(r'^×(\d+) (.*)$').firstMatch(n);
-            final old = RegExp(r'^(.*) ×(\d+)$').firstMatch(n);
-            if (m != null) {
-              final perUnit = current.excludeBasePrice ? oi.quantity : 1;
-              qtyByName[m.group(2)!] = int.parse(m.group(1)!) ~/ perUnit;
-            } else if (old != null) {
-              qtyByName[old.group(1)!] = int.parse(old.group(2)!);
-            } else {
-              qtyByName[n] = 1;
-            }
-          }
-          final matched = group.options.where((o) => qtyByName.containsKey(o.name)).toList();
-          if (matched.isEmpty) continue;
-          final allowQty = group.allowQuantity;
-          int q(ItemOption o) => allowQty ? qtyByName[o.name]! : 1;
-          selectedGroups.add(SelectedOptionGroup(
-            groupId: group.id,
-            groupName: group.name,
-            selectedIds: matched.map((o) => q(o) > 1 ? '${o.id}*${q(o)}' : o.id).toList(),
-            selectedNames: matched
-                .map((o) => allowQty || current!.excludeBasePrice ? '×${q(o)} ${o.name}' : o.name)
-                .toList(),
-            totalExtra: matched.fold(0.0, (s, o) => s + o.priceAdjustment * q(o)),
-          ));
-        }
-
-        for (int i = 0; i < oi.quantity; i++) {
-          cartNotifier.addItem(current, selectedGroups);
-        }
-        added++;
-      }
+      final result = await addOrderToCart(ref, widget.order);
+      final added = result.added;
+      final skippedNames = result.skippedNames;
 
       if (!mounted) return;
       if (added == 0) {

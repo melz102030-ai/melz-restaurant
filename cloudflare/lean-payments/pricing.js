@@ -473,11 +473,16 @@ export function removeUnavailableItems(order) {
     throw new OrderRejected("nothing-left", "لا تتبقى أصناف في طلبك، بإمكانك إلغاء الطلب", 409);
   }
   const subtotal = round2(items.reduce((sum, i) => sum + Number(i.price ?? 0) * i.quantity, 0));
+  // اختفى من المطبخ وقت انتظار رد العميل، فيعود إليه طلباً جديداً من أوله
   return {
     items,
     subtotal,
     total: round2(subtotal + Number(order.deliveryFee ?? 0)),
     unavailableItemIds: [],
+    status: "pending",
+    estimatedTime: null,
+    estimatedMinutes: null,
+    estimatedSetAt: null,
   };
 }
 
