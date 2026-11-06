@@ -47,9 +47,6 @@ class OptionGroup {
   // يسمح للعميل بزيادة عدد الخيار المختار (مثل: جبن إضافي ×2) بعدّاد +/−
   // بدل الاكتفاء بتحديده مرة واحدة — يتضاعف فرق سعره حسب العدد
   final bool allowQuantity;
-  // معرّف القالب الذي جاءت منه هذه المجموعة — يُستخدَم لتحديث الصنف تلقائياً
-  // عند تعديل القالب بدل الاكتفاء بنسخه مرة واحدة عند التطبيق
-  final String? sourceTemplateId;
 
   const OptionGroup({
     required this.id,
@@ -58,7 +55,6 @@ class OptionGroup {
     required this.required,
     required this.options,
     this.allowQuantity = false,
-    this.sourceTemplateId,
   });
 
   Map<String, dynamic> toMap() => {
@@ -68,7 +64,6 @@ class OptionGroup {
         'required': required,
         'options': options.map((o) => o.toMap()).toList(),
         'allowQuantity': allowQuantity,
-        if (sourceTemplateId != null) 'sourceTemplateId': sourceTemplateId,
       };
 
   factory OptionGroup.fromMap(Map<String, dynamic> m) => OptionGroup(
@@ -87,7 +82,6 @@ class OptionGroup {
             .map((o) => ItemOption.fromMap(Map<String, dynamic>.from(o as Map)))
             .toList(),
         allowQuantity: m['allowQuantity'] ?? false,
-        sourceTemplateId: m['sourceTemplateId'] as String?,
       );
 
   // الخيارات المفعَّلة فقط — تُستخدَم في واجهة العميل حتى لا يرى/يختار
@@ -101,7 +95,6 @@ class OptionGroup {
     bool? required,
     List<ItemOption>? options,
     bool? allowQuantity,
-    Object? sourceTemplateId = _sentinel,
   }) =>
       OptionGroup(
         id: id,
@@ -110,14 +103,8 @@ class OptionGroup {
         required: required ?? this.required,
         options: options ?? this.options,
         allowQuantity: allowQuantity ?? this.allowQuantity,
-        sourceTemplateId: sourceTemplateId == _sentinel
-            ? this.sourceTemplateId
-            : sourceTemplateId as String?,
       );
 }
-
-// sentinel لتمييز "لم يُمرَّر" عن "مُمرَّر null" صراحةً في copyWith
-const Object _sentinel = Object();
 
 // Holds customer's selections for one group
 class SelectedOptionGroup {

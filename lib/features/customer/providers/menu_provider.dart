@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/category_model.dart';
 import '../../../core/models/combo_model.dart';
 import '../../../core/models/menu_item_model.dart';
-import '../../../core/models/option_template_model.dart';
 import '../../../core/models/promo_banner_model.dart';
 import '../../../core/services/combo_service.dart';
 import '../../../core/services/menu_service.dart';
@@ -31,9 +30,6 @@ final adminCategoriesProvider = StreamProvider<List<CategoryModel>>((ref) {
   return MenuService.streamCategories();
 });
 
-final adminOptionTemplatesProvider = StreamProvider<List<OptionTemplateModel>>((ref) {
-  return MenuService.streamOptionTemplates();
-});
 
 // بانرات العروض — نشطة فقط (للعميل) وكاملة (للأدمن)
 final activeBannersStreamProvider = StreamProvider<List<PromoBannerModel>>((ref) {

@@ -3,14 +3,12 @@ import 'package:uuid/uuid.dart';
 import '../models/category_model.dart';
 import '../models/menu_item_model.dart';
 import '../models/option_group_model.dart';
-import '../models/option_template_model.dart';
 import 'cloudinary_service.dart';
 
 class MenuService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static const String _colCategories = 'categories';
   static const String _colItems = 'menu_items';
-  static const String _colTemplates = 'option_templates';
   static const _uuid = Uuid();
 
   // ─── Categories ───────────────────────────────────────────────
@@ -103,7 +101,7 @@ class MenuService {
       final merged = snap.exists
           ? item.withLatestAvailability(original: original, latest: latest)
           : item;
-      tx.update(ref, merged.toMap());
+      tx.update(ref, {...merged.toMap(), 'linkedTemplateIds': FieldValue.delete()});
     });
   }
 
@@ -139,68 +137,6 @@ class MenuService {
     for (int i = 0; i < cats.length; i++) {
       batch.update(_db.collection(_colCategories).doc(cats[i].id), {'sortOrder': i});
     }
-    await batch.commit();
-  }
-
-  // ─── Option Templates ─────────────────────────────────────────
-  static Stream<List<OptionTemplateModel>> streamOptionTemplates() {
-    return _db
-        .collection(_colTemplates)
-        .orderBy('name')
-        .snapshots()
-        .map((s) => s.docs
-            .map((d) => OptionTemplateModel.fromMap(d.data(), d.id))
-            .toList());
-  }
-
-  static Future<String> addOptionTemplate(OptionTemplateModel t) async {
-    final ref = _db.collection(_colTemplates).doc();
-    await ref.set(t.toMap());
-    return ref.id;
-  }
-
-  static Future<void> updateOptionTemplate(OptionTemplateModel t) async {
-    await _db.collection(_colTemplates).doc(t.id).update(t.toMap());
-    await _propagateTemplateToItems(t);
-  }
-
-  // عند تعديل قالب — يُحدِّث مجموعات خياراته في كل الأصناف المرتبطة به
-  // (تلك التي حُفظ فيها linkedTemplateIds يحتوي على معرّف هذا القالب)
-  static Future<void> _propagateTemplateToItems(OptionTemplateModel t) async {
-    final snap = await _db
-        .collection(_colItems)
-        .where('linkedTemplateIds', arrayContains: t.id)
-        .get();
-    if (snap.docs.isEmpty) return;
-
-    final batch = _db.batch();
-    for (final doc in snap.docs) {
-      final item = MenuItemModel.fromMap(doc.data(), doc.id);
-      batch.update(doc.reference, {
-        'optionGroups':
-            item.optionGroupsWithTemplate(t.id, t.groups).map((g) => g.toMap()).toList(),
-      });
-    }
-    await batch.commit();
-  }
-
-  // حذف القالب لا يمس خيارات الأصناف، لكنها تصبح مستقلة عنه
-  static Future<void> deleteOptionTemplate(String id) async {
-    final snap = await _db
-        .collection(_colItems)
-        .where('linkedTemplateIds', arrayContains: id)
-        .get();
-    final batch = _db.batch();
-    for (final doc in snap.docs) {
-      final item = MenuItemModel.fromMap(doc.data(), doc.id);
-      batch.update(doc.reference, {
-        'linkedTemplateIds': FieldValue.arrayRemove([id]),
-        'optionGroups': item.optionGroups
-            .map((g) => (g.sourceTemplateId == id ? g.copyWith(sourceTemplateId: null) : g).toMap())
-            .toList(),
-      });
-    }
-    batch.delete(_db.collection(_colTemplates).doc(id));
     await batch.commit();
   }
 

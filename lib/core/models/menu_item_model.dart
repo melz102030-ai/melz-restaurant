@@ -44,9 +44,6 @@ class MenuItemModel {
   // حتى يستطيع الأدمن تجهيزها مسبقاً بلا إظهارها قبل اكتمالها/مراجعتها.
   // افتراضياً معطّل فلا يظهر قسم فارغ للأصناف التي لم تُعبَّأ بياناتها بعد.
   final bool showNutritionInfo;
-  // معرّفات القوالب المرتبطة بهذا الصنف — يُستخدَم للاستعلام عنه في Firestore
-  // عند تعديل قالب لتحديث مجموعات خياراته في الصنف تلقائياً
-  final List<String> linkedTemplateIds;
   // سعر الصنف يُعرض فقط ولا يُحتسب — المبلغ الفعلي يأتي من الخيارات وحدها
   // (مثال: صنف الصوصات يُعرض بـ 3 ريال، وكل صوص يختاره العميل يضيف 3 ريال)
   final bool excludeBasePrice;
@@ -80,7 +77,6 @@ class MenuItemModel {
     this.calories,
     this.allergens = const [],
     this.showNutritionInfo = false,
-    this.linkedTemplateIds = const [],
     this.excludeBasePrice = false,
     this.useTransparentBg = false,
     this.imageScale = 1.0,
@@ -132,43 +128,6 @@ class MenuItemModel {
     );
   }
 
-  // مجموعات الصنف بعد تعديل قالبها: تبقى في مكانها بين مجموعات الصنف، ويبقى الخيار
-  // الموقوف موقوفاً، وتُزال المجموعة المكررة من نفس القالب
-  List<OptionGroup> optionGroupsWithTemplate(String templateId, List<OptionGroup> templateGroups) {
-    OptionGroup linked(OptionGroup fresh, OptionGroup? existing) => fresh.copyWith(
-          sourceTemplateId: templateId,
-          options: [
-            for (final option in fresh.options)
-              option.copyWith(
-                isAvailable: existing?.options
-                        .where((o) => o.id == option.id)
-                        .firstOrNull
-                        ?.isAvailable ??
-                    option.isAvailable,
-              ),
-          ],
-        );
-
-    final placed = <String>{};
-    final result = <OptionGroup>[];
-    var insertAt = -1;
-    for (final group in optionGroups) {
-      if (group.sourceTemplateId != templateId) {
-        result.add(group);
-        continue;
-      }
-      final fresh = templateGroups.where((g) => g.id == group.id).firstOrNull;
-      if (fresh != null && placed.add(group.id)) result.add(linked(fresh, group));
-      insertAt = result.length;
-    }
-    final added = [
-      for (final g in templateGroups)
-        if (!placed.contains(g.id)) linked(g, null),
-    ];
-    result.insertAll(insertAt < 0 ? result.length : insertAt, added);
-    return result;
-  }
-
   bool get hasDiscount => discountPercent != null && discountPercent! > 0;
   bool get hasOptions => optionGroups.isNotEmpty;
 
@@ -205,7 +164,6 @@ class MenuItemModel {
       calories: (map['calories'] as num?)?.toInt(),
       allergens: List<String>.from(map['allergens'] ?? []),
       showNutritionInfo: map['showNutritionInfo'] ?? false,
-      linkedTemplateIds: List<String>.from(map['linkedTemplateIds'] ?? []),
       excludeBasePrice: map['excludeBasePrice'] ?? false,
       useTransparentBg: map['useTransparentBg'] ?? false,
       imageScale: (map['imageScale'] as num?)?.toDouble() ?? 1.0,
@@ -233,7 +191,6 @@ class MenuItemModel {
       'calories': calories,
       'allergens': allergens,
       'showNutritionInfo': showNutritionInfo,
-      'linkedTemplateIds': linkedTemplateIds,
       'excludeBasePrice': excludeBasePrice,
       'useTransparentBg': useTransparentBg,
       'imageScale': imageScale,
@@ -261,7 +218,6 @@ class MenuItemModel {
     int? calories,
     List<String>? allergens,
     bool? showNutritionInfo,
-    List<String>? linkedTemplateIds,
     bool? excludeBasePrice,
     bool? useTransparentBg,
     double? imageScale,
@@ -287,7 +243,6 @@ class MenuItemModel {
       calories: calories ?? this.calories,
       allergens: allergens ?? this.allergens,
       showNutritionInfo: showNutritionInfo ?? this.showNutritionInfo,
-      linkedTemplateIds: linkedTemplateIds ?? this.linkedTemplateIds,
       excludeBasePrice: excludeBasePrice ?? this.excludeBasePrice,
       useTransparentBg: useTransparentBg ?? this.useTransparentBg,
       imageScale: imageScale ?? this.imageScale,
