@@ -542,10 +542,14 @@ function render() {
   $('#offlineBanner').classList.toggle('hidden', !state.isOffline);
 
   var groups = {
-    pending: [], inProgress: [], ready: [], outForDelivery: [], delivered: [],
+    pending: [], inProgress: [], ready: [], outForDelivery: [], delivered: [], waiting: [],
   };
   state.orders.forEach(function (o) {
-    if (o.status === 'pending') groups.pending.push(o);
+    // أُبلغ العميل بنفاد أصناف: يخرج من قائمة العمل حتى يرد، ثم يعود لمكانه
+    var waiting = (o.unavailableItemIds || []).length > 0 &&
+      o.status !== 'delivered' && o.status !== 'cancelled';
+    if (waiting) groups.waiting.push(o);
+    else if (o.status === 'pending') groups.pending.push(o);
     else if (o.status === 'confirmed' || o.status === 'preparing') groups.inProgress.push(o);
     else if (o.status === 'ready') groups.ready.push(o);
     else if (o.status === 'outForDelivery') groups.outForDelivery.push(o);
@@ -565,6 +569,9 @@ function render() {
   root.appendChild(buildSection('قيد التنفيذ', groups.inProgress, 'var(--st-preparing)', 'لا توجد طلبات قيد التنفيذ'));
   root.appendChild(buildSection('جاهزة', groups.ready, 'var(--st-ready)', 'لا توجد طلبات جاهزة'));
   root.appendChild(buildSection('التوصيل', groups.outForDelivery, 'var(--st-delivery)', 'لا توجد طلبات في الطريق حالياً'));
+  if (groups.waiting.length) {
+    root.appendChild(buildSection('بانتظار رد العميل', groups.waiting, 'var(--error)', ''));
+  }
   root.appendChild(buildSection('مُسلَّمة', groups.delivered, 'var(--st-delivered)', 'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات', true, true));
   if (focusedDraft) {
     var field = root.querySelector('[data-draft="' + focusedDraft + '"]');
