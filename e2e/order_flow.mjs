@@ -251,6 +251,8 @@ async function kitchenPreparesOrder(browser, orderId) {
   assert.equal(confirmed.estimatedMinutes, 15);
 
   step = "المطبخ: التجهيز والتسليم";
+  // بعد التأكيد ينطوي الطلب إلى رأسه، والضغط على الرأس يفتحه
+  await page.locator("#ordersRoot .order-top").first().click();
   await page.getByRole("button", { name: "بدء التحضير", exact: true }).click();
   await waitForDoc(`orders/${orderId}`, (o) => o.status === "preparing");
   await page.getByRole("button", { name: "جاهز", exact: true }).click();

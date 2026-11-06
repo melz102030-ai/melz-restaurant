@@ -742,24 +742,27 @@ function buildOrderCard(order, index) {
     verifyBadge = verifyBtn;
   }
 
+  // الرأس: رقم الطلب والعد التنازلي والإجمالي فقط، والضغط عليه يفتح الطلب أو
+  // يطويه. المطوي رأس فقط، فيأخذ مساحة صغيرة
   var cardOpen = isCardOpen(order);
-  var foldBtn = el('button', {
-    class: 'call-btn fold-btn', title: cardOpen ? 'طي الطلب' : 'عرض الطلب كاملاً',
-    onclick: function (e) { e.stopPropagation(); toggleCard(order); },
-  }, [cardOpen ? '▲' : '▼']);
-  var side = el('div', { class: 'order-side' }, [
-    foldBtn,
-    callBtn,
-    el('div', {
-      class: 'pill elapsed-pill' + (isUrgent ? ' loud' : ''), 'data-created': order.createdAt.getTime(),
-    }, [elapsedMin + ' د']),
-  ]);
-  if (order.estimatedMinutes != null && order.estimatedSetAt && !isTerminal) {
-    side.appendChild(countdownPill(order));
-  }
+  var hasCountdown = order.estimatedMinutes != null && order.estimatedSetAt && !isTerminal;
+  var elapsedPill = el('div', {
+    class: 'pill elapsed-pill' + (isUrgent ? ' loud' : ''), 'data-created': order.createdAt.getTime(),
+  }, [elapsedMin + ' د']);
+  card.appendChild(el('div', {
+    class: 'order-top', onclick: function () { toggleCard(order); },
+  }, [
+    el('div', { class: 'order-id' }, ['#' + pad4(order.orderNumber)]),
+    hasCountdown ? countdownPill(order) : elapsedPill,
+    el('div', { class: 'order-total' }, [order.total.toFixed(2) + ' ر.س']),
+    el('span', { class: 'fold-icon' }, [cardOpen ? '▲' : '▼']),
+  ]));
+  if (!cardOpen) return card;
+
+  var side = el('div', { class: 'order-side' }, [callBtn]);
+  if (hasCountdown) side.appendChild(elapsedPill);
 
   var head = el('div', { class: 'order-head' }, [
-    el('div', { class: 'order-id' }, ['#' + pad4(order.orderNumber)]),
     el('div', { class: 'order-info' }, [
       el('div', { class: 'order-name' }, [order.customerName]),
       el('div', { class: 'order-phone-row' }, [
@@ -810,22 +813,13 @@ function buildOrderCard(order, index) {
       el('div', {}, itemChildren),
     ]));
   });
-  if (cardOpen) {
-    card.appendChild(itemsWrap);
-    if (order.notes) {
-      card.appendChild(el('div', { class: 'order-notes' }, [order.notes]));
-    }
-    // Driver panel (delivery only, not terminal)
-    if (order.orderType === 'delivery' && !isTerminal) {
-      card.appendChild(buildDriverPanel(order));
-    }
-  } else {
-    // مطوي: سطر مختصر بالأصناف، والضغط عليه يفتحه
-    card.appendChild(el('div', {
-      class: 'order-folded', onclick: function () { toggleCard(order); },
-    }, [order.items.filter(function (i) { return i.name.indexOf('↳ ') !== 0; }).map(function (i) {
-      return '×' + (i.displayQuantity || i.quantity) + ' ' + i.name;
-    }).join('، ')]));
+  card.appendChild(itemsWrap);
+  if (order.notes) {
+    card.appendChild(el('div', { class: 'order-notes' }, [order.notes]));
+  }
+  // Driver panel (delivery only, not terminal)
+  if (order.orderType === 'delivery' && !isTerminal) {
+    card.appendChild(buildDriverPanel(order));
   }
 
   // Expand (time/notes inputs)
