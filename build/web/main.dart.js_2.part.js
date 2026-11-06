@@ -1,8 +1,8 @@
 ((a,b)=>{a[b]=a[b]||{}})(self,"$__dart_deferred_initializers__")
 $__dart_deferred_initializers__.current=function(a,b,c,$){var J,A,C,D={
-bNl(d,e,f,g){return new D.CH(f,d,g,e)},
-bVt(d){return new D.ac9(d,null)},
-CH:function CH(d,e,f,g){var _=this
+bNj(d,e,f,g){return new D.CG(f,d,g,e)},
+bVs(d){return new D.ac9(d,null)},
+CG:function CG(d,e,f,g){var _=this
 _.b=d
 _.c=e
 _.d=f
@@ -18,11 +18,11 @@ D=a.updateHolder(c[12],D)
 B=c[35]
 E=c[17]
 F=c[27]
-D.CH.prototype={}
+D.CG.prototype={}
 D.ac9.prototype={
-E(d){var x=null,w=E.xR(d,F.jb),v=w==null?x:w.a
-return new E.Iu(new A.e1(C.bt,x,C.bg,C.y,J.rg(new D.aR5(this,v==null?A.Z(A.a_("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
-var z=a.updateTypes(["y<lY>(m<CH>)"])
+E(d){var x=null,w=E.xQ(d,F.jb),v=w==null?x:w.a
+return new E.It(new A.e1(C.bt,x,C.bg,C.y,J.rg(new D.aR5(this,v==null?A.Z(A.a_("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
+var z=a.updateTypes(["y<lZ>(m<CG>)"])
 D.aR5.prototype={
 $1(d){return new A.hx(this.akh(d),y.l)},
 akh(d){var x=this
@@ -52,18 +52,18 @@ a0=a3.a>=a0.a&&a4.b<=a5.b&&a3.b>=a0.b}else a0=!1
 if(!a0){v=3
 break}a0=r.gwM()
 v=5
-return a6.b=new A.lY(a1-a0.a-g,a2-a0.b-f,null,null,k,i,l.c,null),1
+return a6.b=new A.lZ(a1-a0.a-g,a2-a0.b-f,null,null,k,i,l.c,null),1
 case 5:case 3:w.length===s||(0,A.N)(w),++m
 v=2
 break
 case 4:return 0
 case 1:return a6.c=t.at(-1),3}}}},
 $S:z+0};(function inheritance(){var x=a.inherit
-x(D.CH,A.A)
+x(D.CG,A.A)
 x(D.ac9,A.a0)
 x(D.aR5,A.hA)})()
 A.n6(b.typeUniverse,JSON.parse('{"ac9":{"a0":[],"d":[]}}'))
-var y={n:A.a5("c9<D>"),l:A.a5("hx<lY>"),b:A.a5("D")};(function constants(){B.yO=new A.ai(61870,"MaterialIcons",null,!1)
+var y={n:A.a5("c9<D>"),l:A.a5("hx<lZ>"),b:A.a5("D")};(function constants(){B.yO=new A.ai(61870,"MaterialIcons",null,!1)
 B.a4y=new A.J(1,1,0.9529411764705882,0.8784313725490196,C.l)
 B.a5k=new A.J(1,1,0.8784313725490196,0.6980392156862745,C.l)
 B.a5R=new A.J(1,1,0.8,0.5019607843137255,C.l)
@@ -75,4 +75,4 @@ B.a5v=new A.J(1,0.9372549019607843,0.4235294117647059,0,C.l)
 B.a4k=new A.J(1,0.9019607843137255,0.3176470588235294,0,C.l)
 B.aqP=new A.cW([50,B.a4y,100,B.a5k,200,B.a5R,300,B.a46,400,B.a4O,500,C.aZ,600,B.a5w,700,B.a4G,800,B.a5v,900,B.a4k],A.a5("cW<l,J>"))
 B.zW=new A.t8(B.aqP,1,1,0.596078431372549,0,C.l)})()};
-(a=>{a["r3WKF8uDMUcZ/4xbIvhCpY4mGlE="]=a.current})($__dart_deferred_initializers__);
+(a=>{a["PMdhQ5XjYyxslvxWgqTo+kI0V2E="]=a.current})($__dart_deferred_initializers__);

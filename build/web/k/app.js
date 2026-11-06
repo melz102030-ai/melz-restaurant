@@ -1172,20 +1172,19 @@ function buildReceiptPlainText(order) {
   lines.push('النوع: ' + (order.orderType === 'delivery' ? 'توصيل' : 'استلام من المطعم'));
   if (order.orderType === 'delivery' && order.deliveryAddress) lines.push('العنوان: ' + order.deliveryAddress);
   lines.push(sep);
-  order.items.forEach(function (item) {
+  order.items.forEach(function (item, index) {
+    // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
+    if (index > 0) lines.push('. . . . . . . . . .');
     // جرَّبنا printColumnsText (عمودين بسطر واحد) مرتين وبعرضين مختلفين —
     // في الحالتين اختفى اسم الصنف بالكامل من الطباعة الفعلية (يبدو أن
     // الدالة لا تحسب عرض النص العربي بشكل صحيح على هذه الطابعة). رجعنا
     // لسطرين منفصلين لأنها الطريقة الوحيدة المؤكَّد عملها فعلياً
     lines.push('×' + (item.displayQuantity || item.quantity) + ' ' + item.name);
     lines.push((item.price * item.quantity).toFixed(2) + ' ر.س');
-    // كل قيمة مختارة بسطر مستقل (لا نجمعها بفاصلة) — كانت تُطبَع كتلة
-    // نصية واحدة طويلة تلتف على عدة أسطر فتبدو متلاصقة بلا فواصل واضحة
+    // كل خيار في سطر مستقل تحت صنفه، بلا عناوين المجموعات (الإضافات، الخيارات...)
     (item.selectedOptions || []).filter(function (o) { return o.isMeal || (o.selectedNames || []).length; })
       .forEach(function (o) {
-        if (o.isMeal) { lines.push(mealLine(o)); return; }
-        var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
-        lines.push(o.groupName + ':' + extra);
+        if (o.isMeal) { lines.push('- ' + mealLine(o)); return; }
         o.selectedNames.forEach(function (name) { lines.push('- ' + name); });
       });
     if (item.note && item.note.trim()) lines.push('ملاحظة: ' + item.note);
