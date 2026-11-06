@@ -8,6 +8,7 @@ import '../../../core/models/order_model.dart';
 import '../../../core/providers/combo_cart_provider.dart';
 import '../providers/menu_provider.dart';
 
+// وجبة عامة غير مرتبطة بصنف: تُضاف للسلة سطراً مستقلاً
 Future<void> showComboSheet(BuildContext context, ComboModel combo) {
   return showModalBottomSheet(
     context: context,
@@ -17,9 +18,48 @@ Future<void> showComboSheet(BuildContext context, ComboModel combo) {
   );
 }
 
+/// نتيجة اختيار وجبة على صنف: اختيار (بالصنف المختار من خياراتها) أو إلغاء
+class ComboPick {
+  final String? optionItemId;
+  final bool removed;
+  const ComboPick.chosen(this.optionItemId) : removed = false;
+  const ComboPick.removed()
+      : optionItemId = null,
+        removed = true;
+}
+
+// وجبة مرتبطة بصنف: لا تذهب للسلة، بل تعود لصفحة الصنف لتُضاف معه كأنها من
+// خياراته. null يعني أن العميل أغلق النافذة بلا تغيير
+Future<ComboPick?> pickComboForItem(
+  BuildContext context,
+  ComboModel combo, {
+  bool selected = false,
+  String? optionItemId,
+}) {
+  return showModalBottomSheet<ComboPick>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => _ComboSheet(
+      combo: combo,
+      pickMode: true,
+      pickedSelected: selected,
+      pickedOptionId: optionItemId,
+    ),
+  );
+}
+
 class _ComboSheet extends ConsumerStatefulWidget {
   final ComboModel combo;
-  const _ComboSheet({required this.combo});
+  final bool pickMode;
+  final bool pickedSelected;
+  final String? pickedOptionId;
+  const _ComboSheet({
+    required this.combo,
+    this.pickMode = false,
+    this.pickedSelected = false,
+    this.pickedOptionId,
+  });
 
   @override
   ConsumerState<_ComboSheet> createState() => _ComboSheetState();
@@ -35,7 +75,8 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
   @override
   void initState() {
     super.initState();
-    _selectedOptionId = _existing?.chosenOptionId;
+    _selectedOptionId =
+        widget.pickMode ? widget.pickedOptionId : _existing?.chosenOptionId;
   }
 
   void _showMessage(String text) {
@@ -49,12 +90,20 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
   }
 
   void _removeFromCart() {
+    if (widget.pickMode) {
+      Navigator.pop(context, const ComboPick.removed());
+      return;
+    }
     ref.read(comboCartProvider.notifier).deleteCombo(widget.combo.id);
     Navigator.pop(context);
     _showMessage('تم إلغاء ${widget.combo.name}');
   }
 
   void _addToCart(List<MenuItemModel> allItems) {
+    if (widget.pickMode) {
+      Navigator.pop(context, ComboPick.chosen(_selectedOptionId));
+      return;
+    }
     final combo = widget.combo;
     final fixedItems = combo.items
         .map((r) => allItems.where((i) => i.id == r.itemId).firstOrNull)
@@ -115,8 +164,12 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
     // الخيار المختار قد يتوقف والنافذة مفتوحة، فيختفي ويُلغى اختياره
     final hasSelection = optionItems.any((item) => item.id == _selectedOptionId);
     final canAdd = canBeOrdered && (!hasOptions || hasSelection);
-    final isSelected =
-        ref.watch(comboCartProvider).any((e) => e.combo.id == combo.id);
+    final inCart = ref.watch(comboCartProvider).any((e) => e.combo.id == combo.id);
+    final isSelected = widget.pickMode ? widget.pickedSelected : inCart;
+    final price = combo.price.toStringAsFixed(2);
+    final chooseLabel = widget.pickMode
+        ? 'اختيار · +$price ${AppStrings.sar}'
+        : 'أضف للسلة · $price ${AppStrings.sar}';
 
     return Container(
       decoration: BoxDecoration(
@@ -330,7 +383,7 @@ class _ComboSheetState extends ConsumerState<_ComboSheet> {
                           ? 'اختر خياراً أولاً'
                           : isSelected
                               ? 'حفظ التعديل'
-                              : 'أضف للسلة · ${combo.price.toStringAsFixed(2)} ${AppStrings.sar}',
+                              : chooseLabel,
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
           ),

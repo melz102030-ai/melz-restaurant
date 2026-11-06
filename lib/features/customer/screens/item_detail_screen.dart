@@ -3,13 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
-import '../../../core/models/combo_model.dart';
 import '../../../core/models/menu_item_model.dart';
-import '../../../core/providers/combo_cart_provider.dart';
 import '../../../core/services/cloudinary_service.dart';
 import '../../../shared/widgets/menu_item_image.dart';
 import '../providers/menu_provider.dart';
-import 'combo_detail_sheet.dart';
 import '../widgets/menu_item_card.dart';
 
 // صفحة صنف كاملة — تُفتح من بطاقات العرض المضغوطة (شبكي/أفقي) التي لا تتّسع
@@ -38,13 +35,8 @@ class ItemDetailScreen extends ConsumerWidget {
     }
 
     final available = item.isAvailable;
-    final linkedCombos = ref
-        .watch(activeCombosProvider)
-        .valueOrNull
-        ?.where((c) => c.linkedItemIds.contains(itemId))
-        .toList() ?? const <ComboModel>[];
-
-    final header = _ItemHeader(item: item, linkedCombos: linkedCombos);
+    // الوجبات المرتبطة بالصنف تظهر داخل ItemOptionsView وتُضاف معه كخيار
+    final header = _ItemHeader(item: item);
 
     return Scaffold(
       body: available
@@ -67,8 +59,7 @@ class ItemDetailScreen extends ConsumerWidget {
 // صورة الصنف بعرض الشاشة الكامل (بلا فراغ جانبي) + الاسم والوصف والسعر
 class _ItemHeader extends StatelessWidget {
   final MenuItemModel item;
-  final List<ComboModel> linkedCombos;
-  const _ItemHeader({required this.item, this.linkedCombos = const []});
+  const _ItemHeader({required this.item});
 
   @override
   Widget build(BuildContext context) {
@@ -176,17 +167,6 @@ class _ItemHeader extends StatelessWidget {
                 const SizedBox(height: 12),
                 _NutritionInfo(item: item),
               ],
-              if (linkedCombos.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                // محتوى الوجبة يظهر بعد الضغط عليها فقط، داخل نافذتها
-                ...linkedCombos.map((combo) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: _ComboDetailChip(combo: combo),
-                  ),
-                )),
-              ],
             ],
           ),
         ),
@@ -267,54 +247,6 @@ class _NutritionInfo extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-// زر الوجبة في صفحة الصنف: مظلل إذا كانت في السلة، والضغط عليه يفتحها
-// لتعديل اختيارها أو إلغائه
-class _ComboDetailChip extends ConsumerWidget {
-  final ComboModel combo;
-  const _ComboDetailChip({required this.combo});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(comboCartProvider).any((e) => e.combo.id == combo.id);
-    final fg = selected ? Colors.white : AppColors.purple;
-    return GestureDetector(
-      onTap: () => showComboSheet(context, combo),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.purple : AppColors.purple.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: selected ? AppColors.purple : AppColors.purple.withOpacity(0.4)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(selected ? Icons.check_circle : Icons.add_circle_outline, color: fg, size: 16),
-            const SizedBox(width: 6),
-            Text(
-              combo.name,
-              style: TextStyle(
-                color: fg,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              '${combo.price.toStringAsFixed(0)} ${AppStrings.sar}',
-              style: TextStyle(
-                color: fg.withOpacity(0.8),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

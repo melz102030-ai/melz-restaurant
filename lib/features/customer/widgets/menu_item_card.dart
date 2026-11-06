@@ -35,6 +35,10 @@ class MenuItemListCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // صنف عليه وجبة يُفتح لاختيارها، حتى لو لم تكن له خيارات أخرى
+    final hasCombos = ref.watch(activeCombosProvider.select((combos) =>
+        combos.valueOrNull?.any((c) => c.linkedItemIds.contains(item.id)) ?? false));
+    final customizable = item.hasOptions || hasCombos;
     final cartNotifier = ref.watch(cartProvider.notifier);
     final totalQty = ref.watch(cartProvider.select(
       (c) => c
@@ -63,7 +67,7 @@ class MenuItemListCard extends ConsumerWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(20),
-        onTap: available && item.hasOptions
+        onTap: available && customizable
             ? () => _showOptionsSheet(context)
             : null,
         child: Padding(
@@ -197,7 +201,7 @@ class MenuItemListCard extends ConsumerWidget {
               // Add control
               if (!available)
                 const SizedBox.shrink()
-              else if (!item.hasOptions)
+              else if (!customizable)
                 totalQty == 0
                     ? _AddBtn(onTap: () => _quickAdd(context, cartNotifier, item))
                     : _QtyRow(
@@ -798,6 +802,8 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
   final Map<String, GlobalKey> _groupKeys = {};
   final _noteCtrl = TextEditingController();
   int _qty = 1;
+  // الوجبة المختارة على هذا الصنف (بطاطس ومشروب...)، تُضاف معه كأنها من خياراته
+  CartCombo? _combo;
   // مجموعة إجبارية ناقصة يُشار إليها بالأحمر بعد محاولة إضافة فاشلة — تُمسح
   // تلقائياً بمجرد أي اختيار جديد من المستخدم
   String? _invalidGroupId;
@@ -898,7 +904,84 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     return extra;
   }
 
-  double get _unitPrice => widget.item.chargedBasePrice + _extraTotal;
+  double get _unitPrice =>
+      widget.item.chargedBasePrice + _extraTotal + (_combo?.price ?? 0);
+
+  // يفتح الوجبة: أول ضغطة لاختيارها، والضغطة التالية لتعديل ما بداخلها أو إلغائها
+  Future<void> _openCombo(ComboModel combo) async {
+    final current = _combo?.comboId == combo.id ? _combo : null;
+    final pick = await pickComboForItem(
+      context,
+      combo,
+      selected: current != null,
+      optionItemId: current?.optionItemId,
+    );
+    if (pick == null || !mounted) return;
+    if (pick.removed) {
+      setState(() => _combo = null);
+      return;
+    }
+    final items = ref.read(menuItemsStreamProvider(null)).valueOrNull ?? const <MenuItemModel>[];
+    String? nameOf(String id) => items.where((i) => i.id == id).firstOrNull?.name;
+    setState(() => _combo = CartCombo(
+          comboId: combo.id,
+          name: combo.name,
+          price: combo.price,
+          optionItemId: pick.optionItemId,
+          contents: [
+            ...combo.items.map((r) => nameOf(r.itemId)).whereType<String>(),
+            if (pick.optionItemId != null) nameOf(pick.optionItemId!) ?? '',
+          ].where((n) => n.isNotEmpty).toList(),
+        ));
+  }
+
+  Widget _buildCombos(List<ComboModel> combos) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: combos.map((combo) {
+          final selected = _combo?.comboId == combo.id;
+          final fg = selected ? Colors.white : AppColors.purple;
+          return GestureDetector(
+            onTap: () => _openCombo(combo),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              decoration: BoxDecoration(
+                color: selected ? AppColors.purple : AppColors.purple.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                    color: selected ? AppColors.purple : AppColors.purple.withValues(alpha: 0.4)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(selected ? Icons.check_circle : Icons.add_circle_outline,
+                      color: fg, size: 17),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      selected && _combo!.contents.isNotEmpty
+                          ? '${combo.name} (${_combo!.contents.join('، ')})'
+                          : combo.name,
+                      style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '+${combo.price.toStringAsFixed(0)} ${AppStrings.sar}',
+                    style: TextStyle(color: fg.withValues(alpha: 0.85), fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
   double get _totalPrice => _unitPrice * _qty;
 
   void _addToCart() {
@@ -931,7 +1014,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
     final notifier = ref.read(cartProvider.notifier);
     final note = _noteCtrl.text.trim().isEmpty ? null : _noteCtrl.text.trim();
     for (int i = 0; i < _qty; i++) {
-      notifier.addItem(widget.item, selectedGroups, note);
+      notifier.addItem(widget.item, selectedGroups, note, _combo);
     }
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1009,6 +1092,13 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
 
   @override
   Widget build(BuildContext context) {
+    final combos = ref.watch(activeCombosProvider).valueOrNull
+            ?.where((c) => c.linkedItemIds.contains(widget.item.id))
+            .toList() ??
+        const <ComboModel>[];
+    // الوجبة المختارة قد تتوقف والصفحة مفتوحة، فيُلغى اختيارها
+    if (_combo != null && !combos.any((c) => c.id == _combo!.comboId)) _combo = null;
+
     final optionsList = ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       shrinkWrap: !widget.asPage,
@@ -1020,6 +1110,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
             padding: const EdgeInsets.symmetric(horizontal: -20),
             child: widget.header,
           ),
+        if (combos.isNotEmpty) _buildCombos(combos),
         ...widget.item.optionGroups.map((group) {
         final isInvalid = _invalidGroupId == group.id;
         return AnimatedContainer(

@@ -136,6 +136,42 @@ function priceOptions(item, requested, displayMultiplier = 1) {
   return { extra, optionsCount, selectedOptions };
 }
 
+// وجبة مختارة على صنف (بطاطس ومشروب...): تُحفظ ضمن خيارات الصنف نفسه وتزيد
+// سعره، فتظهر للعميل والمطبخ والفاتورة كأنها من خياراته
+function itemCombo(item, req, combosById, itemsById) {
+  if (req?.comboId == null) return null;
+  const combo = combosById.get(req.comboId);
+  const linked = Array.isArray(combo?.linkedItemIds) && combo.linkedItemIds.includes(item.id);
+  if (!combo || combo.isActive === false || !linked) {
+    throw new OrderRejected(
+      "item-unavailable",
+      `الوجبة المختارة مع "${item.name}" لم تعد متوفرة، احذفه من السلة وأضفه من جديد`,
+      409
+    );
+  }
+  const optionIds = Array.isArray(combo.optionItemIds) ? combo.optionItemIds : [];
+  if (optionIds.length > 0 && !optionIds.includes(req.comboOptionItemId)) {
+    throw new OrderRejected("required-option-missing", `اختر صنفاً من "${combo.name}"`);
+  }
+  const subIds = [
+    ...(Array.isArray(combo.items) ? combo.items.map((r) => r.itemId) : []),
+    ...(optionIds.length > 0 ? [req.comboOptionItemId] : []),
+  ];
+  const names = subIds.map((id) => {
+    const sub = itemsById.get(id);
+    if (!sub || sub.isAvailable === false) {
+      throw new OrderRejected(
+        "item-unavailable",
+        `"${combo.name}" غير متوفرة حالياً لتوقف أحد أصنافها، عدّل "${item.name}" في السلة`,
+        409
+      );
+    }
+    return sub.name;
+  });
+  const price = Number(combo.price ?? 0);
+  return { price, option: { groupName: combo.name, selectedNames: names, extra: price } };
+}
+
 function orderLine({ menuItemId, name, price, quantity, imageUrl, selectedOptions = [], note, displayQuantity }) {
   return {
     menuItemId,
@@ -177,7 +213,8 @@ export function buildOrderLines(request, itemsById, combosById) {
       req.options,
       item.excludeBasePrice === true ? quantity : 1
     );
-    const unit = itemBasePrice(item) + extra;
+    const combo = itemCombo(item, req, combosById, itemsById);
+    const unit = itemBasePrice(item) + extra + (combo?.price ?? 0);
     subtotal += unit * quantity;
     lines.push(
       orderLine({
@@ -186,7 +223,7 @@ export function buildOrderLines(request, itemsById, combosById) {
         price: unit,
         quantity,
         imageUrl: item.imageUrl,
-        selectedOptions,
+        selectedOptions: combo ? [...selectedOptions, combo.option] : selectedOptions,
         note: cleanText(req.note, MAX_NOTE),
         // صنف لا يُحتسب سعره: كميته الفعلية مجموع خياراته (٥ كوكتيل + ٣ كاتشب = ٨)،
         // للعرض فقط — الحساب يبقى price × quantity

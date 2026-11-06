@@ -273,3 +273,28 @@ test("حساب المسافة قريب من القيمة المعروفة", () =
   // درجة عرض واحدة ≈ 111.3 كم بنصف القطر المستخدم
   assert.ok(Math.abs(distanceKm(24, 46, 25, 46) - 111.3) < 0.5);
 });
+
+test("وجبة على الصنف: تزيد سعره وتُحفظ ضمن خياراته لا سطراً مستقلاً", () => {
+  const fries = { id: "fries", name: "بطاطس", price: 3 };
+  const pepsi = { id: "pepsi", name: "بيبسي", price: 2 };
+  const meal = { id: "m1", name: "وجبة كاملة", price: 5, linkedItemIds: ["burger"], items: [{ itemId: "fries" }], optionItemIds: ["pepsi"] };
+  const run = (req, items = [["burger", burger], ["fries", fries], ["pepsi", pepsi]], combos = [["m1", meal]]) =>
+    priceOrder({
+      request: { paymentMethod: "cash", orderType: "pickup", items: [{ itemId: "burger", quantity: 2, ...req }] },
+      settings: OPEN_SETTINGS,
+      zones: [],
+      itemsById: new Map(items),
+      combosById: new Map(combos),
+    });
+
+  const r = run({ comboId: "m1", comboOptionItemId: "pepsi" });
+  assert.equal(r.items.length, 1, "سطر واحد للصنف بلا سطر للوجبة");
+  assert.equal(r.items[0].price, 23); // 18 بعد الخصم + 5
+  assert.equal(r.total, 46);
+  assert.deepEqual(r.items[0].selectedOptions.at(-1), { groupName: "وجبة كاملة", selectedNames: ["بطاطس", "بيبسي"], extra: 5 });
+
+  rejectsWith(() => run({ comboId: "m1" }), "required-option-missing");
+  rejectsWith(() => run({ comboId: "m1", comboOptionItemId: "pepsi" }, undefined, [["m1", { ...meal, linkedItemIds: ["other"] }]]), "item-unavailable");
+  rejectsWith(() => run({ comboId: "m1", comboOptionItemId: "pepsi" }, [["burger", burger], ["pepsi", pepsi]]), "item-unavailable");
+  rejectsWith(() => run({ comboId: "gone", comboOptionItemId: "pepsi" }), "item-unavailable");
+});

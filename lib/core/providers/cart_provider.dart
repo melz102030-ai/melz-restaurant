@@ -7,17 +7,64 @@ import '../models/option_group_model.dart';
 
 const _cartStorageKey = 'saved_cart_v1';
 
+/// وجبة مضافة على الصنف (بطاطس ومشروب...)، تظهر في السلة والفاتورة كأنها من
+/// خياراته وتزيد سعره. الخادم يتحقق منها ويحسب سعرها من جديد
+class CartCombo {
+  final String comboId;
+  final String name;
+  final double price;
+  final String? optionItemId;
+  final List<String> contents;
+
+  const CartCombo({
+    required this.comboId,
+    required this.name,
+    required this.price,
+    this.optionItemId,
+    this.contents = const [],
+  });
+
+  String get key => optionItemId == null ? comboId : '$comboId:$optionItemId';
+
+  String get summary => contents.isEmpty ? name : '$name: ${contents.join('، ')}';
+
+  OrderItemOption toOrderOption() =>
+      OrderItemOption(groupName: name, selectedNames: contents, extra: price);
+
+  Map<String, dynamic> toJson() => {
+        'comboId': comboId,
+        'name': name,
+        'price': price,
+        if (optionItemId != null) 'optionItemId': optionItemId,
+        'contents': contents,
+      };
+
+  static CartCombo? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final m = Map<String, dynamic>.from(raw);
+    return CartCombo(
+      comboId: m['comboId'] as String,
+      name: m['name'] as String,
+      price: (m['price'] as num).toDouble(),
+      optionItemId: m['optionItemId'] as String?,
+      contents: List<String>.from(m['contents'] ?? const []),
+    );
+  }
+}
+
 class CartItem {
   final MenuItemModel item;
   final int quantity;
   final List<SelectedOptionGroup> selectedOptions;
   final String? note;
+  final CartCombo? combo;
 
   const CartItem({
     required this.item,
     required this.quantity,
     this.selectedOptions = const [],
     this.note,
+    this.combo,
   });
 
   // نفس الصنف بنفس الخيارات لكن ملاحظات مختلفة = عنصران منفصلان في السلة
@@ -26,11 +73,12 @@ class CartItem {
         ? ''
         : '_' + selectedOptions.map((g) => '${g.groupId}:${g.selectedIds.join(',')}').join('|');
     final noteStr = (note != null && note!.isNotEmpty) ? '_n:$note' : '';
-    return '${item.id}$optStr$noteStr';
+    final comboStr = combo == null ? '' : '_c:${combo!.key}';
+    return '${item.id}$optStr$comboStr$noteStr';
   }
 
   double get optionsExtra =>
-      selectedOptions.fold(0.0, (s, g) => s + g.totalExtra);
+      selectedOptions.fold(0.0, (s, g) => s + g.totalExtra) + (combo?.price ?? 0);
 
   // مجموع عدد الخيارات المختارة — selectedIds بصيغة "id" أو "id*3"
   int get totalOptionsQuantity =>
@@ -49,6 +97,7 @@ class CartItem {
         for (final g in selectedOptions)
           for (var i = 0; i < g.selectedNames.length && i < g.selectedIds.length; i++)
             _optionLine(g.selectedIds[i], g.selectedNames[i]),
+        if (combo != null) combo!.summary,
       ];
 
   String _optionLine(String id, String name) {
@@ -63,10 +112,10 @@ class CartItem {
   double get unitPrice => item.chargedBasePrice + optionsExtra;
   double get total => unitPrice * quantity;
 
-  String get optionsSummary => selectedOptions
-      .where((g) => g.selectedNames.isNotEmpty)
-      .map((g) => g.summary)
-      .join(' · ');
+  String get optionsSummary => [
+        ...selectedOptions.where((g) => g.selectedNames.isNotEmpty).map((g) => g.summary),
+        if (combo != null) combo!.summary,
+      ].join(' · ');
 
   // ما يُرسل للخادم عند إنشاء الطلب — معرّفات وكميات فقط بلا أي سعر
   Map<String, dynamic> toOrderRequest() => {
@@ -76,6 +125,8 @@ class CartItem {
             .map((g) => {'groupId': g.groupId, 'selectedIds': g.selectedIds})
             .toList(),
         if (note != null && note!.isNotEmpty) 'note': note,
+        if (combo != null) 'comboId': combo!.comboId,
+        if (combo?.optionItemId != null) 'comboOptionItemId': combo!.optionItemId,
       };
 
   // يعيد بناء العنصر من بيانات الصنف الحية بأسعارها الحالية، ويعيد null إن لم
@@ -107,11 +158,15 @@ class CartItem {
     final missingRequired = live.optionGroups
         .any((g) => g.required && !groups.any((s) => s.groupId == g.id));
     if (missingRequired) return null;
-    return CartItem(item: live, quantity: quantity, selectedOptions: groups, note: note);
+    return CartItem(item: live, quantity: quantity, selectedOptions: groups, note: note, combo: combo);
   }
 
-  CartItem copyWith({int? quantity}) =>
-      CartItem(item: item, quantity: quantity ?? this.quantity, selectedOptions: selectedOptions, note: note);
+  CartItem copyWith({int? quantity}) => CartItem(
+      item: item,
+      quantity: quantity ?? this.quantity,
+      selectedOptions: selectedOptions,
+      note: note,
+      combo: combo);
 
   Map<String, dynamic> _toLocalJson() => {
         'itemId': item.id,
@@ -127,6 +182,7 @@ class CartItem {
                 })
             .toList(),
         if (note != null && note!.isNotEmpty) 'note': note,
+        if (combo != null) 'combo': combo!.toJson(),
       };
 
   static CartItem? _fromLocalJson(Map<String, dynamic> json) {
@@ -151,6 +207,7 @@ class CartItem {
         quantity: json['quantity'] as int,
         selectedOptions: options,
         note: json['note'] as String?,
+        combo: CartCombo.fromJson(json['combo']),
       );
     } catch (_) {
       return null;
@@ -198,8 +255,10 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
     } catch (_) {}
   }
 
-  void addItem(MenuItemModel item, [List<SelectedOptionGroup> options = const [], String? note]) {
-    final entry = CartItem(item: item, quantity: 1, selectedOptions: options, note: note);
+  void addItem(MenuItemModel item,
+      [List<SelectedOptionGroup> options = const [], String? note, CartCombo? combo]) {
+    final entry =
+        CartItem(item: item, quantity: 1, selectedOptions: options, note: note, combo: combo);
     final idx = state.indexWhere((c) => c.cartKey == entry.cartKey);
     if (idx >= 0) {
       state = [
@@ -276,7 +335,8 @@ class CartNotifier extends StateNotifier<List<CartItem>> {
                     selectedNames: g.selectedNames,
                     extra: g.totalExtra,
                   ))
-              .toList(),
+              .toList()
+            ..addAll([if (c.combo != null) c.combo!.toOrderOption()]),
           note: c.note,
         )).toList();
   }

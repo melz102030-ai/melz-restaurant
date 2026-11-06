@@ -1066,7 +1066,7 @@ class _CartItemTile extends ConsumerWidget {
                                 label: 'تراجع',
                                 textColor: Colors.white,
                                 onPressed: () =>
-                                    cart.addItem(removed.item, removed.selectedOptions),
+                                    cart.addItem(removed.item, removed.selectedOptions, removed.note, removed.combo),
                               ),
                               duration: const Duration(seconds: 4),
                             ));
@@ -1088,7 +1088,7 @@ class _CartItemTile extends ConsumerWidget {
                     _QtyButton(
                       icon: Icons.add,
                       label: 'زيادة الكمية',
-                      onTap: () => cart.addItem(cartItem.item, cartItem.selectedOptions),
+                      onTap: () => cart.addItem(cartItem.item, cartItem.selectedOptions, cartItem.note, cartItem.combo),
                     ),
                   ],
                 ),
@@ -1111,7 +1111,7 @@ class _CartItemTile extends ConsumerWidget {
                           textColor: Colors.white,
                           onPressed: () {
                             for (var i = 0; i < removed.quantity; i++) {
-                              cart.addItem(removed.item, removed.selectedOptions);
+                              cart.addItem(removed.item, removed.selectedOptions, removed.note, removed.combo);
                             }
                           },
                         ),

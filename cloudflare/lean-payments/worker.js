@@ -419,7 +419,11 @@ async function loadOrderContext(env, token, request) {
   const reqItems = Array.isArray(request.items) ? request.items : [];
   const reqCombos = Array.isArray(request.combos) ? request.combos : [];
 
-  const combosById = await batchGetDocs(env, token, "combos", reqCombos.map((c) => c?.comboId));
+  // الوجبات: المستقلة في السلة، والمختارة على صنف كأنها من خياراته
+  const combosById = await batchGetDocs(env, token, "combos", [
+    ...reqCombos.map((c) => c?.comboId),
+    ...reqItems.map((i) => i?.comboId),
+  ]);
   const itemIds = reqItems.map((i) => i?.itemId);
   for (const combo of combosById.values()) {
     for (const ref of combo.items ?? []) itemIds.push(ref.itemId);
