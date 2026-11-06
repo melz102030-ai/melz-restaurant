@@ -332,6 +332,14 @@
     background: var(--purple-soft);
   }
   .order-top:active { filter: brightness(.95); }
+  /* الطلب الجديد: رأس برتقالي وشارة "جديد" تنبض، حتى يُتخذ فيه إجراء */
+  .order-card.is-new { border: 2px solid var(--st-pending); }
+  .order-card.is-new .order-top { background: rgba(255,152,0,.18); }
+  .new-badge {
+    font-size: 12px; font-weight: bold; color: #fff; background: var(--st-pending);
+    padding: 3px 9px; border-radius: 20px; animation: newPulse 1.2s ease-in-out infinite;
+  }
+  @keyframes newPulse { 50% { opacity: .55; } }
   .order-top .order-id { font-size: 15px; color: var(--text-primary); background: var(--surface); }
   .order-top .pill { font-size: 15px; padding: 4px 10px; background: var(--surface); }
   .order-top + .order-head { padding-top: 12px; }

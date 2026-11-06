@@ -4472,7 +4472,7 @@ cdX(d,e){var w,v,u,t,s="--------------------------------\n",r=B.ov("dd/MM/yyyy -
 m=q+"\n"+("\u0637\u0644\u0628 \u0631\u0642\u0645 "+p+"\n")+(o+"\n")+s+("\u0627\u0644\u0639\u0645\u064a\u0644: "+d.d+"\n")+("\u0627\u0644\u062c\u0648\u0627\u0644: "+d.e+"\n")+("\u0627\u0644\u0646\u0648\u0639: "+m+"\n")
 p=(n&&d.db!=null?m+("\u0627\u0644\u0639\u0646\u0648\u0627\u0646: "+B.o(d.db)+"\n"):m)+s
 for(o=d.f,n=o.length,w=0;w<o.length;o.length===n||(0,B.N)(o),++w,p=m){v=o[w]
-if(v!==C.b.gT(o))p+=". . . . . . . . . .\n"
+if(v!==C.b.gT(o))p+="______________________\n"
 m=v.w
 if(m==null)m=v.d
 m=p+("\xd7"+m+"  "+v.b+"  "+C.d.a0(v.c*v.d,2)+"\n")
@@ -24311,13 +24311,13 @@ return B.yw(w,C.b.gY(d.b.b.a))},
 $S:62}
 A.b_e.prototype={
 $1(d){var w,v=d.b,u=A.bWS(v),t=new B.I(u,new A.b_d(),B.U(u).h("I<1,c>")).jU(0)
-u=d.a>0?' style="border-top:1px dotted #000"':""
+u=d.a>0?' style="border-top:1px solid #000"':""
 w=v.w
 if(w==null)w=v.d
 return"        <tr"+u+'>\n          <td style="width:28px;font-weight:bold">\xd7'+w+"</td>\n          <td>"+A.Dt(v.b)+t+'</td>\n          <td style="text-align:left;white-space:nowrap">'+C.d.a0(v.c*v.d,2)+"</td>\n        </tr>\n      "},
 $S:978}
 A.b_d.prototype={
-$1(d){return'<div style="font-size:14px;font-weight:bold;color:#000;padding-right:14px">'+A.Dt(d)+"</div>"},
+$1(d){return'<div style="font-size:15px;font-weight:bold;color:#000;padding-right:14px">'+A.Dt(d)+"</div>"},
 $S:38}
 A.b5q.prototype={
 $1(d){var w=d.gh0(),v=B.U(w).h("I<1,kc>")
@@ -29249,4 +29249,4 @@ w($,"cx0","bRI",()=>B.b3("[&<\\u0001-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f
 w($,"cwC","c5n",()=>B.b3("['&<\\n\\r\\t\\u0001-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f-\\u0084\\u0086-\\u009f]",!0,!1,!1))
 w($,"cvt","c4D",()=>B.b3('["&<\\n\\r\\t\\u0001-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f-\\u0084\\u0086-\\u009f]',!0,!1,!1))
 w($,"cxW","c63",()=>new A.alN(new A.bJ9(),5,B.B(B.a5("zF"),B.a5("bl<fK>")),B.a5("alN<zF,bl<fK>>")))})()};
-(a=>{a["tpxMMTtk/d04Bi++2V8su3YWJwg="]=a.current})($__dart_deferred_initializers__);
+(a=>{a["BThhPStRRCQB1a/FEnpK1uoSX5Q="]=a.current})($__dart_deferred_initializers__);

@@ -33,7 +33,7 @@ var state = {
   expandedCards: {},     // orderId -> bool
   orderDrafts: {},       // orderId -> { time, notes } ما كتبه الموظف ولم يُحفظ بعد
   deliveredExpanded: false,
-  cardOpen: {}, // طي بطاقات الطلبات: id → true/false باختيار الموظف
+  openOrderId: null, // الطلب الوحيد المفتوح في الشاشة، والباقي مطوي
   unsubOrders: null,
   unsubRecent: null,
   recentRefreshTimer: null,
@@ -391,11 +391,14 @@ function applyOrders(activeChanged) {
     state.activeOrders.forEach(function (o) {
       if (o.status === 'pending' && !isWaitingCustomer(o)) pendingIds[o.id] = true;
     });
-    if (state.knownPendingIds !== null) {
-      var isNew = false;
-      for (var id in pendingIds) { if (!state.knownPendingIds[id]) { isNew = true; break; } }
-      if (isNew) playAlarm();
+    var firstLoad = state.knownPendingIds === null;
+    var newId = null;
+    for (var id in pendingIds) {
+      if (firstLoad || !state.knownPendingIds[id]) { newId = id; break; }
     }
+    if (!firstLoad && newId) playAlarm();
+    // الطلب الجديد يُفتح وحده ويُطوى الباقي (وعند فتح الشاشة: أول طلب جديد)
+    if (newId) state.openOrderId = newId;
     state.knownPendingIds = pendingIds;
   }
 
@@ -686,19 +689,14 @@ function mealLine(o) {
   return names.length ? o.groupName + ' (' + names.join(' / ') + ')' : o.groupName;
 }
 
-// الطلب الجديد ظاهر كاملاً حتى يُقبل، وبعد القبول مطوي. فتح أي طلب يطوي الباقي،
-// ويمكن طيّه هو أيضاً فتصبح كلها مطوية
+// طلب واحد فقط مفتوح في أي وقت: فتح طلب يطوي الباقي، ويمكن طيّه فتصبح كلها
+// مطوية. وصول طلب جديد يطوي الكل ويفتحه هو، لأنه ينتظر إجراءً
 function isCardOpen(order) {
-  var choice = state.cardOpen[order.id];
-  return choice === undefined ? order.status === 'pending' : choice;
+  return state.openOrderId === order.id;
 }
 
 function toggleCard(order) {
-  var open = !isCardOpen(order);
-  if (open) {
-    state.orders.forEach(function (o) { state.cardOpen[o.id] = false; });
-  }
-  state.cardOpen[order.id] = open;
+  state.openOrderId = isCardOpen(order) ? null : order.id;
   render();
 }
 
@@ -708,7 +706,11 @@ function buildOrderCard(order, index) {
   var isUrgent = elapsedMin > 15 && !isTerminal;
   var color = STATUS_COLOR[order.status] || 'var(--text-hint)';
 
-  var card = el('div', { class: 'order-card' + (isUrgent ? ' urgent' : ''), 'data-id': order.id });
+  // الطلب الجديد مميز بلونه حتى يُتخذ فيه إجراء، ولا يشبه باقي الطلبات
+  var isNewOrder = order.status === 'pending';
+  var card = el('div', {
+    class: 'order-card' + (isUrgent ? ' urgent' : '') + (isNewOrder ? ' is-new' : ''), 'data-id': order.id,
+  });
   card.style.animationDelay = (index * 40) + 'ms';
   card.style.setProperty('--card-accent', color);
   card.style.setProperty('--card-accent-soft', color + '1f');
@@ -757,6 +759,7 @@ function buildOrderCard(order, index) {
     class: 'order-top', onclick: function () { toggleCard(order); },
   }, [
     el('div', { class: 'order-id' }, ['#' + pad4(order.orderNumber)]),
+    isNewOrder ? el('span', { class: 'new-badge' }, ['جديد']) : null,
     hasCountdown ? countdownPill(order) : elapsedPill,
     el('div', { class: 'order-total' }, [order.total.toFixed(2) + ' ر.س']),
     el('span', { class: 'fold-icon' }, [cardOpen ? '▲' : '▼']),
@@ -890,6 +893,14 @@ function buildOrderCard(order, index) {
       .then(function () {
         delete state.orderDrafts[order.id];
         if (newStatus === 'confirmed') printOrder(order);
+        // بعد قبول الطلب يُطوى، ويُفتح الطلب الجديد التالي إن وُجد
+        if (newStatus === 'confirmed' && state.openOrderId === order.id) {
+          var next = state.orders.filter(function (o) {
+            return o.id !== order.id && o.status === 'pending' && !isWaitingCustomer(o);
+          })[0];
+          state.openOrderId = next ? next.id : null;
+          render();
+        }
       })
       .catch(function (e) {
         toast(e.message === ORDER_CHANGED_ELSEWHERE ? e.message : 'خطأ: ' + e.message);
@@ -1174,7 +1185,7 @@ function buildReceiptPlainText(order) {
   lines.push(sep);
   order.items.forEach(function (item, index) {
     // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
-    if (index > 0) lines.push('. . . . . . . . . .');
+    if (index > 0) lines.push('______________________');
     // جرَّبنا printColumnsText (عمودين بسطر واحد) مرتين وبعرضين مختلفين —
     // في الحالتين اختفى اسم الصنف بالكامل من الطباعة الفعلية (يبدو أن
     // الدالة لا تحسب عرض النص العربي بشكل صحيح على هذه الطابعة). رجعنا
