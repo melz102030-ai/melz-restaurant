@@ -386,7 +386,10 @@ function applyOrders(activeChanged) {
   // كشف الطلبات الجديدة (pending) وتشغيل المنبه — من الطلبات النشطة فقط
   if (activeChanged) {
     var pendingIds = {};
-    state.activeOrders.forEach(function (o) { if (o.status === 'pending') pendingIds[o.id] = true; });
+    // الطلب المنتظر رد العميل لا يُعد، فإذا اعتمده العميل عاد جديداً ورنّ المنبه
+    state.activeOrders.forEach(function (o) {
+      if (o.status === 'pending' && !isWaitingCustomer(o)) pendingIds[o.id] = true;
+    });
     if (state.knownPendingIds !== null) {
       var isNew = false;
       for (var id in pendingIds) { if (!state.knownPendingIds[id]) { isNew = true; break; } }
@@ -536,20 +539,26 @@ var STATUS_COLOR = {
 };
 
 // ─── العرض الرئيسي ───────────────────────────────────────────────────────────
+// أُبلغ العميل بنفاد أصناف: يختفي من المطبخ كأنه أُلغي حتى يرد العميل. إن اعتمده
+// بدونها يعود طلباً جديداً، وإن اختار غيرها أو ألغاه يُلغى ويصل طلبه الجديد مستقلاً
+function isWaitingCustomer(o) {
+  return (o.unavailableItemIds || []).length > 0 &&
+    o.status !== 'delivered' && o.status !== 'cancelled';
+}
+
 function render() {
-  var total = state.orders.filter(function (o) { return o.status !== 'delivered'; }).length;
+  var total = state.orders.filter(function (o) {
+    return o.status !== 'delivered' && !isWaitingCustomer(o);
+  }).length;
   $('#activeCount').textContent = 'مجموع النشط: ' + total + ' طلب';
   $('#offlineBanner').classList.toggle('hidden', !state.isOffline);
 
   var groups = {
-    pending: [], inProgress: [], ready: [], outForDelivery: [], delivered: [], waiting: [],
+    pending: [], inProgress: [], ready: [], outForDelivery: [], delivered: [],
   };
   state.orders.forEach(function (o) {
-    // أُبلغ العميل بنفاد أصناف: يخرج من قائمة العمل حتى يرد، ثم يعود لمكانه
-    var waiting = (o.unavailableItemIds || []).length > 0 &&
-      o.status !== 'delivered' && o.status !== 'cancelled';
-    if (waiting) groups.waiting.push(o);
-    else if (o.status === 'pending') groups.pending.push(o);
+    if (isWaitingCustomer(o)) return;
+    if (o.status === 'pending') groups.pending.push(o);
     else if (o.status === 'confirmed' || o.status === 'preparing') groups.inProgress.push(o);
     else if (o.status === 'ready') groups.ready.push(o);
     else if (o.status === 'outForDelivery') groups.outForDelivery.push(o);
@@ -569,9 +578,6 @@ function render() {
   root.appendChild(buildSection('قيد التنفيذ', groups.inProgress, 'var(--st-preparing)', 'لا توجد طلبات قيد التنفيذ'));
   root.appendChild(buildSection('جاهزة', groups.ready, 'var(--st-ready)', 'لا توجد طلبات جاهزة'));
   root.appendChild(buildSection('التوصيل', groups.outForDelivery, 'var(--st-delivery)', 'لا توجد طلبات في الطريق حالياً'));
-  if (groups.waiting.length) {
-    root.appendChild(buildSection('بانتظار رد العميل', groups.waiting, 'var(--error)', ''));
-  }
   root.appendChild(buildSection('مُسلَّمة', groups.delivered, 'var(--st-delivered)', 'لا توجد طلبات مُسلَّمة خلال آخر 4 ساعات', true, true));
   if (focusedDraft) {
     var field = root.querySelector('[data-draft="' + focusedDraft + '"]');
@@ -651,7 +657,7 @@ function openUnavailableItemsModal(order) {
           updatedAt: firebase.firestore.Timestamp.now(),
         });
         batch.commit()
-          .then(function () { toast('تم إبلاغ العميل وإيقاف الأصناف'); })
+          .then(function () { toast('أُبلغ العميل، وسيعود الطلب جديداً إن اعتمده'); })
           .catch(function (e) { toast('خطأ: ' + e.message); });
       },
     }, ['تأكيد وإبلاغ العميل']),
