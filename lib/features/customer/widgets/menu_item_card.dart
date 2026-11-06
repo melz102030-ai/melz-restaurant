@@ -929,7 +929,6 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
           price: combo.price,
           optionItemId: pick.optionItemId,
           contents: [
-            ...combo.items.map((r) => nameOf(r.itemId)).whereType<String>(),
             if (pick.optionItemId != null) nameOf(pick.optionItemId!) ?? '',
           ].where((n) => n.isNotEmpty).toList(),
         ));
@@ -963,9 +962,7 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
-                      selected && _combo!.contents.isNotEmpty
-                          ? '${combo.name} (${_combo!.contents.join('، ')})'
-                          : combo.name,
+                      selected ? _combo!.summary : combo.name,
                       style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ),

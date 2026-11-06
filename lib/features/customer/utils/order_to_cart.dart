@@ -136,13 +136,12 @@ CartCombo? _mealFor(
       .where((id) => opt.selectedNames.contains(nameOf(id)))
       .firstOrNull;
   if (combo.optionItemIds.isNotEmpty && optionId == null) return null;
-  final fixed = combo.items.map((r) => nameOf(r.itemId)).toList();
-  if (fixed.contains(null)) return null;
+  if (combo.items.any((r) => nameOf(r.itemId) == null)) return null;
   return CartCombo(
     comboId: combo.id,
     name: combo.name,
     price: combo.price,
     optionItemId: optionId,
-    contents: [...fixed.whereType<String>(), if (optionId != null) nameOf(optionId)!],
+    contents: [if (optionId != null) nameOf(optionId)!],
   );
 }

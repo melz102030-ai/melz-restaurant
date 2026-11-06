@@ -26,10 +26,11 @@ class CartCombo {
 
   String get key => optionItemId == null ? comboId : '$comboId:$optionItemId';
 
-  String get summary => contents.isEmpty ? name : '$name: ${contents.join('، ')}';
+  // contents: ما اختاره العميل من خيارات الوجبة فقط
+  String get summary => contents.isEmpty ? name : '$name (${contents.join(' / ')})';
 
   OrderItemOption toOrderOption() =>
-      OrderItemOption(groupName: name, selectedNames: contents, extra: price);
+      OrderItemOption(groupName: name, selectedNames: contents, extra: price, isMeal: true);
 
   Map<String, dynamic> toJson() => {
         'comboId': comboId,

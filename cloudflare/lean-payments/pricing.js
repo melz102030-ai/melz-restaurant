@@ -161,6 +161,9 @@ function itemCombo(item, req, combosById, itemsById) {
     ...(Array.isArray(combo.items) ? combo.items.map((r) => r.itemId) : []),
     ...(optionIds.length > 0 ? [req.comboOptionItemId] : []),
   ];
+  // كل أصناف الوجبة يجب أن تكون متوفرة، لكن يُحفظ ما اختاره العميل منها فقط:
+  // الفاتورة والمطبخ يعرضانها "اسم الوجبة (اختياره)"
+  const choiceIds = optionIds.length > 0 ? [req.comboOptionItemId] : [];
   const names = subIds.map((id) => {
     const sub = itemsById.get(id);
     if (!sub || sub.isAvailable === false) {
@@ -170,10 +173,10 @@ function itemCombo(item, req, combosById, itemsById) {
         409
       );
     }
-    return sub.name;
-  });
+    return choiceIds.includes(id) ? sub.name : null;
+  }).filter((n) => n !== null);
   const price = Number(combo.price ?? 0);
-  return { price, option: { groupName: combo.name, selectedNames: names, extra: price } };
+  return { price, option: { groupName: combo.name, selectedNames: names, extra: price, isMeal: true } };
 }
 
 function orderLine({ menuItemId, name, price, quantity, imageUrl, selectedOptions = [], note, displayQuantity }) {

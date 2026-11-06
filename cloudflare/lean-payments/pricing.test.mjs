@@ -292,7 +292,7 @@ test("وجبة على الصنف: تزيد سعره وتُحفظ ضمن خيار
   assert.equal(r.items.length, 1, "سطر واحد للصنف بلا سطر للوجبة");
   assert.equal(r.items[0].price, 23); // 18 بعد الخصم + 5
   assert.equal(r.total, 46);
-  assert.deepEqual(r.items[0].selectedOptions.at(-1), { groupName: "وجبة كاملة", selectedNames: ["بطاطس", "بيبسي"], extra: 5 });
+  assert.deepEqual(r.items[0].selectedOptions.at(-1), { groupName: "وجبة كاملة", selectedNames: ["بيبسي"], extra: 5, isMeal: true });
 
   rejectsWith(() => run({ comboId: "m1" }), "required-option-missing");
   rejectsWith(() => run({ comboId: "m1", comboOptionItemId: "pepsi" }, undefined, [["m1", { ...meal, linkedItemIds: ["other"] }]]), "item-unavailable");

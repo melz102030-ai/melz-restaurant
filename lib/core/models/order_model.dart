@@ -128,25 +128,33 @@ class OrderItemOption {
   final String groupName;
   final List<String> selectedNames;
   final double extra;
+  // وجبة مختارة على الصنف: تُعرض سطراً واحداً "اسم الوجبة (اختياره)"
+  final bool isMeal;
 
   const OrderItemOption({
     required this.groupName,
     required this.selectedNames,
     required this.extra,
+    this.isMeal = false,
   });
 
   String get summary => selectedNames.join('، ');
+
+  String get mealLine =>
+      selectedNames.isEmpty ? groupName : '$groupName (${selectedNames.join(' / ')})';
 
   factory OrderItemOption.fromMap(Map<String, dynamic> m) => OrderItemOption(
         groupName: m['groupName'] ?? '',
         selectedNames: List<String>.from(m['selectedNames'] ?? []),
         extra: (m['extra'] ?? 0).toDouble(),
+        isMeal: m['isMeal'] == true,
       );
 
   Map<String, dynamic> toMap() => {
         'groupName': groupName,
         'selectedNames': selectedNames,
         'extra': extra,
+        if (isMeal) 'isMeal': true,
       };
 }
 

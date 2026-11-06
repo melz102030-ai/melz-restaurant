@@ -47,7 +47,6 @@ class ReceiptPrintService {
       }
     }
     b.writeln(sep);
-    b.writeln('الإجمالي الفرعي: ${order.subtotal.toStringAsFixed(2)}');
     if (order.deliveryFee > 0) {
       b.writeln('التوصيل: ${order.deliveryFee.toStringAsFixed(2)}');
     }
@@ -114,7 +113,6 @@ class ReceiptPrintService {
   <table>$itemsRows</table>
   <div class="line"></div>
   <table>
-    <tr><td>الإجمالي الفرعي</td><td style="text-align:left">${order.subtotal.toStringAsFixed(2)}</td></tr>
     ${order.deliveryFee > 0 ? '<tr><td>التوصيل</td><td style="text-align:left">${order.deliveryFee.toStringAsFixed(2)}</td></tr>' : ''}
     <tr class="total"><td>الإجمالي</td><td style="text-align:left">${order.total.toStringAsFixed(2)}</td></tr>
   </table>
@@ -137,10 +135,13 @@ class ReceiptPrintService {
     }
     // عنوان كل مجموعة (أو وجبة) ثم كل خيار في سطر مستقل
     return [
-      for (final o in groups) ...[
-        '${o.groupName}:${o.extra > 0 ? ' (+${o.extra.toStringAsFixed(2)})' : ''}',
-        for (final name in o.selectedNames) '- $name',
-      ],
+      for (final o in item.selectedOptions)
+        if (o.isMeal)
+          o.mealLine
+        else if (o.selectedNames.isNotEmpty) ...[
+          '${o.groupName}:${o.extra > 0 ? ' (+${o.extra.toStringAsFixed(2)})' : ''}',
+          for (final name in o.selectedNames) '- $name',
+        ],
     ];
   }
 

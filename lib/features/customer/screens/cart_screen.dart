@@ -1002,7 +1002,7 @@ class _CartItemTile extends ConsumerWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
-                        '${cartItem.combo!.name} (+${cartItem.combo!.price.toStringAsFixed(0)} ${AppStrings.sar})',
+                        cartItem.combo!.summary,
                         style: TextStyle(
                           color: AppColors.purple,
                           fontSize: 13,
@@ -1010,18 +1010,6 @@ class _CartItemTile extends ConsumerWidget {
                         ),
                       ),
                     ),
-                    for (final name in cartItem.combo!.contents)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 2),
-                        child: Text(
-                          '• $name',
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
                   ],
                 ],
                 if (cartItem.note != null && cartItem.note!.isNotEmpty) ...[

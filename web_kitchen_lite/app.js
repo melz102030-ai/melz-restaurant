@@ -33,6 +33,7 @@ var state = {
   expandedCards: {},     // orderId -> bool
   orderDrafts: {},       // orderId -> { time, notes } ما كتبه الموظف ولم يُحفظ بعد
   deliveredExpanded: false,
+  cardOpen: {}, // طي بطاقات الطلبات: id → true/false باختيار الموظف
   unsubOrders: null,
   unsubRecent: null,
   recentRefreshTimer: null,
@@ -675,6 +676,28 @@ function verifyPhone(phone) {
   }).catch(function (e) { console.warn('verify error', e); });
 }
 
+// الوجبة المختارة على الصنف: سطر واحد باسمها وما اختاره العميل منها
+function mealLine(o) {
+  var names = o.selectedNames || [];
+  return names.length ? o.groupName + ' (' + names.join(' / ') + ')' : o.groupName;
+}
+
+// الطلب الجديد ظاهر كاملاً حتى يُقبل، وبعد القبول مطوي. فتح أي طلب يطوي الباقي،
+// ويمكن طيّه هو أيضاً فتصبح كلها مطوية
+function isCardOpen(order) {
+  var choice = state.cardOpen[order.id];
+  return choice === undefined ? order.status === 'pending' : choice;
+}
+
+function toggleCard(order) {
+  var open = !isCardOpen(order);
+  if (open) {
+    state.orders.forEach(function (o) { state.cardOpen[o.id] = false; });
+  }
+  state.cardOpen[order.id] = open;
+  render();
+}
+
 function buildOrderCard(order, index) {
   var isTerminal = order.status === 'delivered' || order.status === 'cancelled';
   var elapsedMin = Math.floor((Date.now() - order.createdAt.getTime()) / 60000);
@@ -719,7 +742,13 @@ function buildOrderCard(order, index) {
     verifyBadge = verifyBtn;
   }
 
+  var cardOpen = isCardOpen(order);
+  var foldBtn = el('button', {
+    class: 'call-btn fold-btn', title: cardOpen ? 'طي الطلب' : 'عرض الطلب كاملاً',
+    onclick: function (e) { e.stopPropagation(); toggleCard(order); },
+  }, [cardOpen ? '▲' : '▼']);
   var side = el('div', { class: 'order-side' }, [
+    foldBtn,
     callBtn,
     el('div', {
       class: 'pill elapsed-pill' + (isUrgent ? ' loud' : ''), 'data-created': order.createdAt.getTime(),
@@ -751,13 +780,17 @@ function buildOrderCard(order, index) {
   order.items.forEach(function (item) {
     var isUnavail = unavailSet.has(item.menuItemId);
     var optGroups = (item.selectedOptions || [])
-      .filter(function (o) { return (o.selectedNames || []).length; });
+      .filter(function (o) { return o.isMeal || (o.selectedNames || []).length; });
     var itemChildren = [
       el('div', { class: 'item-name' + (isUnavail ? ' unavail-name' : '') }, [item.name]),
     ];
-    // كل خيار في سطر مستقل وبخط واضح، وعنوان المجموعة (أو الوجبة) فوقها.
-    // صنف لا يُحتسب سعره: خياراته هي محتواه، فتظهر بلا عنوان
+    // كل خيار في سطر مستقل وبخط واضح وعنوان مجموعته فوقه، والوجبة سطر واحد
+    // "اسمها (اختياره)". صنف لا يُحتسب سعره: خياراته هي محتواه، فتظهر بلا عنوان
     optGroups.forEach(function (o) {
+      if (o.isMeal) {
+        itemChildren.push(el('div', { class: 'item-opt-group' }, [mealLine(o)]));
+        return;
+      }
       if (!item.displayQuantity) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
         itemChildren.push(el('div', { class: 'item-opt-group' }, [o.groupName + extra]));
@@ -777,15 +810,22 @@ function buildOrderCard(order, index) {
       el('div', {}, itemChildren),
     ]));
   });
-  card.appendChild(itemsWrap);
-
-  if (order.notes) {
-    card.appendChild(el('div', { class: 'order-notes' }, [order.notes]));
-  }
-
-  // Driver panel (delivery only, not terminal)
-  if (order.orderType === 'delivery' && !isTerminal) {
-    card.appendChild(buildDriverPanel(order));
+  if (cardOpen) {
+    card.appendChild(itemsWrap);
+    if (order.notes) {
+      card.appendChild(el('div', { class: 'order-notes' }, [order.notes]));
+    }
+    // Driver panel (delivery only, not terminal)
+    if (order.orderType === 'delivery' && !isTerminal) {
+      card.appendChild(buildDriverPanel(order));
+    }
+  } else {
+    // مطوي: سطر مختصر بالأصناف، والضغط عليه يفتحه
+    card.appendChild(el('div', {
+      class: 'order-folded', onclick: function () { toggleCard(order); },
+    }, [order.items.filter(function (i) { return i.name.indexOf('↳ ') !== 0; }).map(function (i) {
+      return '×' + (i.displayQuantity || i.quantity) + ' ' + i.name;
+    }).join('، ')]));
   }
 
   // Expand (time/notes inputs)
@@ -944,13 +984,14 @@ function buildDriverCopyText(order) {
   lines.push('---');
   order.items.forEach(function (item) {
     lines.push('×' + (item.displayQuantity || item.quantity) + ' ' + item.name);
-    var optGroups = (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; });
+    var optGroups = (item.selectedOptions || []).filter(function (o) { return o.isMeal || (o.selectedNames || []).length; });
     if (item.displayQuantity) {
       optGroups.forEach(function (o) {
         o.selectedNames.forEach(function (name) { lines.push('   ' + name); });
       });
     } else {
       optGroups.forEach(function (o) {
+        if (o.isMeal) { lines.push('   ' + mealLine(o)); return; }
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
         lines.push('   ' + o.groupName + ':' + extra);
         o.selectedNames.forEach(function (name) { lines.push('   - ' + name); });
@@ -1146,8 +1187,9 @@ function buildReceiptPlainText(order) {
     lines.push((item.price * item.quantity).toFixed(2) + ' ر.س');
     // كل قيمة مختارة بسطر مستقل (لا نجمعها بفاصلة) — كانت تُطبَع كتلة
     // نصية واحدة طويلة تلتف على عدة أسطر فتبدو متلاصقة بلا فواصل واضحة
-    (item.selectedOptions || []).filter(function (o) { return (o.selectedNames || []).length; })
+    (item.selectedOptions || []).filter(function (o) { return o.isMeal || (o.selectedNames || []).length; })
       .forEach(function (o) {
+        if (o.isMeal) { lines.push(mealLine(o)); return; }
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
         lines.push(o.groupName + ':' + extra);
         o.selectedNames.forEach(function (name) { lines.push('- ' + name); });
@@ -1155,7 +1197,6 @@ function buildReceiptPlainText(order) {
     if (item.note && item.note.trim()) lines.push('ملاحظة: ' + item.note);
   });
   lines.push(sep);
-  lines.push('الإجمالي الفرعي: ' + order.subtotal.toFixed(2));
   if (order.deliveryFee > 0) lines.push('التوصيل: ' + order.deliveryFee.toFixed(2));
   lines.push('الإجمالي: ' + order.total.toFixed(2));
   if (order.notes) { lines.push(sep); lines.push('ملاحظات: ' + order.notes); }
