@@ -229,6 +229,8 @@ service cloud.firestore {
       allow update: if (isKitchen() || hasPerm('kitchen')) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isAvailable']);
     }
+    // قوالب الخيارات أُلغيت: كل صنف يحفظ خياراته بنفسه. بقيت مقفلة تماماً
+    match /option_templates/{id} { allow read, write: if false; }
     match /deliveryZones/{id}    { allow read: if true; allow write: if hasPerm('delivery'); }
     match /promo_banners/{id}    { allow read: if true; allow write: if hasPerm('content'); }
     match /popup_ads/{id}        { allow read: if true; allow write: if hasPerm('content'); }
