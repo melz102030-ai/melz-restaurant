@@ -298,3 +298,16 @@ test("وجبة على الصنف: تزيد سعره وتُحفظ ضمن خيار
   rejectsWith(() => run({ comboId: "m1", comboOptionItemId: "pepsi" }, [["burger", burger], ["pepsi", pepsi]]), "item-unavailable");
   rejectsWith(() => run({ comboId: "gone", comboOptionItemId: "pepsi" }), "item-unavailable");
 });
+
+test("مجموعة خيارات مكررة في بيانات قديمة تُحسب وتظهر مرة واحدة", () => {
+  const dup = { ...burger, optionGroups: [burger.optionGroups[0], burger.optionGroups[0]] };
+  const r = priceOrder({
+    request: { paymentMethod: "cash", orderType: "pickup", items: [{ itemId: "burger", quantity: 1, options: [{ groupId: "size", selectedIds: ["l"] }] }] },
+    settings: OPEN_SETTINGS,
+    zones: [],
+    itemsById: new Map([["burger", dup]]),
+    combosById: new Map(),
+  });
+  assert.equal(r.items[0].selectedOptions.length, 1);
+  assert.equal(r.total, 23);
+});

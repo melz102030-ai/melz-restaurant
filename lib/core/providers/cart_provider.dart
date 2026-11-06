@@ -134,6 +134,8 @@ class CartItem {
   CartItem? _rebuiltFrom(MenuItemModel live) {
     final groups = <SelectedOptionGroup>[];
     for (final sel in selectedOptions) {
+      // سلة محفوظة قبل إزالة المجموعة المكررة
+      if (groups.any((g) => g.groupId == sel.groupId)) continue;
       final group = live.optionGroups.where((g) => g.id == sel.groupId).firstOrNull;
       if (group == null) return null;
       var extra = 0.0;

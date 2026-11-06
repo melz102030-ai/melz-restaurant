@@ -984,14 +984,28 @@ class _CartItemTile extends ConsumerWidget {
                       ),
                     ),
                   ),
-                ] else if (cartItem.optionsSummary.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    cartItem.optionsSummary,
-                    style: TextStyle(color: AppColors.textHint, fontSize: 11),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                ] else ...[
+                  // كل مجموعة خيارات في سطر، والوجبة في سطر بارز تحتها، بلا قص
+                  for (final g in cartItem.selectedOptions.where((g) => g.selectedNames.isNotEmpty))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        g.selectedNames.join('، '),
+                        style: TextStyle(color: AppColors.textHint, fontSize: 11.5),
+                      ),
+                    ),
+                  if (cartItem.combo != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        '+ ${cartItem.combo!.summary}',
+                        style: TextStyle(
+                          color: AppColors.purple,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                 ],
                 if (cartItem.note != null && cartItem.note!.isNotEmpty) ...[
                   const SizedBox(height: 3),

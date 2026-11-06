@@ -65,7 +65,11 @@ function itemBasePrice(item) {
 
 // يتحقق من خيارات صنف واحد ويعيد فرق سعرها وشكلها المحفوظ في الطلب
 function priceOptions(item, requested, displayMultiplier = 1) {
-  const groups = Array.isArray(item.optionGroups) ? item.optionGroups : [];
+  // مجموعة مكررة بنفس المعرّف في بيانات قديمة تُحسب مرة واحدة فقط
+  const seenGroups = new Set();
+  const groups = (Array.isArray(item.optionGroups) ? item.optionGroups : []).filter(
+    (g) => !seenGroups.has(g?.id) && seenGroups.add(g?.id)
+  );
   const byGroup = new Map();
   for (const entry of Array.isArray(requested) ? requested : []) {
     const group = groups.find((g) => g.id === entry?.groupId);

@@ -187,9 +187,15 @@ class MenuItemModel {
       discountPercent: map['discountPercent']?.toDouble(),
       // Map<String, dynamic>.from(...) بدل (as Map<String, dynamic>) مباشرة
       // — راجع التعليق في OptionGroup.fromMap لسبب أهمية هذا على الويب
-      optionGroups: (map['optionGroups'] as List? ?? [])
-          .map((g) => OptionGroup.fromMap(Map<String, dynamic>.from(g as Map)))
-          .toList(),
+      // مجموعة مكررة بنفس المعرّف (من تطبيق قالب قبل إصلاحه) تُقرأ مرة واحدة،
+      // وتُحفظ نظيفة عند أول حفظ للصنف
+      optionGroups: () {
+        final seen = <String>{};
+        return (map['optionGroups'] as List? ?? [])
+            .map((g) => OptionGroup.fromMap(Map<String, dynamic>.from(g as Map)))
+            .where((g) => seen.add(g.id))
+            .toList();
+      }(),
       isBestSeller: map['isBestSeller'] ?? false,
       isNew: map['isNew'] ?? false,
       suggestedItemIds: List<String>.from(map['suggestedItemIds'] ?? []),
