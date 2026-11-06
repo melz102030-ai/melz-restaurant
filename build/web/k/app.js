@@ -524,6 +524,10 @@ function stopAlarm() {
 $('#stopAlarmBtn').addEventListener('click', stopAlarm);
 $('#alarmBanner').addEventListener('click', stopAlarm);
 document.addEventListener('pointerdown', primeAudio);
+// أي لمسة في أي مكان من الشاشة توقف المنبه فوراً، قبل أن يصل الضغط لأي زر
+document.addEventListener('pointerdown', function () {
+  if (state.alarmPlaying) stopAlarm();
+}, true);
 
 // ─── تسميات/ألوان الحالة ─────────────────────────────────────────────────────
 var STATUS_LABEL = {
