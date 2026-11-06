@@ -128,6 +128,8 @@ class OrderItemOption {
   final String groupName;
   final List<String> selectedNames;
   final double extra;
+  // سعر كل خيار بجانب اسمه (الطلبات الأقدم بلا هذه القائمة)
+  final List<double>? selectedExtras;
   // وجبة مختارة على الصنف: تُعرض سطراً واحداً "اسم الوجبة (اختياره)"
   final bool isMeal;
 
@@ -135,8 +137,16 @@ class OrderItemOption {
     required this.groupName,
     required this.selectedNames,
     required this.extra,
+    this.selectedExtras,
     this.isMeal = false,
   });
+
+  // سعر الخيار رقم i. الطلب الأقدم بلا أسعار لكل خيار: يُعرف فقط إن كان وحيداً
+  double extraOf(int i) {
+    final extras = selectedExtras;
+    if (extras != null) return i < extras.length ? extras[i] : 0;
+    return selectedNames.length == 1 ? extra : 0;
+  }
 
   String get summary => selectedNames.join('، ');
 
@@ -147,6 +157,7 @@ class OrderItemOption {
         groupName: m['groupName'] ?? '',
         selectedNames: List<String>.from(m['selectedNames'] ?? []),
         extra: (m['extra'] ?? 0).toDouble(),
+        selectedExtras: (m['selectedExtras'] as List?)?.map((e) => (e as num).toDouble()).toList(),
         isMeal: m['isMeal'] == true,
       );
 
@@ -154,6 +165,7 @@ class OrderItemOption {
         'groupName': groupName,
         'selectedNames': selectedNames,
         'extra': extra,
+        if (selectedExtras != null) 'selectedExtras': selectedExtras,
         if (isMeal) 'isMeal': true,
       };
 }

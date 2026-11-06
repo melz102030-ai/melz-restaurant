@@ -128,14 +128,20 @@ class ReceiptPrintService {
   }
 
   // كل خيار في سطر مستقل تحت صنفه، بلا عناوين المجموعات (الإضافات، الخيارات...)،
-  // والوجبة سطر واحد "اسمها (اختياره)"
+  // والوجبة سطر واحد "اسمها (اختياره)"، والمدفوع بجواره سعره "+5"
   static List<String> _optionsReceiptLines(OrderItem item) => [
         for (final o in item.selectedOptions)
           if (o.isMeal)
-            '- ${o.mealLine}'
+            '- ${o.mealLine}${_priceTag(o.extra)}'
           else
-            for (final name in o.selectedNames) '- $name',
+            for (var i = 0; i < o.selectedNames.length; i++)
+              '- ${o.selectedNames[i]}${_priceTag(o.extraOf(i))}',
       ];
+
+  static String _priceTag(double n) {
+    if (n <= 0) return '';
+    return ' +${n == n.roundToDouble() ? n.toInt() : n.toStringAsFixed(2)}';
+  }
 
   static String _esc(String s) => s
       .replaceAll('&', '&amp;')

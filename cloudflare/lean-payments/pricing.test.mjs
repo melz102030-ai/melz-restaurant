@@ -80,6 +80,7 @@ test("صنف لا يُحتسب سعره: المبلغ من الخيارات وع
   assert.equal(r.total, 9);
   assert.deepEqual(r.items[0].selectedOptions[0].selectedNames, ["×2 ثوم", "×1 حار"]);
   assert.equal(r.items[0].selectedOptions[0].extra, 9);
+  assert.deepEqual(r.items[0].selectedOptions[0].selectedExtras, [6, 3], "سعر كل خيار بجانب اسمه");
   assert.equal(r.items[0].displayQuantity, 3, "الكمية المعروضة مجموع الخيارات");
   assert.equal(r.items[0].quantity, 1, "كمية الحساب لا تتغير");
 });

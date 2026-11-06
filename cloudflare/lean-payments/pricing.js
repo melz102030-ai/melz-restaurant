@@ -103,6 +103,8 @@ function priceOptions(item, requested, displayMultiplier = 1) {
 
     let groupExtra = 0;
     const names = [];
+    // سعر كل خيار مختار بجانب اسمه، حتى تعرضه الفاتورة "+5" بجوار الخيار المدفوع
+    const extras = [];
     for (const opt of group.options ?? []) {
       const sel = parsed.find((p) => p.id === opt.id);
       if (!sel) continue;
@@ -122,6 +124,7 @@ function priceOptions(item, requested, displayMultiplier = 1) {
       // الرقم قبل الاسم، ويظهر حتى ×1 في الخيارات التي لها عدد
       const showCount = shown > 1 || group.allowQuantity === true || item.excludeBasePrice === true;
       names.push(showCount ? `×${shown} ${opt.name}` : opt.name);
+      extras.push(Number(opt.priceAdjustment ?? 0) * shown);
     }
     if (names.length !== parsed.length) {
       throw new OrderRejected(
@@ -134,6 +137,7 @@ function priceOptions(item, requested, displayMultiplier = 1) {
     selectedOptions.push({
       groupName: group.name,
       selectedNames: names,
+      selectedExtras: extras,
       extra: groupExtra * displayMultiplier,
     });
   }
