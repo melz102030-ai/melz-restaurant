@@ -739,18 +739,20 @@ function buildOrderCard(order, index) {
     var isUnavail = unavailSet.has(item.menuItemId);
     var optGroups = (item.selectedOptions || [])
       .filter(function (o) { return (o.selectedNames || []).length; });
-    // صنف لا يُحتسب سعره: كل خيار بسطر مع عدده، فهو محتوى الصنف الفعلي
-    var optLines = item.displayQuantity
-      ? optGroups.reduce(function (all, o) { return all.concat(o.selectedNames); }, [])
-      : optGroups.map(function (o) {
-        var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
-        return o.groupName + ': ' + (o.selectedNames || []).join('، ') + extra;
-      });
     var itemChildren = [
       el('div', { class: 'item-name' + (isUnavail ? ' unavail-name' : '') }, [item.name]),
-    ].concat(optLines.map(function (line) {
-      return el('div', { class: item.displayQuantity ? 'item-opts item-opt-line' : 'item-opts' }, [line]);
-    }));
+    ];
+    // كل خيار في سطر مستقل وبخط واضح، وعنوان المجموعة (أو الوجبة) فوقها.
+    // صنف لا يُحتسب سعره: خياراته هي محتواه، فتظهر بلا عنوان
+    optGroups.forEach(function (o) {
+      if (!item.displayQuantity) {
+        var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
+        itemChildren.push(el('div', { class: 'item-opt-group' }, [o.groupName + extra]));
+      }
+      o.selectedNames.forEach(function (name) {
+        itemChildren.push(el('div', { class: 'item-opts item-opt-line' }, ['• ' + name]));
+      });
+    });
     if (isUnavail) {
       itemChildren.push(el('div', { class: 'item-unavail-badge' }, ['نفد • ينتظر رد العميل']));
     }
@@ -935,11 +937,11 @@ function buildDriverCopyText(order) {
         o.selectedNames.forEach(function (name) { lines.push('   ' + name); });
       });
     } else {
-      var opts = optGroups.map(function (o) {
+      optGroups.forEach(function (o) {
         var extra = (o.extra || 0) > 0 ? ' (+' + o.extra.toFixed(2) + ')' : '';
-        return o.groupName + ': ' + o.selectedNames.join('، ') + extra;
-      }).join(' | ');
-      if (opts) lines.push('   ' + opts);
+        lines.push('   ' + o.groupName + ':' + extra);
+        o.selectedNames.forEach(function (name) { lines.push('   - ' + name); });
+      });
     }
     if (item.note && item.note.trim()) lines.push('   📝 ' + item.note);
   });

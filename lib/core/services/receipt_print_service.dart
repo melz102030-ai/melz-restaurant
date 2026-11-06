@@ -135,11 +135,13 @@ class ReceiptPrintService {
     if (item.displayQuantity != null) {
       return groups.expand((o) => o.selectedNames).toList();
     }
-    final line = groups.map((o) {
-      final extra = o.extra > 0 ? ' (+${o.extra.toStringAsFixed(2)})' : '';
-      return '${o.groupName}: ${o.summary}$extra';
-    }).join(' | ');
-    return line.isEmpty ? const [] : [line];
+    // عنوان كل مجموعة (أو وجبة) ثم كل خيار في سطر مستقل
+    return [
+      for (final o in groups) ...[
+        '${o.groupName}:${o.extra > 0 ? ' (+${o.extra.toStringAsFixed(2)})' : ''}',
+        for (final name in o.selectedNames) '- $name',
+      ],
+    ];
   }
 
   static String _esc(String s) => s

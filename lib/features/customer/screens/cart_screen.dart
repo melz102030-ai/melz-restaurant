@@ -985,27 +985,44 @@ class _CartItemTile extends ConsumerWidget {
                     ),
                   ),
                 ] else ...[
-                  // كل مجموعة خيارات في سطر، والوجبة في سطر بارز تحتها، بلا قص
-                  for (final g in cartItem.selectedOptions.where((g) => g.selectedNames.isNotEmpty))
+                  // كل خيار في سطر مستقل بخط واضح، والوجبة بعنوانها ثم محتواها
+                  for (final name in cartItem.selectedOptions.expand((g) => g.selectedNames))
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
-                        g.selectedNames.join('، '),
-                        style: TextStyle(color: AppColors.textHint, fontSize: 11.5),
-                      ),
-                    ),
-                  if (cartItem.combo != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 3),
-                      child: Text(
-                        '+ ${cartItem.combo!.summary}',
+                        '• $name',
                         style: TextStyle(
-                          color: AppColors.purple,
-                          fontSize: 12,
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
+                  if (cartItem.combo != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        '${cartItem.combo!.name} (+${cartItem.combo!.price.toStringAsFixed(0)} ${AppStrings.sar})',
+                        style: TextStyle(
+                          color: AppColors.purple,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    for (final name in cartItem.combo!.contents)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          '• $name',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                  ],
                 ],
                 if (cartItem.note != null && cartItem.note!.isNotEmpty) ...[
                   const SizedBox(height: 3),
