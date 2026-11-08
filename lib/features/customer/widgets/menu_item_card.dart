@@ -966,6 +966,13 @@ class _ItemOptionsViewState extends ConsumerState<ItemOptionsView> {
                       style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w600),
                     ),
                   ),
+                  if (selected && _qty > 1) ...[
+                    const SizedBox(width: 4),
+                    Text(
+                      '×$_qty',
+                      style: TextStyle(color: fg.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                   const SizedBox(width: 6),
                   Text(
                     '+${combo.price.toStringAsFixed(0)} ${AppStrings.sar}',
