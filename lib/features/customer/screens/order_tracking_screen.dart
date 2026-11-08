@@ -70,6 +70,8 @@ class _OrderTrackingContent extends ConsumerStatefulWidget {
 
 class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
   Timer? _ticker;
+  // يمنع فتح نافذتين فوق بعضهما لو جاء حدثان متقاربان
+  bool _dialogOpen = false;
 
   bool get _isTerminal =>
       widget.order.status == OrderStatus.delivered ||
@@ -138,6 +140,8 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
   }
 
   void _showUnavailableDialog(OrderModel order) {
+    if (_dialogOpen) return;
+    _dialogOpen = true;
     final removedIds = order.unavailableItemIds.toSet();
     final removedNames = order.items
         .where((i) => removedIds.contains(i.menuItemId))
@@ -205,7 +209,9 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
           ),
         ],
       ),
-    );
+    ).whenComplete(() {
+      if (mounted) setState(() => _dialogOpen = false);
+    });
   }
 
   // يُلغى الطلب، ويعود باقيه إلى السلة بلا الأصناف الناقصة، ثم القائمة ليختار

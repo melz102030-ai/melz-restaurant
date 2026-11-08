@@ -44,10 +44,10 @@ class CartCombo {
     if (raw is! Map) return null;
     final m = Map<String, dynamic>.from(raw);
     return CartCombo(
-      comboId: m['comboId'] as String,
-      name: m['name'] as String,
-      price: (m['price'] as num).toDouble(),
-      optionItemId: m['optionItemId'] as String?,
+      comboId: m['comboId']?.toString() ?? '',
+      name: m['name']?.toString() ?? '',
+      price: (m['price'] as num?)?.toDouble() ?? 0,
+      optionItemId: m['optionItemId']?.toString(),
       contents: List<String>.from(m['contents'] ?? const []),
     );
   }

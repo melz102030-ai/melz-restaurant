@@ -711,7 +711,7 @@ function buildOrderCard(order, index) {
   });
   card.style.animationDelay = (index * 40) + 'ms';
   card.style.setProperty('--card-accent', color);
-  card.style.setProperty('--card-accent-soft', color + '1f');
+  card.style.setProperty('--card-accent-soft', 'var(--purple-soft)');
 
   // Header — لون الحالة يظهر فقط على حافة البطاقة + رقم الطلب، الباقي محايد
   var badges = [

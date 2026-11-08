@@ -83,6 +83,8 @@ test("صنف لا يُحتسب سعره: المبلغ من الخيارات وع
   assert.deepEqual(r.items[0].selectedOptions[0].selectedExtras, [6, 3], "سعر كل خيار بجانب اسمه");
   assert.equal(r.items[0].displayQuantity, 3, "الكمية المعروضة مجموع الخيارات");
   assert.equal(r.items[0].quantity, 1, "كمية الحساب لا تتغير");
+  // مجموعة متعددة (multiple) → لا يُضاف isSingle
+  assert.equal(r.items[0].selectedOptions[0].isSingle, undefined, "مجموعة متعددة لا تحمل isSingle");
 });
 
 test("نفس تركيبة صنف لا يُحتسب سعره مرتين: العدد المعروض يتضاعف والإجمالي صحيح", () => {
@@ -104,6 +106,8 @@ test("الخصم والخيار والكمية تدخل في السعر، وتج
   assert.equal(r.items[0].displayQuantity, undefined);
   assert.equal(r.subtotal, 46);
   assert.equal(r.total, 46);
+  // مجموعة أحادية (single) → isSingle: true في الخيار المحفوظ مع الطلب
+  assert.equal(r.items[0].selectedOptions[0].isSingle, true, "مجموعة أحادية يجب أن تحمل isSingle");
 });
 
 test("التركيبة: السعر في سطر الرأس وأصنافها بسعر صفر", () => {
