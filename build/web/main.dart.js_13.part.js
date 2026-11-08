@@ -102,7 +102,7 @@ A.aiF.prototype={
 L(){return"SupportSenderRole."+this.b}}
 A.p3.prototype={
 eN(){var x=this,w=x.d
-return B.ak(["senderRole",x.a.b,"senderName",x.b,"text",x.c,"createdAt",B.ib(1000*w.a+w.b)],y.w,y.b)}}
+return B.al(["senderRole",x.a.b,"senderName",x.b,"text",x.c,"createdAt",B.ib(1000*w.a+w.b)],y.w,y.b)}}
 A.dD.prototype={
 eN(){var x,w,v,u=this,t=u.r
 t=B.ib(1000*t.a+t.b)
@@ -111,7 +111,7 @@ x=B.ib(1000*x.a+x.b)
 w=u.x
 v=B.U(w).h("I<1,a6<c,@>>")
 w=B.Q(new B.I(w,new A.b6o(),v),v.h("az.E"))
-return B.ak(["customerId",u.b,"customerName",u.c,"customerPhone",u.d,"category",u.e,"status",u.f.b,"createdAt",t,"updatedAt",x,"messages",w],y.w,y.b)}}
+return B.al(["customerId",u.b,"customerName",u.c,"customerPhone",u.d,"category",u.e,"status",u.f.b,"createdAt",t,"updatedAt",x,"messages",w],y.w,y.b)}}
 var z=a.updateTypes(["p3(@)","a6<c,@>(p3)"])
 A.bBl.prototype={
 $1(d){var x=this.a
@@ -170,4 +170,4 @@ C.kL=new A.aiF(1,"admin")
 C.hz=new A.aiH(0,"open")
 C.mH=new A.aiH(1,"closed")})();(function lazyInitializers(){var x=a.lazyFinal
 x($,"ctL","NC",()=>B.q3())})()};
-(a=>{a["fboKoz1MSxmi+U8s8NFJjtI1hFQ="]=a.current})($__dart_deferred_initializers__);
+(a=>{a["XwP7sZKkfJKpxSssyKgTs2932lw="]=a.current})($__dart_deferred_initializers__);
