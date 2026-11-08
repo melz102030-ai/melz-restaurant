@@ -134,6 +134,8 @@ class OrderItemOption {
   final List<double>? selectedExtras;
   // وجبة مختارة على الصنف: تُعرض سطراً واحداً "اسم الوجبة (اختياره)"
   final bool isMeal;
+  // خيار أحادي (راديو) — يُضم بين قوسين بعد اسم الصنف في الفاتورة
+  final bool isSingle;
 
   const OrderItemOption({
     required this.groupName,
@@ -141,6 +143,7 @@ class OrderItemOption {
     required this.extra,
     this.selectedExtras,
     this.isMeal = false,
+    this.isSingle = false,
   });
 
   // سعر الخيار رقم i. الطلب الأقدم بلا أسعار لكل خيار: يُعرف فقط إن كان وحيداً
@@ -161,6 +164,7 @@ class OrderItemOption {
         extra: (m['extra'] ?? 0).toDouble(),
         selectedExtras: (m['selectedExtras'] as List?)?.map((e) => (e as num).toDouble()).toList(),
         isMeal: m['isMeal'] == true,
+        isSingle: m['isSingle'] == true,
       );
 
   Map<String, dynamic> toMap() => {
@@ -169,6 +173,7 @@ class OrderItemOption {
         'extra': extra,
         if (selectedExtras != null) 'selectedExtras': selectedExtras,
         if (isMeal) 'isMeal': true,
+        if (isSingle) 'isSingle': true,
       };
 }
 

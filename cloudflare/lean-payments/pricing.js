@@ -139,6 +139,7 @@ function priceOptions(item, requested, displayMultiplier = 1) {
       selectedNames: names,
       selectedExtras: extras,
       extra: groupExtra * displayMultiplier,
+      ...(group.type !== "multiple" ? { isSingle: true } : {}),
     });
   }
   return { extra, optionsCount, selectedOptions };

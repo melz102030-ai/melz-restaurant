@@ -1166,11 +1166,20 @@ function buildReceiptPlainText(order) {
     // في الحالتين اختفى اسم الصنف بالكامل من الطباعة الفعلية (يبدو أن
     // الدالة لا تحسب عرض النص العربي بشكل صحيح على هذه الطابعة). رجعنا
     // لسطرين منفصلين لأنها الطريقة الوحيدة المؤكَّد عملها فعلياً
-    lines.push('×' + (item.displayQuantity || item.quantity) + ' ' + item.name);
+    // الخيارات الأحادية (راديو) تُدمج بين قوسين بعد اسم الصنف
+    var singleParts = [];
+    (item.selectedOptions || []).forEach(function (o) {
+      if (o.isMeal || !o.isSingle) return;
+      (o.selectedNames || []).forEach(function (name, i) {
+        singleParts.push(name + priceTag(optionExtra(o, i)));
+      });
+    });
+    var nameLabel = '×' + (item.displayQuantity || item.quantity) + ' ' + item.name;
+    if (singleParts.length) nameLabel += ' (' + singleParts.join('، ') + ')';
+    lines.push(nameLabel);
     lines.push((item.price * item.quantity).toFixed(2) + ' ر.س');
-    // كل خيار في سطر مستقل تحت صنفه، بلا عناوين المجموعات (الإضافات، الخيارات...)،
-    // والمدفوع منها بجواره سعره "+5"
-    (item.selectedOptions || []).filter(function (o) { return o.isMeal || (o.selectedNames || []).length; })
+    // الخيارات المتعددة (checkbox) والوجبات — كل واحد سطر مستقل
+    (item.selectedOptions || []).filter(function (o) { return o.isMeal || (!o.isSingle && (o.selectedNames || []).length); })
       .forEach(function (o) {
         if (o.isMeal) { lines.push('- ' + mealLine(o) + priceTag(o.extra)); return; }
         o.selectedNames.forEach(function (name, i) {

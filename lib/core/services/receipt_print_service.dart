@@ -43,7 +43,9 @@ class ReceiptPrintService {
     for (final item in order.items) {
       // خط نحيف بين الأصناف، حتى يتضح أين تنتهي خيارات كل صنف
       if (item != order.items.first) b.writeln('__________');
-      b.writeln('×${item.shownQuantity}  ${item.name}  ${item.total.toStringAsFixed(2)}');
+      final inlineTag = _inlineSingleTag(item);
+      final nameLine = inlineTag.isNotEmpty ? '${item.name} $inlineTag' : item.name;
+      b.writeln('×${item.shownQuantity}  $nameLine  ${item.total.toStringAsFixed(2)}');
       for (final line in _optionsReceiptLines(item)) {
         b.writeln('   $line');
       }
@@ -67,6 +69,7 @@ class ReceiptPrintService {
 
     final itemsRows = order.items.indexed.map((entry) {
       final (index, item) = entry;
+      final inlineTag = _inlineSingleTag(item);
       final optionsLine = _optionsReceiptLines(item)
           .map((line) =>
               '<div style="font-size:15px;font-weight:bold;color:#000;padding-right:14px">${_esc(line)}</div>')
@@ -75,7 +78,7 @@ class ReceiptPrintService {
       return '''
         <tr${index > 0 ? ' class="item-sep"' : ''}>
           <td style="width:28px;font-weight:bold">×${item.shownQuantity}</td>
-          <td>${_esc(item.name)}$optionsLine</td>
+          <td>${_esc(item.name)}${inlineTag.isNotEmpty ? ' <span style="font-size:15px">${_esc(inlineTag)}</span>' : ''}$optionsLine</td>
           <td style="text-align:left;white-space:nowrap">${item.total.toStringAsFixed(2)}</td>
         </tr>
       ''';
@@ -128,13 +131,24 @@ class ReceiptPrintService {
 ''';
   }
 
-  // كل خيار في سطر مستقل تحت صنفه، بلا عناوين المجموعات (الإضافات، الخيارات...)،
-  // والوجبة سطر واحد "اسمها (اختياره)"، والمدفوع بجواره سعره "+5"
+  // الخيارات الأحادية (راديو) تُدمج في سطر واحد بين قوسين بعد اسم الصنف
+  static String _inlineSingleTag(OrderItem item) {
+    final parts = <String>[];
+    for (final o in item.selectedOptions) {
+      if (o.isMeal || !o.isSingle) continue;
+      for (var i = 0; i < o.selectedNames.length; i++) {
+        parts.add('${o.selectedNames[i]}${_priceTag(o.extraOf(i))}');
+      }
+    }
+    return parts.isEmpty ? '' : '(${parts.join('، ')})';
+  }
+
+  // الخيارات المتعددة (checkbox) والوجبات — كل واحد سطر مستقل
   static List<String> _optionsReceiptLines(OrderItem item) => [
         for (final o in item.selectedOptions)
           if (o.isMeal)
             '- ${o.mealLine}${_priceTag(o.extra)}'
-          else
+          else if (!o.isSingle)
             for (var i = 0; i < o.selectedNames.length; i++)
               '- ${o.selectedNames[i]}${_priceTag(o.extraOf(i))}',
       ];
