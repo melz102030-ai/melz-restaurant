@@ -829,10 +829,24 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
                 ),
                 child: Row(
                   children: [
-                    Text(
-                      widget.isDuplicate ? 'نسخة صنف' : widget.item != null ? AppStrings.editItem : AppStrings.addItem,
-                      style: TextStyle(
-                          color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            widget.isDuplicate ? 'نسخة صنف' : widget.item != null ? AppStrings.editItem : AppStrings.addItem,
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          if (widget.item != null && widget.item!.name.isNotEmpty)
+                            Text(
+                              widget.item!.name,
+                              style: TextStyle(color: Colors.white70, fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
                     ),
                     const Spacer(),
                     IconButton(
@@ -1181,7 +1195,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   void _addOptionGroup() async {
     final result = await showDialog<OptionGroup>(
       context: context,
-      builder: (_) => const _OptionGroupDialog(),
+      builder: (_) => _OptionGroupDialog(itemName: _nameCtrl.text.trim()),
     );
     if (result != null) setState(() => _optionGroups.add(result));
   }
@@ -1189,7 +1203,7 @@ class _MenuItemDialogState extends ConsumerState<_MenuItemDialog>
   void _editOptionGroup(int index) async {
     final result = await showDialog<OptionGroup>(
       context: context,
-      builder: (_) => _OptionGroupDialog(group: _optionGroups[index]),
+      builder: (_) => _OptionGroupDialog(group: _optionGroups[index], itemName: _nameCtrl.text.trim()),
     );
     if (result != null) setState(() => _optionGroups[index] = result);
   }
@@ -1429,7 +1443,8 @@ class _OptionGroupTile extends StatelessWidget {
 
 class _OptionGroupDialog extends StatefulWidget {
   final OptionGroup? group;
-  const _OptionGroupDialog({this.group});
+  final String? itemName;
+  const _OptionGroupDialog({this.group, this.itemName});
 
   @override
   State<_OptionGroupDialog> createState() => _OptionGroupDialogState();
@@ -1497,10 +1512,24 @@ class _OptionGroupDialogState extends State<_OptionGroupDialog> {
               ),
               child: Row(
                 children: [
-                  Text(
-                    widget.group != null ? 'تعديل مجموعة خيارات' : 'إضافة مجموعة خيارات',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          widget.group != null ? 'تعديل مجموعة خيارات' : 'إضافة مجموعة خيارات',
+                          style: TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        if (widget.itemName != null && widget.itemName!.isNotEmpty)
+                          Text(
+                            widget.itemName!,
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
                   ),
                   const Spacer(),
                   IconButton(
