@@ -430,10 +430,29 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
                     style: TextStyle(color: AppColors.textSecondary),
                   ),
                 ],
-                const SizedBox(height: 8),
-                Text(
-                  'رقم الطلب: #${order.orderNumberLabel}',
-                  style: TextStyle(color: AppColors.textHint, fontSize: 12),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.purple.withOpacity(0.35)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.tag, color: AppColors.purple, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        'رقم طلبك: ${order.orderNumberLabel}',
+                        style: TextStyle(
+                          color: AppColors.purple,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

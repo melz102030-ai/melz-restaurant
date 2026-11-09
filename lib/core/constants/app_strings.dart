@@ -37,7 +37,7 @@ class AppStrings {
   static const String deliveryFee = 'رسوم التوصيل';
   static const String checkout = 'إتمام الطلب';
   static const String notes = 'ملاحظات للمطعم';
-  static const String notesHint = 'مثال: بدون بصل، إضافة صلصة...';
+  static const String notesHint = '';
 
   // Order Status
   static const String orderPlaced = 'تم استلام الطلب';
