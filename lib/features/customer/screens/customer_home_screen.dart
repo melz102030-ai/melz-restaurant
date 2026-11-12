@@ -52,6 +52,69 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
   bool _isIosInstallable = false;
   bool _installBannerDismissed = false;
   bool _popupAdChecked = false;
+  bool _pickupOnlyNoticeChecked = false;
+
+  // إشعار "استلام فقط" — يظهر مرة واحدة عند أول دخول عندما التوصيل مغلق
+  Future<void> _maybeShowPickupOnlyNotice() async {
+    if (_pickupOnlyNoticeChecked) return;
+    _pickupOnlyNoticeChecked = true;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('seen_pickup_only_notice') == true) return;
+    await prefs.setBool('seen_pickup_only_notice', true);
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: AppColors.purple.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.storefront_outlined, color: AppColors.purple, size: 30),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'الاستلام من المطعم فقط',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'التوصيل غير متاح حالياً.\nاطلب عبر الموقع وسنُعلمك حين يجهز طلبك لاستلامه.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.purple,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('حسناً، فهمت', style: TextStyle(fontSize: 15)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   // إعلان الأدمن المنبثق — يظهر مرة واحدة فقط لكل حملة إعلانية لكل عميل
   Future<void> _maybeShowPopupAd(PopupAdModel ad) async {
@@ -316,6 +379,10 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     final popupAd = ref.watch(activePopupAdProvider).valueOrNull;
     if (popupAd != null && !_popupAdChecked) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowPopupAd(popupAd));
+    }
+
+    if (!settings.deliveryEnabled && !_pickupOnlyNoticeChecked) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowPickupOnlyNotice());
     }
 
     final categoriesAsync = ref.watch(categoriesStreamProvider);
