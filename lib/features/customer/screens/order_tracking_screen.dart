@@ -478,8 +478,8 @@ class _OrderTrackingContentState extends ConsumerState<_OrderTrackingContent> {
                   ...steps.asMap().entries.map((e) {
                     final stepIndex = e.key;
                     final stepStatus = e.value;
-                    final isDone = currentStep > stepStatus.step;
-                    final isCurrent = currentStep == stepStatus.step;
+                    final isDone = isDelivered || currentStep > stepStatus.step;
+                    final isCurrent = !isDone && currentStep == stepStatus.step;
                     final color = isDone || isCurrent ? AppColors.purple : AppColors.textHint;
 
                     return Column(
