@@ -568,20 +568,31 @@
       } catch (e) {}
     }
 
-    // صوت chime أنيق عند جهوزية الطلب — نغمات متتالية بـ Web Audio API
-    function _playOrderReadyChime() {
+    // صوت chime متكرر عند جهوزية الطلب — يستمر حتى أي تفاعل من العميل
+    var _chimeInterval = null;
+    var _chimeCtx = null;
+
+    function _stopChime() {
+      if (_chimeInterval) { clearInterval(_chimeInterval); _chimeInterval = null; }
+      try { if (_chimeCtx) { _chimeCtx.close(); _chimeCtx = null; } } catch(e) {}
+      ['click','touchstart','keydown'].forEach(function(ev) {
+        document.removeEventListener(ev, _stopChime);
+      });
+    }
+
+    function _playOneChime() {
       try {
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (!_chimeCtx) _chimeCtx = new (window.AudioContext || window.webkitAudioContext)();
         // ثلاث نغمات صاعدة: D5 → F#5 → A5
         var notes = [587.33, 739.99, 880.00];
         notes.forEach(function(freq, i) {
-          var osc = ctx.createOscillator();
-          var gain = ctx.createGain();
+          var osc = _chimeCtx.createOscillator();
+          var gain = _chimeCtx.createGain();
           osc.connect(gain);
-          gain.connect(ctx.destination);
+          gain.connect(_chimeCtx.destination);
           osc.type = 'sine';
           osc.frequency.value = freq;
-          var t = ctx.currentTime + i * 0.18;
+          var t = _chimeCtx.currentTime + i * 0.18;
           gain.gain.setValueAtTime(0, t);
           gain.gain.linearRampToValueAtTime(0.28, t + 0.03);
           gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
@@ -591,8 +602,18 @@
       } catch (e) {}
     }
 
+    function _startChimeLoop() {
+      _stopChime(); // أوقف أي حلقة سابقة
+      _playOneChime();
+      _chimeInterval = setInterval(_playOneChime, 2800);
+      // يتوقف عند أي تفاعل من العميل
+      ['click','touchstart','keydown'].forEach(function(ev) {
+        document.addEventListener(ev, _stopChime, { once: true });
+      });
+    }
+
     function showOrderReadyNotification(title, body) {
-      _playOrderReadyChime();
+      _startChimeLoop();
       try {
         if (!('Notification' in window)) return;
         if (Notification.permission !== 'granted') return;
@@ -602,6 +623,7 @@
           tag: 'order-ready',
         });
         n.onclick = function () {
+          _stopChime();
           window.focus();
           n.close();
         };
