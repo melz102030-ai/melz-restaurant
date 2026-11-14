@@ -841,28 +841,12 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       method: _paymentMethod,
                       onChanged: (m) => setState(() => _paymentMethod = m),
                       showBankTransfer: settings.bankTransferEnabled && settings.hasBankTransferInfo,
+                      cashLabel: (!settings.deliveryEnabled &&
+                              !(settings.bankTransferEnabled && settings.hasBankTransferInfo))
+                          ? 'الاستلام والدفع من المطعم'
+                          : 'نقداً',
                     ),
                   ),
-                  if (!settings.deliveryEnabled &&
-                      !isDelivery &&
-                      _paymentMethod == PaymentMethod.cash &&
-                      !(settings.bankTransferEnabled && settings.hasBankTransferInfo))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.storefront_outlined,
-                              color: AppColors.textSecondary, size: 15),
-                          const SizedBox(width: 6),
-                          Text(
-                            'الاستلام والدفع من المطعم',
-                            style: TextStyle(
-                                color: AppColors.textSecondary, fontSize: 13),
-                          ),
-                        ],
-                      ),
-                    ),
                   if (!settings.effectivelyOpen)
                     Container(
                       width: double.infinity,
@@ -1652,11 +1636,13 @@ class _PaymentMethodToggle extends StatelessWidget {
   final PaymentMethod method;
   final ValueChanged<PaymentMethod> onChanged;
   final bool showBankTransfer;
+  final String cashLabel;
 
   const _PaymentMethodToggle({
     required this.method,
     required this.onChanged,
     this.showBankTransfer = true,
+    this.cashLabel = 'نقداً',
   });
 
   @override
@@ -1671,7 +1657,7 @@ class _PaymentMethodToggle extends StatelessWidget {
         children: [
           Expanded(
             child: _ToggleOption(
-              label: 'نقداً',
+              label: cashLabel,
               icon: Icons.payments_outlined,
               isSelected: method == PaymentMethod.cash,
               onTap: () => onChanged(PaymentMethod.cash),
