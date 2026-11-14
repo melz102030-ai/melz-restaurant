@@ -777,13 +777,13 @@ class _PlayWhileWaitingCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(Icons.videogame_asset, color: Colors.white, size: 24)
-                  .animate(onPlay: (c) => c.repeat(reverse: true))
-                  .scale(
-                    begin: const Offset(1.0, 1.0),
-                    end: const Offset(1.3, 1.3),
-                    duration: 700.ms,
-                    curve: Curves.easeInOut,
-                  ),
+                  .animate(onPlay: (c) => c.repeat())
+                  .scaleXY(end: 1.4, duration: 180.ms, curve: Curves.easeOut)
+                  .then()
+                  .shake(hz: 5, offset: const Offset(5, 0), duration: 500.ms)
+                  .then()
+                  .scaleXY(end: 1.0, duration: 180.ms, curve: Curves.easeIn)
+                  .then(delay: 1800.ms),
             ),
             const SizedBox(width: 12),
             const Expanded(
