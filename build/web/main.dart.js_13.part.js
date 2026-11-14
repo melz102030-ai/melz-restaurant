@@ -7,21 +7,21 @@ _.d=null
 _.e=$
 _.c=_.a=null
 _.$ti=d},
-bBs:function bBs(d){this.a=d},
-bBr:function bBr(d,e){this.a=d
+bBt:function bBt(d){this.a=d},
+bBs:function bBs(d,e){this.a=d
 this.b=e},
-bBu:function bBu(d){this.a=d},
-bBp:function bBp(d,e,f){this.a=d
+bBv:function bBv(d){this.a=d},
+bBq:function bBq(d,e,f){this.a=d
 this.b=e
 this.c=f},
-bBt:function bBt(d){this.a=d},
-bBq:function bBq(d){this.a=d},
+bBu:function bBu(d){this.a=d},
+bBr:function bBr(d){this.a=d},
 VN:function VN(d,e,f,g){var _=this
 _.e=d
 _.c=e
 _.a=f
 _.$ti=g},
-bOA(d,e){var x,w,v,u,t,s,r="createdAt",q="updatedAt",p=J.a5(d),o=p.i(d,"customerId")
+bOB(d,e){var x,w,v,u,t,s,r="createdAt",q="updatedAt",p=J.a5(d),o=p.i(d,"customerId")
 if(o==null)o=""
 x=p.i(d,"customerName")
 if(x==null)x=""
@@ -68,30 +68,30 @@ au(){var x,w=this
 w.aH()
 x=w.a
 x.toString
-x=B.bSZ(x.$ti.c)
+x=B.bT_(x.$ti.c)
 w.e=x
 w.BE()},
 aQ(d){var x,w=this
 w.bs(d)
-if(d.c!==w.a.c){if(w.d!=null){w.a2H()
+if(d.c!==w.a.c){if(w.d!=null){w.a2I()
 w.a.toString
 x=w.e
 x===$&&B.a()
-w.e=new B.fo(D.xg,x.b,x.c,x.d,x.$ti)}w.BE()}},
+w.e=new B.fo(D.xh,x.b,x.c,x.d,x.$ti)}w.BE()}},
 E(d){var x,w=this.a
 w.toString
 x=this.e
 x===$&&B.a()
 return w.yU(d,x)},
-m(){this.a2H()
+m(){this.a2I()
 this.ar()},
 BE(){var x,w=this
-w.d=w.a.c.lJ(new A.bBs(w),new A.bBt(w),new A.bBu(w))
+w.d=w.a.c.lJ(new A.bBt(w),new A.bBu(w),new A.bBv(w))
 w.a.toString
 x=w.e
 x===$&&B.a()
-w.e=new B.fo(D.E_,x.b,x.c,x.d,x.$ti)},
-a2H(){var x=this.d
+w.e=new B.fo(D.E0,x.b,x.c,x.d,x.$ti)},
+a2I(){var x=this.d
 if(x!=null){x.aE(0)
 this.d=null}}}
 A.VN.prototype={
@@ -113,31 +113,31 @@ v=B.U(w).h("J<1,a6<c,@>>")
 w=B.Q(new B.J(w,new A.b6s(),v),v.h("az.E"))
 return B.an(["customerId",u.b,"customerName",u.c,"customerPhone",u.d,"category",u.e,"status",u.f.b,"createdAt",t,"updatedAt",x,"messages",w],y.w,y.b)}}
 var z=a.updateTypes(["p8(@)","a6<c,@>(p8)"])
-A.bBs.prototype={
+A.bBt.prototype={
 $1(d){var x=this.a
-x.A(new A.bBr(x,d))},
+x.A(new A.bBs(x,d))},
 $S(){return this.a.$ti.h("~(1)")}}
-A.bBr.prototype={
+A.bBs.prototype={
 $0(){var x=this.a,w=x.a
 w.toString
 x.e===$&&B.a()
-x.e=new B.fo(C.E0,this.b,null,null,w.$ti.h("fo<1>"))},
+x.e=new B.fo(C.E1,this.b,null,null,w.$ti.h("fo<1>"))},
+$S:0}
+A.bBv.prototype={
+$2(d,e){var x=this.a
+x.A(new A.bBq(x,d,e))},
+$S:14}
+A.bBq.prototype={
+$0(){var x=this.a,w=x.a
+w.toString
+x.e===$&&B.a()
+x.e=new B.fo(C.E1,null,this.b,this.c,w.$ti.h("fo<1>"))},
 $S:0}
 A.bBu.prototype={
-$2(d,e){var x=this.a
-x.A(new A.bBp(x,d,e))},
-$S:14}
-A.bBp.prototype={
-$0(){var x=this.a,w=x.a
-w.toString
-x.e===$&&B.a()
-x.e=new B.fo(C.E0,null,this.b,this.c,w.$ti.h("fo<1>"))},
-$S:0}
-A.bBt.prototype={
 $0(){var x=this.a
-x.A(new A.bBq(x))},
+x.A(new A.bBr(x))},
 $S:0}
-A.bBq.prototype={
+A.bBr.prototype={
 $0(){var x,w=this.a
 w.a.toString
 x=w.e
@@ -145,7 +145,7 @@ x===$&&B.a()
 w.e=new B.fo(D.ls,x.b,x.c,x.d,x.$ti)},
 $S:0}
 A.b6r.prototype={
-$1(d){var x,w="createdAt",v=B.hb(y.B.a(d),y.w,y.b),u=J.f(v.i(0,"senderRole"),"admin")?C.kO:C.vM,t=v.i(0,"senderName")
+$1(d){var x,w="createdAt",v=B.hb(y.B.a(d),y.w,y.b),u=J.f(v.i(0,"senderRole"),"admin")?C.kO:C.vO,t=v.i(0,"senderName")
 if(t==null)t=""
 x=v.i(0,"text")
 if(x==null)x=""
@@ -156,18 +156,18 @@ $1(d){return d.eP()},
 $S:z+1};(function inheritance(){var x=a.inherit,w=a.inheritMany
 x(A.tu,B.R)
 x(A.a1o,B.X)
-w(B.hE,[A.bBs,A.b6r,A.b6s])
-w(B.ku,[A.bBr,A.bBp,A.bBt,A.bBq])
-x(A.bBu,B.k6)
+w(B.hE,[A.bBt,A.b6r,A.b6s])
+w(B.ku,[A.bBs,A.bBq,A.bBu,A.bBr])
+x(A.bBv,B.k6)
 x(A.VN,A.tu)
 w(B.r1,[A.aiC,A.aiA])
 w(B.A,[A.p8,A.dD])})()
 B.nd(b.typeUniverse,JSON.parse('{"tu":{"R":[],"d":[]},"a1o":{"X":["tu<1,2>"]},"VN":{"tu":["1","fo<1>"],"R":[],"d":[],"tu.T":"1","tu.S":"fo<1>"}}'))
-var y={B:B.a4("a6<@,@>"),w:B.a4("c"),v:B.a4("p8"),F:B.a4("ie"),b:B.a4("@"),d:B.a4("m<@>?")};(function constants(){C.E0=new B.GZ(2,"active")
-C.FI=new B.ai(58737,"MaterialIcons",null,!0)
-C.vM=new A.aiA(0,"customer")
+var y={B:B.a4("a6<@,@>"),w:B.a4("c"),v:B.a4("p8"),F:B.a4("ie"),b:B.a4("@"),d:B.a4("m<@>?")};(function constants(){C.E1=new B.GZ(2,"active")
+C.FJ=new B.ai(58737,"MaterialIcons",null,!0)
+C.vO=new A.aiA(0,"customer")
 C.kO=new A.aiA(1,"admin")
 C.hC=new A.aiC(0,"open")
 C.mM=new A.aiC(1,"closed")})();(function lazyInitializers(){var x=a.lazyFinal
-x($,"cuv","NF",()=>B.q6())})()};
-(a=>{a["W0ckAY3l+9B64Wp8fl88zKvxe3w="]=a.current})($__dart_deferred_initializers__);
+x($,"cuw","NG",()=>B.q6())})()};
+(a=>{a["082EGtckObH9y1cR9sJyOswAO5Y="]=a.current})($__dart_deferred_initializers__);
