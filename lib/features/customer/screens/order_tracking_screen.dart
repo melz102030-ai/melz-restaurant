@@ -776,7 +776,14 @@ class _PlayWhileWaitingCard extends StatelessWidget {
                 color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(Icons.videogame_asset, color: Colors.white, size: 24),
+              child: Icon(Icons.videogame_asset, color: Colors.white, size: 24)
+                  .animate(onPlay: (c) => c.repeat(reverse: true))
+                  .scale(
+                    begin: const Offset(1.0, 1.0),
+                    end: const Offset(1.3, 1.3),
+                    duration: 700.ms,
+                    curve: Curves.easeInOut,
+                  ),
             ),
             const SizedBox(width: 12),
             const Expanded(

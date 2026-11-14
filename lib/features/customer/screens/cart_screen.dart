@@ -843,6 +843,26 @@ class _CartScreenState extends ConsumerState<CartScreen> {
                       showBankTransfer: settings.bankTransferEnabled && settings.hasBankTransferInfo,
                     ),
                   ),
+                  if (!settings.deliveryEnabled &&
+                      !isDelivery &&
+                      _paymentMethod == PaymentMethod.cash &&
+                      !(settings.bankTransferEnabled && settings.hasBankTransferInfo))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.storefront_outlined,
+                              color: AppColors.textSecondary, size: 15),
+                          const SizedBox(width: 6),
+                          Text(
+                            'الاستلام والدفع من المطعم',
+                            style: TextStyle(
+                                color: AppColors.textSecondary, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
                   if (!settings.effectivelyOpen)
                     Container(
                       width: double.infinity,
