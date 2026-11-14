@@ -77,7 +77,7 @@ if(d.c!==w.a.c){if(w.d!=null){w.a2I()
 w.a.toString
 x=w.e
 x===$&&B.a()
-w.e=new B.fo(D.xh,x.b,x.c,x.d,x.$ti)}w.BE()}},
+w.e=new B.fo(D.xg,x.b,x.c,x.d,x.$ti)}w.BE()}},
 E(d){var x,w=this.a
 w.toString
 x=this.e
@@ -145,7 +145,7 @@ x===$&&B.a()
 w.e=new B.fo(D.ls,x.b,x.c,x.d,x.$ti)},
 $S:0}
 A.b6r.prototype={
-$1(d){var x,w="createdAt",v=B.hb(y.B.a(d),y.w,y.b),u=J.f(v.i(0,"senderRole"),"admin")?C.kO:C.vO,t=v.i(0,"senderName")
+$1(d){var x,w="createdAt",v=B.hb(y.B.a(d),y.w,y.b),u=J.f(v.i(0,"senderRole"),"admin")?C.kO:C.vN,t=v.i(0,"senderName")
 if(t==null)t=""
 x=v.i(0,"text")
 if(x==null)x=""
@@ -165,9 +165,9 @@ w(B.A,[A.p8,A.dD])})()
 B.nd(b.typeUniverse,JSON.parse('{"tu":{"R":[],"d":[]},"a1o":{"X":["tu<1,2>"]},"VN":{"tu":["1","fo<1>"],"R":[],"d":[],"tu.T":"1","tu.S":"fo<1>"}}'))
 var y={B:B.a4("a6<@,@>"),w:B.a4("c"),v:B.a4("p8"),F:B.a4("ie"),b:B.a4("@"),d:B.a4("m<@>?")};(function constants(){C.E1=new B.GZ(2,"active")
 C.FJ=new B.ai(58737,"MaterialIcons",null,!0)
-C.vO=new A.aiA(0,"customer")
+C.vN=new A.aiA(0,"customer")
 C.kO=new A.aiA(1,"admin")
 C.hC=new A.aiC(0,"open")
 C.mM=new A.aiC(1,"closed")})();(function lazyInitializers(){var x=a.lazyFinal
 x($,"cuw","NG",()=>B.q6())})()};
-(a=>{a["082EGtckObH9y1cR9sJyOswAO5Y="]=a.current})($__dart_deferred_initializers__);
+(a=>{a["1+5R4h6TdHmk4VH9pCu51sVNeCk="]=a.current})($__dart_deferred_initializers__);
