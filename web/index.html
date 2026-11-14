@@ -568,53 +568,55 @@
       } catch (e) {}
     }
 
-    // نغمة متصلة عند جهوزية الطلب — وتر A-major دافئ مع نبض خفيف
+    // لحن متدرج متصل عند جهوزية الطلب — نوتات G-major تتدفق بنعومة
     var _chimeCtx = null;
-    var _chimeOscs = [];
+    var _chimeStopped = false;
 
     function _stopChime() {
-      try {
-        _chimeOscs.forEach(function(o) { try { o.stop(); } catch(e) {} });
-        _chimeOscs = [];
-        if (_chimeCtx) { _chimeCtx.close(); _chimeCtx = null; }
-      } catch(e) {}
+      _chimeStopped = true;
+      try { if (_chimeCtx) { _chimeCtx.close(); _chimeCtx = null; } } catch(e) {}
       ['click','touchstart','keydown'].forEach(function(ev) {
         document.removeEventListener(ev, _stopChime);
       });
     }
 
+    function _scheduleNote(ctx, freq, startTime, duration) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'triangle'; // أدفأ من sine
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      // attack سريع + decay ناعم
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.22, startTime + 0.07);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+      osc.start(startTime);
+      osc.stop(startTime + duration + 0.05);
+    }
+
     function _startChimeTone() {
       _stopChime();
+      _chimeStopped = false;
       try {
         _chimeCtx = new (window.AudioContext || window.webkitAudioContext)();
-        var master = _chimeCtx.createGain();
-        master.connect(_chimeCtx.destination);
+        // لحن G-major هابط وصاعد: G5 → E5 → D5 → B4 → D5 → E5 → G5
+        var melody = [784, 659.25, 587.33, 493.88, 587.33, 659.25, 784];
+        var noteDur = 0.55;   // مدة كل نوتة
+        var noteStep = 0.42;  // الفجوة بين بدايات النوتات (تداخل خفيف)
+        var cycleDur = melody.length * noteStep + 0.4; // مدة الدورة كاملة
 
-        // نبض خفيف (تريمولو) بـ LFO بطيء 1.1 Hz
-        var lfo = _chimeCtx.createOscillator();
-        var lfoGain = _chimeCtx.createGain();
-        lfo.type = 'sine';
-        lfo.frequency.value = 1.1;
-        lfoGain.gain.value = 0.06;
-        lfo.connect(lfoGain);
-        lfoGain.connect(master.gain);
-        lfo.start();
-        _chimeOscs.push(lfo);
+        (function schedule(offset) {
+          if (_chimeStopped) return;
+          melody.forEach(function(freq, i) {
+            _scheduleNote(_chimeCtx, freq, offset + i * noteStep, noteDur);
+          });
+          // جدوِل الدورة القادمة قبل نهاية الحالية بـ 0.1 ثانية
+          setTimeout(function() {
+            if (!_chimeStopped && _chimeCtx) schedule(_chimeCtx.currentTime + 0.1);
+          }, (cycleDur - 0.1) * 1000);
+        })(_chimeCtx.currentTime);
 
-        // وتر A-major: A4 + C#5 + E5
-        var freqs = [440, 554.37, 659.25];
-        freqs.forEach(function(freq) {
-          var osc = _chimeCtx.createOscillator();
-          var g = _chimeCtx.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = freq;
-          g.gain.setValueAtTime(0, _chimeCtx.currentTime);
-          g.gain.linearRampToValueAtTime(0.13, _chimeCtx.currentTime + 0.6);
-          osc.connect(g);
-          g.connect(master);
-          osc.start();
-          _chimeOscs.push(osc);
-        });
       } catch(e) {}
     }
 
