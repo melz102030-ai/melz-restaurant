@@ -24,8 +24,8 @@ class _OtpSheetContent extends StatefulWidget {
 }
 
 class _OtpSheetContentState extends State<_OtpSheetContent> {
-  final _controllers = List.generate(6, (_) => TextEditingController());
-  final _focusNodes = List.generate(6, (_) => FocusNode());
+  final _controllers = List.generate(4, (_) => TextEditingController());
+  final _focusNodes = List.generate(4, (_) => FocusNode());
   Timer? _timer;
   int _secondsLeft = 120;
   bool _isVerifying = false;
@@ -73,23 +73,24 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
+  static const int _otpLength = 4;
   String get _otp => _controllers.map((c) => c.text).join();
 
   void _onDigitChanged(int index, String value) {
     setState(() => _error = null);
     if (value.isEmpty) return;
     // دعم لصق الكود كاملاً في الخانة الأولى
-    if (value.length >= 6) {
+    if (value.length >= 4) {
       final digits = value.replaceAll(RegExp(r'\D'), '');
-      for (int i = 0; i < 6 && i < digits.length; i++) {
+      for (int i = 0; i < 4 && i < digits.length; i++) {
         _controllers[i].text = digits[i];
       }
-      _focusNodes[5].requestFocus();
-      if (_otp.length == 6) _verify();
+      _focusNodes[3].requestFocus();
+      if (_otp.length == 4) _verify();
       return;
     }
-    if (index < 5) _focusNodes[index + 1].requestFocus();
-    if (_otp.length == 6) _verify();
+    if (index < 3) _focusNodes[index + 1].requestFocus();
+    if (_otp.length == 4) _verify();
   }
 
   void _onKeyDown(int index, KeyEvent event) {
@@ -104,7 +105,7 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
 
   Future<void> _verify() async {
     final code = _otp;
-    if (code.length != 6 || _isVerifying) return;
+    if (code.length != _otpLength || _isVerifying) return;
     setState(() { _isVerifying = true; _error = null; });
     try {
       final ok = await AuthenticaService.verifyOtp(widget.phone, code);
@@ -184,7 +185,7 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
               textDirection: TextDirection.ltr,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(6, (i) => _OtpBox(
+                children: List.generate(_otpLength, (i) => _OtpBox(
                   controller: _controllers[i],
                   focusNode: _focusNodes[i],
                   hasError: _error != null,
@@ -205,7 +206,7 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
             AppButton(
               label: 'تحقق',
               width: double.infinity,
-              onPressed: _otp.length == 6 ? _verify : null,
+              onPressed: _otp.length == _otpLength ? _verify : null,
               isLoading: _isVerifying,
             ),
             const SizedBox(height: 14),
