@@ -943,6 +943,64 @@ async function handleReclaimStaffAccount(request, env) {
   }
 }
 
+// ─── OTP عبر Authentica ───────────────────────────────────────────────────────
+// الطلبات تمر هنا بدل الاستدعاء المباشر من المتصفح لتفادي قيود CORS،
+// والمفتاح يُخزَّن سرّاً في Cloudflare ولا يُرسَل للعميل أبداً
+
+async function handleOtpSend(request, env) {
+  let phone;
+  try {
+    ({ phone } = await request.json());
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  if (typeof phone !== "string" || phone.trim().length < 7) {
+    return json({ error: "phone-required" }, 400);
+  }
+  if (!env.AUTHENTICA_KEY) return json({ error: "otp-not-configured" }, 503);
+
+  const res = await fetch("https://api.authentica.sa/api/v2/send-otp", {
+    method: "POST",
+    headers: {
+      "X-Authorization": env.AUTHENTICA_KEY,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ method: "sms", phone: phone.trim() }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.success !== true) {
+    return json({ error: "send-failed", detail: data }, res.ok ? 502 : res.status);
+  }
+  return json({ ok: true });
+}
+
+async function handleOtpVerify(request, env) {
+  let phone, otp;
+  try {
+    ({ phone, otp } = await request.json());
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  if (typeof phone !== "string" || typeof otp !== "string") {
+    return json({ error: "phone-and-otp-required" }, 400);
+  }
+  if (!env.AUTHENTICA_KEY) return json({ error: "otp-not-configured" }, 503);
+
+  const res = await fetch("https://api.authentica.sa/api/v2/verify-otp", {
+    method: "POST",
+    headers: {
+      "X-Authorization": env.AUTHENTICA_KEY,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ phone: phone.trim(), otp: otp.trim() }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401) return json({ error: "otp-service-auth-failed" }, 503);
+  return json({ verified: data.status === true });
+}
+
 // فحص تشخيصي بلا حاجة لعميل حقيقي أو طلب فعلي — يختبر فقط أن أسرار لين
 // وحساب خدمة Firebase صالحة وتُصدر توكن وصول بنجاح. لا يكشف أي قيمة سرّية
 // في الرد، فقط ok/error لكل جزء. يُزال أو يُقيَّد لاحقاً بعد التأكد النهائي.
@@ -977,6 +1035,8 @@ export default {
       return handleWebhook(request, env);
     }
     if (request.method !== "POST") return json({ error: "method-not-allowed" }, 405);
+    if (url.pathname === "/otp/send") return handleOtpSend(request, env);
+    if (url.pathname === "/otp/verify") return handleOtpVerify(request, env);
     if (url.pathname === "/orders") return handleCreateOrder(request, env);
     if (url.pathname === "/menu/option-availability") return handleOptionAvailability(request, env);
     if (url.pathname === "/staff/reset-password") return handleResetStaffPassword(request, env);

@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../constants/app_config.dart';
 
 class AuthenticaService {
-  static const String _base = 'https://api.authentica.sa/api/v2';
+  static Map<String, String> get _headers => {'Content-Type': 'application/json'};
 
   /// يحوّل أشكال أرقام الجوال السعودية إلى صيغة E.164 الدولية
   static String normalizePhone(String phone) {
@@ -14,35 +14,29 @@ class AuthenticaService {
     return phone;
   }
 
-  static Map<String, String> get _headers => {
-        'X-Authorization': kAuthenticaKey,
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      };
-
   static Future<void> sendOtp(String phone) async {
     final normalized = normalizePhone(phone);
     final res = await http.post(
-      Uri.parse('$_base/send-otp'),
+      Uri.parse('$kWorkerUrl/otp/send'),
       headers: _headers,
-      body: jsonEncode({'method': 'sms', 'phone': normalized}),
+      body: jsonEncode({'phone': normalized}),
     );
-    if (res.statusCode == 401) throw Exception('مفتاح OTP غير صحيح، تواصل مع الدعم');
-    if (res.statusCode != 200) throw Exception('فشل إرسال رمز التحقق (${ res.statusCode})');
+    if (res.statusCode == 503) throw Exception('خدمة التحقق غير متاحة حالياً');
+    if (res.statusCode != 200) throw Exception('فشل إرسال رمز التحقق');
     final data = jsonDecode(res.body) as Map<String, dynamic>;
-    if (data['success'] != true) throw Exception('فشل إرسال رمز التحقق');
+    if (data['ok'] != true) throw Exception('فشل إرسال رمز التحقق');
   }
 
   /// يُعيد true إذا كان الرمز صحيحاً، false إذا كان خاطئاً
   static Future<bool> verifyOtp(String phone, String otp) async {
     final normalized = normalizePhone(phone);
     final res = await http.post(
-      Uri.parse('$_base/verify-otp'),
+      Uri.parse('$kWorkerUrl/otp/verify'),
       headers: _headers,
       body: jsonEncode({'phone': normalized, 'otp': otp}),
     );
-    if (res.statusCode == 401) throw Exception('خطأ في الاتصال بخدمة التحقق');
+    if (res.statusCode >= 500) throw Exception('خطأ في الاتصال بخدمة التحقق');
     final data = jsonDecode(res.body) as Map<String, dynamic>;
-    return data['status'] == true;
+    return data['verified'] == true;
   }
 }
