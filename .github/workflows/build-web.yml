@@ -35,7 +35,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release
+        run: flutter build web --release --dart-define=AUTHENTICA_KEY=${{ secrets.AUTHENTICA_KEY }}
 
       # نسخة خفيفة جداً (شاشة المطبخ فقط) لأجهزة الكاشير ضعيفة الإمكانيات —
       # صفحة HTML/JS عادية بلا فلاتر إطلاقاً (راجع web_kitchen_lite/)، لأن

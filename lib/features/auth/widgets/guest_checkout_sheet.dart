@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/authentica_service.dart';
 import '../../../shared/widgets/app_button.dart';
+import 'otp_verify_sheet.dart';
 
 /// نافذة منبثقة مختصرة جداً لإتمام الطلب بلا تسجيل دخول (وضع "ضيف") —
 /// اسم ورقم جوال فقط، بلا كلمة مرور ولا أي خطوة إضافية. راجع
@@ -36,6 +38,8 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
   final _formKey = GlobalKey<FormState>();
   late final _nameCtrl = TextEditingController(text: widget.initialName);
   late final _phoneCtrl = TextEditingController(text: widget.initialPhone);
+  bool _isSendingOtp = false;
+  String? _otpError;
 
   bool get _isEditing => widget.initialPhone != null;
 
@@ -46,9 +50,32 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    Navigator.pop(context, (name: _nameCtrl.text.trim(), phone: _phoneCtrl.text.trim()));
+    final name = _nameCtrl.text.trim();
+    final phone = _phoneCtrl.text.trim();
+
+    // في وضع التعديل لا نُعيد التحقق من الرقم
+    if (_isEditing) {
+      Navigator.pop(context, (name: name, phone: phone));
+      return;
+    }
+
+    setState(() { _isSendingOtp = true; _otpError = null; });
+    try {
+      await AuthenticaService.sendOtp(phone);
+    } catch (e) {
+      if (mounted) setState(() { _otpError = e.toString().replaceAll('Exception: ', ''); _isSendingOtp = false; });
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _isSendingOtp = false);
+
+    final verified = await showOtpVerifySheet(context, phone: phone);
+    if (!mounted) return;
+    if (verified) {
+      Navigator.pop(context, (name: name, phone: phone));
+    }
   }
 
   @override
@@ -104,7 +131,7 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'سيتصل بك المطعم لتوثيق رقمك في أول طلب — لن يحتاج لذلك في طلباتك القادمة',
+                        'سيُرسَل رمز تحقق إلى جوالك للتأكد من الرقم — لن يتكرر ذلك في طلباتك القادمة',
                         style: TextStyle(color: AppColors.purple, fontSize: 12),
                       ),
                     ),
@@ -142,12 +169,21 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
                   return digits.length < 9 ? 'رقم جوال غير صحيح' : null;
                 },
               ),
+              if (_otpError != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  _otpError!,
+                  style: TextStyle(color: AppColors.error, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ],
               const SizedBox(height: 22),
               AppButton(
                 label: _isEditing ? 'حفظ' : 'متابعة الطلب',
                 icon: _isEditing ? Icons.check : Icons.arrow_forward,
                 width: double.infinity,
                 onPressed: _submit,
+                isLoading: _isSendingOtp,
               ),
             ],
           ),

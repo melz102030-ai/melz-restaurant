@@ -6,3 +6,5 @@ const String kWorkerUrl = String.fromEnvironment(
   'WORKER_URL',
   defaultValue: 'https://melz-lean-payments.melz102030.workers.dev',
 );
+
+const String kAuthenticaKey = String.fromEnvironment('AUTHENTICA_KEY');

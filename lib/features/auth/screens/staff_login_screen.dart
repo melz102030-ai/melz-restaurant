@@ -7,9 +7,11 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/auth_provider.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/authentica_service.dart';
 import '../../../shared/utils/kitchen_redirect.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
+import '../widgets/otp_verify_sheet.dart';
 
 class StaffLoginScreen extends ConsumerStatefulWidget {
   const StaffLoginScreen({super.key});
@@ -41,8 +43,21 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
       final password = _passwordController.text.trim();
 
       final user = await AuthService.loginStaff(phone, password);
-      await ref.read(authProvider.notifier).login(user);
 
+      // إرسال OTP كطبقة تحقق ثانية بعد كلمة المرور
+      await AuthenticaService.sendOtp(phone);
+      if (!mounted) return;
+
+      final verified = await showOtpVerifySheet(context, phone: phone);
+      if (!mounted) return;
+
+      if (!verified) {
+        // المستخدم أغلق بدون تحقق — أنهِ جلسة Firebase
+        await FirebaseAuth.instance.signOut();
+        return;
+      }
+
+      await ref.read(authProvider.notifier).login(user);
       if (!mounted) return;
 
       switch (user.role) {
