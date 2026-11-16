@@ -37108,29 +37108,29 @@ return a},
 Op(a){var s=0,r=A.u(t.H),q,p,o,n,m
 var $async$Op=A.p(function(b,c){if(b===1)return A.q(c,r)
 for(;;)switch(s){case 0:q=A.bTy(a)
-p=A.d6("https://api.authentica.sa/api/v2/send-otp",0,null)
+p=A.d6("https://melz-lean-payments.melz102030.workers.dev/otp/send",0,null)
 o=t.N
-n=A.al(["X-Authorization","","Accept","application/json","Content-Type","application/json"],o,o)
+n=A.al(["Content-Type","application/json"],o,o)
 s=2
-return A.i(A.Nz(p,B.be.qO(A.al(["method","sms","phone",q],o,o),null),n),$async$Op)
+return A.i(A.Nz(p,B.be.qO(A.al(["phone",q],o,o),null),n),$async$Op)
 case 2:m=c
 p=m.b
-if(p===401)throw A.e(A.cj("\u0645\u0641\u062a\u0627\u062d OTP \u063a\u064a\u0631 \u0635\u062d\u064a\u062d\u060c \u062a\u0648\u0627\u0635\u0644 \u0645\u0639 \u0627\u0644\u062f\u0639\u0645"))
-if(p!==200)throw A.e(A.cj("\u0641\u0634\u0644 \u0625\u0631\u0633\u0627\u0644 \u0631\u0645\u0632 \u0627\u0644\u062a\u062d\u0642\u0642 ("+p+")"))
-if(!J.f(J.aH(t.a.a(B.be.mb(0,A.AF(A.AA(m.e)).eU(0,m.w),null)),"success"),!0))throw A.e(A.cj("\u0641\u0634\u0644 \u0625\u0631\u0633\u0627\u0644 \u0631\u0645\u0632 \u0627\u0644\u062a\u062d\u0642\u0642"))
+if(p===503)throw A.e(A.cj("\u062e\u062f\u0645\u0629 \u0627\u0644\u062a\u062d\u0642\u0642 \u063a\u064a\u0631 \u0645\u062a\u0627\u062d\u0629 \u062d\u0627\u0644\u064a\u0627\u064b"))
+if(p!==200)throw A.e(A.cj("\u0641\u0634\u0644 \u0625\u0631\u0633\u0627\u0644 \u0631\u0645\u0632 \u0627\u0644\u062a\u062d\u0642\u0642"))
+if(!J.f(J.aH(t.a.a(B.be.mb(0,A.AF(A.AA(m.e)).eU(0,m.w),null)),"ok"),!0))throw A.e(A.cj("\u0641\u0634\u0644 \u0625\u0631\u0633\u0627\u0644 \u0631\u0645\u0632 \u0627\u0644\u062a\u062d\u0642\u0642"))
 return A.r(null,r)}})
 return A.t($async$Op,r)},
 aDY(a,b){var s=0,r=A.u(t.y),q,p,o,n,m,l
 var $async$aDY=A.p(function(c,d){if(c===1)return A.q(d,r)
 for(;;)switch(s){case 0:p=A.bTy(a)
-o=A.d6("https://api.authentica.sa/api/v2/verify-otp",0,null)
+o=A.d6("https://melz-lean-payments.melz102030.workers.dev/otp/verify",0,null)
 n=t.N
-m=A.al(["X-Authorization","","Accept","application/json","Content-Type","application/json"],n,n)
+m=A.al(["Content-Type","application/json"],n,n)
 s=3
 return A.i(A.Nz(o,B.be.qO(A.al(["phone",p,"otp",b],n,n),null),m),$async$aDY)
 case 3:l=d
-if(l.b===401)throw A.e(A.cj("\u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u062e\u062f\u0645\u0629 \u0627\u0644\u062a\u062d\u0642\u0642"))
-q=J.f(J.aH(t.a.a(B.be.mb(0,A.AF(A.AA(l.e)).eU(0,l.w),null)),"status"),!0)
+if(l.b>=500)throw A.e(A.cj("\u062e\u0637\u0623 \u0641\u064a \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0628\u062e\u062f\u0645\u0629 \u0627\u0644\u062a\u062d\u0642\u0642"))
+q=J.f(J.aH(t.a.a(B.be.mb(0,A.AF(A.AA(l.e)).eU(0,l.w),null)),"verified"),!0)
 s=1
 break
 case 1:return A.r(q,r)}})
