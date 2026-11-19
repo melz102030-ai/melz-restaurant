@@ -343,10 +343,10 @@ class _CartScreenState extends ConsumerState<CartScreen> {
       // بلا حساب دائم ولا كلمة مرور (راجع AuthService.guestLogin)
       var user = ref.read(authProvider);
       if (user == null) {
-        final guestInfo = await showGuestCheckoutSheet(context);
-        if (guestInfo == null || !mounted) return;
+        final guestPhone = await showGuestCheckoutSheet(context);
+        if (guestPhone == null || !mounted) return;
         final guestUser =
-            await AuthService.guestLogin(name: guestInfo.name, phone: guestInfo.phone);
+            await AuthService.guestLogin(name: guestPhone, phone: guestPhone);
         await ref.read(authProvider.notifier).login(guestUser);
         user = ref.read(authProvider);
         if (user == null) return;
@@ -552,14 +552,13 @@ class _CartScreenState extends ConsumerState<CartScreen> {
   }
 
   Future<void> _editContact(UserModel user) async {
-    final updated = await showGuestCheckoutSheet(
+    final updatedPhone = await showGuestCheckoutSheet(
       context,
-      initialName: user.name,
       initialPhone: user.phone,
     );
-    if (updated == null) return;
+    if (updatedPhone == null) return;
     try {
-      await AuthService.updateContactInfo(user.id, updated.name, updated.phone);
+      await AuthService.updateContactInfo(user.id, updatedPhone, updatedPhone);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
