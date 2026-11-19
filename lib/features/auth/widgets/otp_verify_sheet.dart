@@ -232,7 +232,7 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
   }
 }
 
-class _OtpBox extends StatelessWidget {
+class _OtpBox extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final bool hasError;
@@ -248,18 +248,31 @@ class _OtpBox extends StatelessWidget {
   });
 
   @override
+  State<_OtpBox> createState() => _OtpBoxState();
+}
+
+class _OtpBoxState extends State<_OtpBox> {
+  final _keyFocusNode = FocusNode(skipTraversal: true);
+
+  @override
+  void dispose() {
+    _keyFocusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final borderColor = hasError ? AppColors.error : AppColors.surfaceLight;
-    final focusBorderColor = hasError ? AppColors.error : AppColors.purple;
+    final borderColor = widget.hasError ? AppColors.error : AppColors.surfaceLight;
+    final focusBorderColor = widget.hasError ? AppColors.error : AppColors.purple;
     return KeyboardListener(
-      focusNode: FocusNode(skipTraversal: true),
-      onKeyEvent: onKeyEvent,
+      focusNode: _keyFocusNode,
+      onKeyEvent: widget.onKeyEvent,
       child: Container(
         width: 44, height: 54,
         margin: const EdgeInsets.symmetric(horizontal: 4),
         child: TextField(
           controller: controller,
-          focusNode: focusNode,
+          focusNode: widget.focusNode,
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
           maxLength: 1,
@@ -281,7 +294,7 @@ class _OtpBox extends StatelessWidget {
               borderSide: BorderSide(color: focusBorderColor, width: 2),
             ),
           ),
-          onChanged: onChanged,
+          onChanged: widget.onChanged,
         ),
       ),
     );
