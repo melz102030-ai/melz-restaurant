@@ -1,15 +1,15 @@
 ((a,b)=>{a[b]=a[b]||{}})(self,"$__dart_deferred_initializers__")
 $__dart_deferred_initializers__.current=function(a,b,c,$){var J,A,C,D={
-bO6(d,e,f,g){return new D.CR(f,d,g,e)},
-bWu(d){return new D.acf(d,null)},
+bO8(d,e,f,g){return new D.CR(f,d,g,e)},
+bWw(d){return new D.acg(d,null)},
 CR:function CR(d,e,f,g){var _=this
 _.b=d
 _.c=e
 _.d=f
 _.e=g},
-acf:function acf(d,e){this.c=d
+acg:function acg(d,e){this.c=d
 this.a=e},
-aRf:function aRf(d,e){this.a=d
+aRh:function aRh(d,e){this.a=d
 this.b=e}},B,E,F
 J=c[1]
 A=c[0]
@@ -19,11 +19,11 @@ B=c[35]
 E=c[17]
 F=c[27]
 D.CR.prototype={}
-D.acf.prototype={
-E(d){var x=null,w=E.xS(d,F.jc),v=w==null?x:w.a
-return new E.Iy(new A.e1(C.bx,x,C.bm,C.z,J.rf(new D.aRf(this,v==null?A.a3(A.Z("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
+D.acg.prototype={
+E(d){var x=null,w=E.xU(d,F.jc),v=w==null?x:w.a
+return new E.Iy(new A.e1(C.bx,x,C.bm,C.z,J.rf(new D.aRh(this,v==null?A.a3(A.Z("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
 var z=a.updateTypes(["x<lj>(m<CR>)"])
-D.aRf.prototype={
+D.aRh.prototype={
 $1(d){return new A.hC(this.al2(d),y.l)},
 al2(d){var x=this
 return function(){var w=d
@@ -60,10 +60,10 @@ case 4:return 0
 case 1:return a6.c=t.at(-1),3}}}},
 $S:z+0};(function inheritance(){var x=a.inherit
 x(D.CR,A.A)
-x(D.acf,A.a_)
-x(D.aRf,A.hE)})()
-A.ne(b.typeUniverse,JSON.parse('{"acf":{"a_":[],"d":[]}}'))
-var y={n:A.a4("ca<D>"),l:A.a4("hC<lj>"),b:A.a4("D")};(function constants(){B.yQ=new A.ah(61870,"MaterialIcons",null,!1)
+x(D.acg,A.a0)
+x(D.aRh,A.hE)})()
+A.ne(b.typeUniverse,JSON.parse('{"acg":{"a0":[],"d":[]}}'))
+var y={n:A.a5("ca<D>"),l:A.a5("hC<lj>"),b:A.a5("D")};(function constants(){B.yQ=new A.ah(61870,"MaterialIcons",null,!1)
 B.a4J=new A.I(1,1,0.9529411764705882,0.8784313725490196,C.m)
 B.a5v=new A.I(1,1,0.8784313725490196,0.6980392156862745,C.m)
 B.a61=new A.I(1,1,0.8,0.5019607843137255,C.m)
@@ -73,6 +73,6 @@ B.a5H=new A.I(1,0.984313725490196,0.5490196078431373,0,C.m)
 B.a4R=new A.I(1,0.9607843137254902,0.48627450980392156,0,C.m)
 B.a5G=new A.I(1,0.9372549019607843,0.4235294117647059,0,C.m)
 B.a4v=new A.I(1,0.9019607843137255,0.3176470588235294,0,C.m)
-B.are=new A.cL([50,B.a4J,100,B.a5v,200,B.a61,300,B.a4h,400,B.a4Z,500,C.b_,600,B.a5H,700,B.a4R,800,B.a5G,900,B.a4v],A.a4("cL<l,I>"))
-B.zZ=new A.t6(B.are,1,1,0.596078431372549,0,C.m)})()};
-(a=>{a["QkI6uEFfPfvrAu036GRIbfXI1DU="]=a.current})($__dart_deferred_initializers__);
+B.are=new A.cL([50,B.a4J,100,B.a5v,200,B.a61,300,B.a4h,400,B.a4Z,500,C.b_,600,B.a5H,700,B.a4R,800,B.a5G,900,B.a4v],A.a5("cL<l,I>"))
+B.zZ=new A.t7(B.are,1,1,0.596078431372549,0,C.m)})()};
+(a=>{a["DO2WWEsqK0rZlQffmzHuqYENgJ8="]=a.current})($__dart_deferred_initializers__);
