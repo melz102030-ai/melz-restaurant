@@ -947,6 +947,9 @@ async function handleReclaimStaffAccount(request, env) {
 // الطلبات تمر هنا بدل الاستدعاء المباشر من المتصفح لتفادي قيود CORS،
 // والمفتاح يُخزَّن سرّاً في Cloudflare ولا يُرسَل للعميل أبداً
 
+// الانتظار التصاعدي بين كل إرسال وإعادة الإرسال، يتضاعف مع كل محاولة ويُعاد يومياً
+const OTP_BACKOFF = [60, 120, 300, 600, 1200, 1800]; // ثانية
+
 async function handleOtpSend(request, env) {
   let phone;
   try {
@@ -959,6 +962,18 @@ async function handleOtpSend(request, env) {
   }
   if (!env.AUTHENTICA_KEY) return json({ error: "otp-not-configured" }, 503);
 
+  phone = phone.trim();
+
+  // فحص الـ Rate Limit قبل الإرسال
+  let record = null;
+  if (env.OTP_RATE) {
+    record = await env.OTP_RATE.get(`otp:${phone}`, { type: "json" }).catch(() => null);
+    if (record?.nextAllowedAt > Date.now()) {
+      const retryAfter = Math.ceil((record.nextAllowedAt - Date.now()) / 1000);
+      return json({ error: "rate-limited", retryAfter }, 429);
+    }
+  }
+
   const res = await fetch("https://api.authentica.sa/api/v2/send-otp", {
     method: "POST",
     headers: {
@@ -966,13 +981,26 @@ async function handleOtpSend(request, env) {
       "Accept": "application/json",
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ method: "sms", phone: phone.trim() }),
+    body: JSON.stringify({ method: "sms", phone }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok || data.success !== true) {
     return json({ error: "send-failed", detail: data }, res.ok ? 502 : res.status);
   }
-  return json({ ok: true });
+
+  // تسجيل الإرسال وحساب وقت الإرسال التالي المسموح به
+  const newCount = (record?.count ?? 0) + 1;
+  const retryAfter = OTP_BACKOFF[Math.min(newCount - 1, OTP_BACKOFF.length - 1)];
+  if (env.OTP_RATE) {
+    const nextAllowedAt = Date.now() + retryAfter * 1000;
+    env.OTP_RATE.put(
+      `otp:${phone}`,
+      JSON.stringify({ count: newCount, nextAllowedAt }),
+      { expirationTtl: 86400 }
+    ).catch(() => {});
+  }
+
+  return json({ ok: true, retryAfter });
 }
 
 async function handleOtpVerify(request, env) {

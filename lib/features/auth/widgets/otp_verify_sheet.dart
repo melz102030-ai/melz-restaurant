@@ -6,19 +6,24 @@ import '../../../core/services/authentica_service.dart';
 import '../../../shared/widgets/app_button.dart';
 
 /// تعرض ورقة أسفل الشاشة لإدخال رمز OTP. تُعيد true عند التحقق الناجح.
-Future<bool> showOtpVerifySheet(BuildContext context, {required String phone}) async {
+Future<bool> showOtpVerifySheet(
+  BuildContext context, {
+  required String phone,
+  int initialRetryAfter = 60,
+}) async {
   final result = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) => _OtpSheetContent(phone: phone),
+    builder: (_) => _OtpSheetContent(phone: phone, initialRetryAfter: initialRetryAfter),
   );
   return result == true;
 }
 
 class _OtpSheetContent extends StatefulWidget {
   final String phone;
-  const _OtpSheetContent({required this.phone});
+  final int initialRetryAfter;
+  const _OtpSheetContent({required this.phone, this.initialRetryAfter = 60});
   @override
   State<_OtpSheetContent> createState() => _OtpSheetContentState();
 }
@@ -27,7 +32,7 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
   final _controllers = List.generate(4, (_) => TextEditingController());
   final _focusNodes = List.generate(4, (_) => FocusNode());
   Timer? _timer;
-  int _secondsLeft = 120;
+  late int _secondsLeft;
   bool _isVerifying = false;
   bool _isSending = false;
   String? _error;
@@ -35,6 +40,7 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
   @override
   void initState() {
     super.initState();
+    _secondsLeft = widget.initialRetryAfter;
     _startTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[0].requestFocus();
@@ -50,7 +56,6 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
   }
 
   void _startTimer() {
-    setState(() => _secondsLeft = 120);
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_secondsLeft <= 0) {
@@ -127,8 +132,9 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
   Future<void> _resend() async {
     setState(() { _isSending = true; _error = null; });
     try {
-      await AuthenticaService.sendOtp(widget.phone);
+      final retryAfter = await AuthenticaService.sendOtp(widget.phone);
       if (!mounted) return;
+      setState(() => _secondsLeft = retryAfter);
       _startTimer();
       for (final c in _controllers) { c.clear(); }
       _focusNodes[0].requestFocus();
@@ -271,7 +277,7 @@ class _OtpBoxState extends State<_OtpBox> {
         width: 44, height: 54,
         margin: const EdgeInsets.symmetric(horizontal: 4),
         child: TextField(
-          controller: controller,
+          controller: widget.controller,
           focusNode: widget.focusNode,
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,

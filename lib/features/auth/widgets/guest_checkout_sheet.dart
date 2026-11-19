@@ -62,8 +62,9 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
     }
 
     setState(() { _isSendingOtp = true; _otpError = null; });
+    int retryAfter;
     try {
-      await AuthenticaService.sendOtp(phone);
+      retryAfter = await AuthenticaService.sendOtp(phone);
     } catch (e) {
       if (mounted) setState(() { _otpError = e.toString().replaceAll('Exception: ', ''); _isSendingOtp = false; });
       return;
@@ -71,7 +72,7 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
     if (!mounted) return;
     setState(() => _isSendingOtp = false);
 
-    final verified = await showOtpVerifySheet(context, phone: phone);
+    final verified = await showOtpVerifySheet(context, phone: phone, initialRetryAfter: retryAfter);
     if (!mounted) return;
     if (verified) {
       Navigator.pop(context, (name: name, phone: phone));

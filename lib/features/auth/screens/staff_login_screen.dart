@@ -45,15 +45,16 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
       final user = await AuthService.loginStaff(phone, password);
 
       // إرسال OTP كطبقة تحقق ثانية — أي فشل هنا يُلغي جلسة Firebase أيضاً
+      int retryAfter;
       try {
-        await AuthenticaService.sendOtp(phone);
+        retryAfter = await AuthenticaService.sendOtp(phone);
       } catch (_) {
         await FirebaseAuth.instance.signOut();
         rethrow;
       }
       if (!mounted) return;
 
-      final verified = await showOtpVerifySheet(context, phone: phone);
+      final verified = await showOtpVerifySheet(context, phone: phone, initialRetryAfter: retryAfter);
       if (!mounted) return;
 
       if (!verified) {
