@@ -339,15 +339,11 @@ class _CartScreenState extends ConsumerState<CartScreen> {
         if (!distanceOk || !mounted) return;
       }
 
-      // لا يوجد نظام تسجيل دخول للعملاء — اسم ورقم جوال فقط لحظة الطلب،
-      // بلا حساب دائم ولا كلمة مرور (راجع AuthService.guestLogin)
       var user = ref.read(authProvider);
       if (user == null) {
-        final guestPhone = await showGuestCheckoutSheet(context);
-        if (guestPhone == null || !mounted) return;
-        final guestUser =
-            await AuthService.guestLogin(name: guestPhone, phone: guestPhone);
-        await ref.read(authProvider.notifier).login(guestUser);
+        final loggedIn = await showCustomerLoginSheet(context);
+        if (loggedIn == null || !mounted) return;
+        await ref.read(authProvider.notifier).login(loggedIn);
         user = ref.read(authProvider);
         if (user == null) return;
       }

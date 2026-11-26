@@ -232,29 +232,36 @@ class AuthService {
     await _db.collection(_colUsers).doc(userId).delete();
   }
 
-  // ─── طلب بلا تسجيل دخول (وضع "ضيف") ────────────────────────────────────────
-  // حساب مجهول من فايربيس (نفس آلية "الدخول السريع للمعاينة") بالاسم ورقم
-  // الجوال الحقيقيين اللذين أدخلهما العميل بنفسه لحظة الطلب، بدل حساب دائم
-  // برقم جوال+كلمة مرور. يبقى بإمكان العميل متابعة طلباته لاحقاً من نفس
-  // الجهاز/المتصفح طالما لم يُسجِّل خروجه (نفس الجلسة المجهولة محفوظة محلياً)
-  static Future<UserModel> guestLogin({
-    required String name,
+  // ─── دخول العميل برقم جواله ────────────────────────────────────────────────
+  // الخادم يتحقق من الرمز ويُصدر توكناً بمعرّف ثابت لهذا الرقم، فيكون للعميل
+  // الحساب نفسه وطلباته نفسها في أي جهاز. يُعيد null إن كان الرمز خاطئاً.
+  static Future<UserModel?> customerLogin({
     required String phone,
+    required String otp,
   }) async {
-    final cred = await _auth.signInAnonymously();
-    final uid = cred.user!.uid;
+    final current = _auth.currentUser;
+    final guestToken = current != null && current.isAnonymous ? await current.getIdToken() : null;
 
-    final user = UserModel(
-      id: uid,
-      phone: phone,
-      name: name,
-      role: UserRole.customer,
-      createdAt: DateTime.now(),
+    final res = await http.post(
+      Uri.parse('$kWorkerUrl/customer/login-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'phone': phone,
+        'otp': otp,
+        if (guestToken != null) 'idToken': guestToken,
+      }),
     );
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode == 401) return null;
+    if (res.statusCode != 200 || data['ok'] != true) {
+      throw Exception(data['message'] ?? 'تعذّر تسجيل الدخول، حاول مجدداً');
+    }
 
-    await _db.collection(_colUsers).doc(uid).set(user.toMap(), SetOptions(merge: true));
-    return user;
+    final cred = await _auth.signInWithCustomToken(data['customToken'] as String);
+    final doc = await _db.collection(_colUsers).doc(cred.user!.uid).get();
+    return UserModel.fromMap(doc.data()!, doc.id);
   }
+
 
   // إنشاء موظف مباشرة من الأدمن — يُنشئ حساب Firebase Auth حقيقياً (بنفس نمط
   // البريد الوهمي المستخدم لعملاء الجوال/كلمة المرور) عبر تطبيق Firebase مؤقت

@@ -109,18 +109,8 @@ function base64url(input) {
 // Firestore الحقيقي. لا يوجد في النشر (wrangler.toml)، فلا أثر له على الموقع.
 const firestoreOrigin = (env) => env.FIRESTORE_EMULATOR_ORIGIN || "https://firestore.googleapis.com";
 
-async function getFirestoreAdminToken(env, scope = "https://www.googleapis.com/auth/datastore") {
-  if (env.FIRESTORE_EMULATOR_ORIGIN) return "owner"; // صلاحية المدير في المحاكي
-  const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON);
-  const now = Math.floor(Date.now() / 1000);
+async function signServiceJwt(sa, claims) {
   const header = { alg: "RS256", typ: "JWT" };
-  const claims = {
-    iss: sa.client_email,
-    scope,
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  };
   const unsigned = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(claims))}`;
   const key = await crypto.subtle.importKey(
     "pkcs8",
@@ -134,7 +124,20 @@ async function getFirestoreAdminToken(env, scope = "https://www.googleapis.com/a
     key,
     new TextEncoder().encode(unsigned)
   );
-  const jwt = `${unsigned}.${base64url(sig)}`;
+  return `${unsigned}.${base64url(sig)}`;
+}
+
+async function getFirestoreAdminToken(env, scope = "https://www.googleapis.com/auth/datastore") {
+  if (env.FIRESTORE_EMULATOR_ORIGIN) return "owner"; // صلاحية المدير في المحاكي
+  const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  const now = Math.floor(Date.now() / 1000);
+  const jwt = await signServiceJwt(sa, {
+    iss: sa.client_email,
+    scope,
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  });
 
   const res = await fetch("https://oauth2.googleapis.com/token", {
     method: "POST",
@@ -943,8 +946,70 @@ async function handleReclaimStaffAccount(request, env) {
   }
 }
 
-// إعادة تعيين كلمة مرور موظف بعد التحقق من رمز OTP من جهة الخادم — بلا جلسة Firebase،
-// فيُستخدَم عند نسيان كلمة المرور قبل تسجيل الدخول. OTP يُتحقق منه هنا لا من المتصفح.
+// ─── أرقام الجوال ────────────────────────────────────────────────────────────
+// مطابقة لـ AuthenticaService.normalizePhone: الصيغة الدولية التي يُرسَل لها الرمز
+function normalizePhone(phone) {
+  const p = phone.replace(/[\s\-()]/g, "");
+  if (p.startsWith("05") && p.length === 10) return `+966${p.slice(1)}`;
+  if (p.startsWith("5") && p.length === 9) return `+966${p}`;
+  if (p.startsWith("00966")) return `+${p.slice(2)}`;
+  if (p.startsWith("966")) return `+${p}`;
+  return p;
+}
+
+// الصيغة المحلية المعروضة للمطعم (05XXXXXXXX) لأي رقم سعودي
+function localPhone(e164) {
+  return e164.startsWith("+9665") && e164.length === 13 ? `0${e164.slice(4)}` : e164;
+}
+
+// حساب الموظف محفوظ بالرقم كما كتبه الأدمن عند إنشائه، فنبحث بكل صيغه
+function phoneVariants(phone) {
+  const raw = phone.replace(/[\s\-()]/g, "");
+  const e164 = normalizePhone(raw);
+  const set = new Set([raw, e164]);
+  if (e164.startsWith("+966")) {
+    const national = e164.slice(4);
+    set.add(`0${national}`).add(national).add(`966${national}`).add(`00966${national}`);
+  }
+  return [...set];
+}
+
+async function findStaffByPhone(env, phone) {
+  const authToken = await getFirestoreAdminToken(env, AUTH_SCOPE);
+  const lookup = await authAdminCall(env, authToken, "lookup", {
+    email: phoneVariants(phone).map((p) => `${p}@meals.local`),
+  });
+  if (!lookup.ok) return { error: "user-not-found" };
+  const uid = (await lookup.json()).users?.[0]?.localId;
+  if (!uid) return { error: "user-not-found" };
+
+  const adminToken = await getFirestoreAdminToken(env);
+  const profileRes = await fsFetch(env, adminToken, `/users/${uid}`);
+  if (!profileRes.ok) return { error: "user-not-found" };
+  const profile = docFields((await profileRes.json()).fields);
+  if (profile.role === "customer") return { error: "not-a-staff-member" };
+  return { uid, authToken };
+}
+
+const STAFF_LOOKUP_ERRORS = {
+  "user-not-found": [{ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404],
+  "not-a-staff-member": [{ error: "not-a-staff-member", message: "هذا الرقم ليس حساب موظف" }, 403],
+};
+
+async function verifyOtpServerSide(env, e164, otp) {
+  const res = await fetch("https://api.authentica.sa/api/v2/verify-otp", {
+    method: "POST",
+    headers: {
+      "X-Authorization": env.AUTHENTICA_KEY,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ phone: e164, otp: otp.trim() }),
+  });
+  const data = await res.json().catch(() => ({}));
+  return data.status === true;
+}
+
 // يتحقق أن رقم الجوال مسجّل كموظف (قبل إرسال OTP) — لمنع إرسال رمز لأي رقم عشوائي
 async function handleCheckStaffPhone(request, env) {
   let phone;
@@ -956,25 +1021,115 @@ async function handleCheckStaffPhone(request, env) {
   if (typeof phone !== "string" || phone.trim().length < 7) {
     return json({ error: "invalid-body", message: "رقم الجوال مطلوب" }, 400);
   }
-  phone = phone.trim();
-
-  const authToken = await getFirestoreAdminToken(env, AUTH_SCOPE);
-  const lookup = await authAdminCall(env, authToken, "lookup", { email: [`${phone}@meals.local`] });
-  if (!lookup.ok) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
-  const uid = (await lookup.json()).users?.[0]?.localId;
-  if (!uid) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
-
-  const adminToken = await getFirestoreAdminToken(env);
-  const profileRes = await fsFetch(env, adminToken, `/users/${uid}`);
-  if (!profileRes.ok) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
-  const profile = docFields((await profileRes.json()).fields);
-  if (profile.role === "customer") {
-    return json({ error: "not-a-staff-member", message: "هذا الرقم ليس حساب موظف" }, 403);
-  }
-
+  const staff = await findStaffByPhone(env, phone.trim());
+  if (staff.error) return json(...STAFF_LOOKUP_ERRORS[staff.error]);
   return json({ ok: true });
 }
 
+// ─── دخول العميل برقم جواله ──────────────────────────────────────────────────
+// يتحقق الخادم من الرمز ثم يُصدر Custom Token بمعرّف ثابت لكل رقم، فيكون للعميل
+// الحساب نفسه وطلباته نفسها في أي جهاز
+async function handleCustomerLoginOtp(request, env) {
+  let phone, otp, idToken;
+  try {
+    ({ phone, otp, idToken } = await request.json());
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  if (typeof phone !== "string" || phone.trim().length < 7) {
+    return json({ error: "invalid-body", message: "رقم الجوال مطلوب" }, 400);
+  }
+  if (typeof otp !== "string" || otp.trim().length < 4) {
+    return json({ error: "invalid-body", message: "رمز التحقق مطلوب" }, 400);
+  }
+  if (!env.AUTHENTICA_KEY) return json({ error: "otp-not-configured" }, 503);
+
+  const e164 = normalizePhone(phone.trim());
+  if (!/^\+\d{9,15}$/.test(e164)) {
+    return json({ error: "invalid-phone", message: "رقم جوال غير صحيح" }, 400);
+  }
+  if (!(await verifyOtpServerSide(env, e164, otp))) {
+    return json({ error: "otp-invalid", message: "رمز التحقق غير صحيح" }, 401);
+  }
+
+  const uid = `c_${e164.slice(1)}`;
+  const display = localPhone(e164);
+  const adminToken = await getFirestoreAdminToken(env);
+
+  // ملف العميل يُنشأ هنا إن لم يوجد، برقمه الموثَّق
+  const nowIso = new Date().toISOString();
+  const create = await fsFetch(env, adminToken, `/users/${uid}?currentDocument.exists=false`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      fields: {
+        phone: { stringValue: display },
+        name: { stringValue: display },
+        role: { stringValue: "customer" },
+        createdAt: { timestampValue: nowIso },
+      },
+    }),
+  });
+  if (!create.ok && create.status !== 400 && create.status !== 409) {
+    console.error("customer-profile-create-failed", create.status, await create.text());
+    return json({ error: "login-failed", message: "تعذّر تسجيل الدخول، حاول مجدداً" }, 502);
+  }
+
+  // طلبات جلسة الضيف القديمة على هذا الجهاز تنتقل لحساب الرقم، بشرط أن تكون الجلسة
+  // صحيحة (Firestore تتحقق من توقيع التوكن عند قراءة الملف به) وبالرقم نفسه
+  if (typeof idToken === "string" && idToken) {
+    await migrateGuestOrders(env, adminToken, idToken, e164, uid).catch((e) =>
+      console.error("guest-orders-migration-failed", String(e))
+    );
+  }
+
+  const sa = JSON.parse(env.FIREBASE_SERVICE_ACCOUNT_JSON);
+  const now = Math.floor(Date.now() / 1000);
+  const customToken = await signServiceJwt(sa, {
+    iss: sa.client_email,
+    sub: sa.client_email,
+    aud: "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit",
+    iat: now,
+    exp: now + 3600,
+    uid,
+  });
+  return json({ ok: true, customToken });
+}
+
+async function migrateGuestOrders(env, adminToken, idToken, e164, newUid) {
+  const oldUid = decodeUid(idToken);
+  if (!oldUid || oldUid === newUid || !/^[\w-]+$/.test(oldUid)) return;
+
+  const profileRes = await fsFetch(env, idToken, `/users/${oldUid}`);
+  if (!profileRes.ok) return;
+  const oldPhone = docFields((await profileRes.json()).fields).phone;
+  if (typeof oldPhone !== "string" || normalizePhone(oldPhone) !== e164) return;
+
+  const q = await fsFetch(env, adminToken, ":runQuery", {
+    method: "POST",
+    body: JSON.stringify({
+      structuredQuery: {
+        from: [{ collectionId: "orders" }],
+        where: {
+          fieldFilter: {
+            field: { fieldPath: "customerId" },
+            op: "EQUAL",
+            value: { stringValue: oldUid },
+          },
+        },
+      },
+    }),
+  });
+  if (!q.ok) throw new Error(`orders-query-failed: ${await q.text()}`);
+  const rows = await q.json();
+  for (const row of rows) {
+    const name = row?.document?.name;
+    if (!name) continue;
+    await patchOrder(env, name.split("/").pop(), { customerId: newUid }, adminToken);
+  }
+}
+
+// إعادة تعيين كلمة مرور موظف بعد التحقق من رمز OTP من جهة الخادم — بلا جلسة Firebase،
+// فيُستخدَم عند نسيان كلمة المرور قبل تسجيل الدخول. OTP يُتحقق منه هنا لا من المتصفح.
 async function handleResetPasswordByOtp(request, env) {
   let phone, otp, newPassword;
   try {
@@ -995,38 +1150,16 @@ async function handleResetPasswordByOtp(request, env) {
 
   phone = phone.trim();
 
-  // 1. التحقق من OTP من جهة الخادم — ليس من المتصفح
-  const otpRes = await fetch("https://api.authentica.sa/api/v2/verify-otp", {
-    method: "POST",
-    headers: {
-      "X-Authorization": env.AUTHENTICA_KEY,
-      "Accept": "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ phone, otp: otp.trim() }),
-  });
-  const otpData = await otpRes.json().catch(() => ({}));
-  if (otpData.status !== true) return json({ error: "otp-invalid", message: "رمز التحقق غير صحيح" }, 401);
-
-  // 2. البحث عن المستخدم في Firebase Auth بالجوال
-  const authToken = await getFirestoreAdminToken(env, AUTH_SCOPE);
-  const lookup = await authAdminCall(env, authToken, "lookup", { email: [`${phone}@meals.local`] });
-  if (!lookup.ok) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
-  const uid = (await lookup.json()).users?.[0]?.localId;
-  if (!uid) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
-
-  // 3. التأكد أن الحساب موظف (ليس عميلاً)
-  const adminToken = await getFirestoreAdminToken(env);
-  const profileRes = await fsFetch(env, adminToken, `/users/${uid}`);
-  if (!profileRes.ok) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
-  const profile = docFields((await profileRes.json()).fields);
-  if (profile.role === "customer") {
-    return json({ error: "not-a-staff-member", message: "هذا الرقم ليس حساب موظف" }, 403);
+  if (!(await verifyOtpServerSide(env, normalizePhone(phone), otp))) {
+    return json({ error: "otp-invalid", message: "رمز التحقق غير صحيح" }, 401);
   }
 
-  // 4. إعادة تعيين كلمة المرور وإبطال الجلسات المفتوحة
-  const update = await authAdminCall(env, authToken, "update", {
-    localId: uid,
+  const staff = await findStaffByPhone(env, phone);
+  if (staff.error) return json(...STAFF_LOOKUP_ERRORS[staff.error]);
+
+  // إعادة تعيين كلمة المرور وإبطال الجلسات المفتوحة
+  const update = await authAdminCall(env, staff.authToken, "update", {
+    localId: staff.uid,
     password: newPassword,
     validSince: String(Math.floor(Date.now() / 1000)),
   });
@@ -1164,6 +1297,7 @@ export default {
     if (url.pathname === "/staff/reset-password") return handleResetStaffPassword(request, env);
     if (url.pathname === "/staff/reset-password-otp") return handleResetPasswordByOtp(request, env);
     if (url.pathname === "/staff/check-phone") return handleCheckStaffPhone(request, env);
+    if (url.pathname === "/customer/login-otp") return handleCustomerLoginOtp(request, env);
     if (url.pathname === "/staff/delete") return handleDeleteUser(request, env);
     if (url.pathname === "/staff/reclaim") return handleReclaimStaffAccount(request, env);
     if (url.pathname === "/orders/acknowledge-unavailable") {

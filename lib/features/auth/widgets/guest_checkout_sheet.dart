@@ -2,24 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/user_model.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/services/authentica_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import 'otp_verify_sheet.dart';
 
-/// نافذة منبثقة مختصرة جداً لإتمام الطلب بلا تسجيل دخول (وضع "ضيف") —
-/// اسم ورقم جوال فقط، بلا كلمة مرور ولا أي خطوة إضافية. راجع
-/// AuthService.guestLogin لما يحدث خلف الكواليس بعد الإرسال.
-/// تمرير الاسم والرقم الحاليين يعرضها للتعديل، بدل أول إدخال عند أول طلب.
+/// دخول العميل برقم جواله (جوال ثم رمز تحقق) — يُعيد المستخدم بعد الدخول، أو null عند الإلغاء.
+Future<UserModel?> showCustomerLoginSheet(BuildContext context) async {
+  final result = await showModalBottomSheet<Object?>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => const _GuestCheckoutSheetContent(),
+  );
+  return result is UserModel ? result : null;
+}
+
+/// تعديل رقم التواصل للعميل المسجّل، بلا رمز تحقق.
 Future<String?> showGuestCheckoutSheet(
   BuildContext context, {
-  String? initialPhone,
-}) {
-  return showModalBottomSheet<String?>(
+  required String initialPhone,
+}) async {
+  final result = await showModalBottomSheet<Object?>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (_) => _GuestCheckoutSheetContent(initialPhone: initialPhone),
   );
+  return result is String ? result : null;
 }
 
 class _GuestCheckoutSheetContent extends StatefulWidget {
@@ -65,11 +76,18 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
     if (!mounted) return;
     setState(() => _isSendingOtp = false);
 
-    final otpCode = await showOtpVerifySheet(context, phone: phone, initialRetryAfter: retryAfter);
+    UserModel? user;
+    await showOtpVerifySheet(
+      context,
+      phone: phone,
+      initialRetryAfter: retryAfter,
+      verifier: (code) async {
+        user = await AuthService.customerLogin(phone: phone, otp: code);
+        return user != null;
+      },
+    );
     if (!mounted) return;
-    if (otpCode != null) {
-      Navigator.pop(context, phone);
-    }
+    if (user != null) Navigator.pop(context, user);
   }
 
   @override
@@ -101,37 +119,6 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
               ),
               Text('رقم جوالك',
                   style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
-              const SizedBox(height: 4),
-              Text(
-                _isEditing
-                    ? 'سيتواصل معك المطعم على هذا الرقم بخصوص طلبك'
-                    : 'أدخل رقم جوالك لإتمام الطلب',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
-              ),
-              const SizedBox(height: 14),
-              if (!_isEditing)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.purple.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.purple.withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.verified_user_outlined,
-                        color: AppColors.purple, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'سيُرسَل رمز تحقق للتأكد من رقمك — لن يتكرر في طلباتك القادمة',
-                        style: TextStyle(color: AppColors.purple, fontSize: 12),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
               const SizedBox(height: 20),
               TextFormField(
                 controller: _phoneCtrl,
@@ -161,7 +148,7 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
               ],
               const SizedBox(height: 22),
               AppButton(
-                label: _isEditing ? 'حفظ' : 'متابعة الطلب',
+                label: _isEditing ? 'حفظ' : 'متابعة',
                 icon: _isEditing ? Icons.check : Icons.arrow_forward,
                 width: double.infinity,
                 onPressed: _submit,

@@ -10,11 +10,14 @@ import '../../../shared/widgets/app_button.dart';
 ///
 /// [skipVerification]: عند true لا تتحقق من الكود مع Authentica محلياً —
 /// استخدمه حين يتحقق الطرف الآخر (Worker) من الكود لمنع استهلاكه مرتين.
+/// [verifier]: يحل محل التحقق الافتراضي (كتسجيل الدخول في الخادم)، فيبقى خطأ
+/// الرمز داخل الورقة ويُعاد إدخاله بلا إرسال رمز جديد.
 Future<String?> showOtpVerifySheet(
   BuildContext context, {
   required String phone,
   int initialRetryAfter = 60,
   bool skipVerification = false,
+  Future<bool> Function(String code)? verifier,
 }) {
   return showModalBottomSheet<String?>(
     context: context,
@@ -24,6 +27,7 @@ Future<String?> showOtpVerifySheet(
       phone: phone,
       initialRetryAfter: initialRetryAfter,
       skipVerification: skipVerification,
+      verifier: verifier,
     ),
   );
 }
@@ -32,10 +36,12 @@ class _OtpSheetContent extends StatefulWidget {
   final String phone;
   final int initialRetryAfter;
   final bool skipVerification;
+  final Future<bool> Function(String code)? verifier;
   const _OtpSheetContent({
     required this.phone,
     this.initialRetryAfter = 60,
     this.skipVerification = false,
+    this.verifier,
   });
   @override
   State<_OtpSheetContent> createState() => _OtpSheetContentState();
@@ -131,7 +137,9 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
         Navigator.pop(context, code);
         return;
       }
-      final ok = await AuthenticaService.verifyOtp(widget.phone, code);
+      final ok = widget.verifier != null
+          ? await widget.verifier!(code)
+          : await AuthenticaService.verifyOtp(widget.phone, code);
       if (!mounted) return;
       if (ok) {
         Navigator.pop(context, code);
