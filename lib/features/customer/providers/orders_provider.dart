@@ -7,7 +7,8 @@ import '../../../core/services/order_service.dart';
 
 final customerOrdersStreamProvider = StreamProvider<List<OrderModel>>((ref) {
   final user = ref.watch(authProvider);
-  if (user == null) return const Stream.empty();
+  // Stream.empty لا يُصدر أي قيمة، فتبقى الشاشة في التحميل للأبد
+  if (user == null) return Stream.value(const <OrderModel>[]);
   return OrderService.streamCustomerOrders(user.id);
 });
 

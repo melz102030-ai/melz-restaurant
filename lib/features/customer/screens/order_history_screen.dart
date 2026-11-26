@@ -6,7 +6,10 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/models/order_model.dart';
+import '../../../core/providers/auth_provider.dart';
+import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../../auth/widgets/guest_checkout_sheet.dart';
 import '../providers/orders_provider.dart';
 import '../utils/order_to_cart.dart';
 
@@ -17,16 +20,32 @@ class OrderHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ordersAsync = ref.watch(customerOrdersStreamProvider);
+    final user = ref.watch(authProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('طلباتي'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios),
-          onPressed: () => context.pop(),
+          onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
       ),
-      body: ordersAsync.when(
+      body: user == null
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: AppButton(
+                  label: 'تسجيل الدخول',
+                  icon: Icons.login,
+                  width: double.infinity,
+                  onPressed: () async {
+                    final loggedIn = await showCustomerLoginSheet(context);
+                    if (loggedIn != null) await ref.read(authProvider.notifier).login(loggedIn);
+                  },
+                ),
+              ),
+            )
+          : ordersAsync.when(
         loading: () => const LoadingWidget(),
         error: (e, _) => EmptyState(message: 'تعذّر تحميل الطلبات', icon: Icons.error_outline),
         data: (orders) => orders.isEmpty
