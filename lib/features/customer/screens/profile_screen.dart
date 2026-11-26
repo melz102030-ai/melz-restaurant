@@ -30,11 +30,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       // فقط لحظة إرسال أول طلب، فمن لم يطلب بعد على هذا الجهاز ببساطة لا
       // يملك سجلاً بعد، لا "تسجيل دخول" ناقصاً يحتاج إتمامه
       return Scaffold(
-        body: EmptyState(
-          message: 'لا يوجد سجل طلبات بعد على هذا الجهاز\nابدأ بتصفح القائمة واطلب!',
-          icon: Icons.receipt_long_outlined,
-          actionLabel: 'تصفّح القائمة',
-          onAction: () => context.go('/home'),
+        appBar: AppBar(
+          title: const Text(AppStrings.profile),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              EmptyState(
+                message: 'لا يوجد سجل طلبات بعد على هذا الجهاز\nابدأ بتصفح القائمة واطلب!',
+                icon: Icons.receipt_long_outlined,
+                actionLabel: 'تصفّح القائمة',
+                onAction: () => context.go('/home'),
+              ),
+              const SizedBox(height: 24),
+              const _LegalLinks(),
+            ],
+          ),
         ),
       );
     }
@@ -165,18 +182,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Legal
-            _LegalRow(
-              label: 'سياسة الخصوصية',
-              icon: Icons.privacy_tip_outlined,
-              onTap: () => context.push('/legal/privacy_policy'),
-            ),
-            const SizedBox(height: 8),
-            _LegalRow(
-              label: 'الشروط والأحكام',
-              icon: Icons.gavel_outlined,
-              onTap: () => context.push('/legal/terms_conditions'),
-            ),
+            const _LegalLinks(),
             const SizedBox(height: 20),
 
             AppButton(
@@ -252,6 +258,30 @@ class _StatCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LegalLinks extends StatelessWidget {
+  const _LegalLinks();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _LegalRow(
+          label: 'سياسة الخصوصية',
+          icon: Icons.privacy_tip_outlined,
+          onTap: () => context.push('/legal/privacy_policy'),
+        ),
+        const SizedBox(height: 8),
+        _LegalRow(
+          label: 'الشروط والأحكام والاسترجاع',
+          icon: Icons.gavel_outlined,
+          onTap: () => context.push('/legal/terms_conditions'),
+        ),
+      ],
     );
   }
 }
