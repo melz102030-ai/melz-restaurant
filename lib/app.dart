@@ -13,6 +13,7 @@ import 'core/providers/app_theme_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/screens/staff_login_screen.dart';
 import 'features/customer/screens/customer_home_screen.dart';
+import 'features/customer/screens/order_type_screen.dart';
 import 'features/customer/screens/cart_screen.dart';
 import 'features/customer/screens/item_detail_screen.dart';
 import 'features/customer/screens/order_tracking_screen.dart' deferred as tracking;
@@ -62,12 +63,18 @@ final _routerProvider = Provider<GoRouter>((ref) {
           loc.startsWith('/profile') ||
           loc.startsWith('/orders') ||
           loc.startsWith('/support') ||
-          loc.startsWith('/game');
+          loc.startsWith('/game') ||
+          loc == '/order-type';
 
       if (user == null) {
         if (isStaffAuthRoute || isSharedCustomerRoute) return null;
         if (isAdminRoute || isDriverRoute) return '/staff-login';
-        return '/home';
+        return '/order-type';
+      }
+
+      // شاشة اختيار نوع الطلب للعملاء فقط — الأدمن والمندوب يُوجَّهان لصفحتهم
+      if (loc == '/order-type' && user.role != UserRole.customer) {
+        return _getHomeRoute(user.role);
       }
 
       // دور "مطبخ" لا مكان له داخل تطبيق فلاتر إطلاقاً — تحويل فوري خارجي
@@ -113,6 +120,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // Customer
+      GoRoute(
+        path: '/order-type',
+        builder: (_, __) => const OrderTypeScreen(),
+      ),
       GoRoute(
         path: '/home',
         builder: (_, __) => const CustomerHomeScreen(),
@@ -360,6 +371,9 @@ String _getInitialRoute(UserModel? user) {
   if (user?.role == UserRole.kitchen) {
     redirectToKitchenLite();
   }
+  // العملاء وغير المسجّلين يبدؤون من شاشة اختيار نوع الطلب
+  // بقية الأدوار يُوجَّهون بعدها من redirect إلى صفحتهم الخاصة
+  if (user == null || user.role == UserRole.customer) return '/order-type';
   return '/home';
 }
 
