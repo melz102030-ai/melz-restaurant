@@ -192,6 +192,27 @@ test("القائمة: الجميع يقرأ، والمطبخ يغيّر توفر
   await assertSucceeds(updateDoc(doc(staff("admin1"), "menu_items/m1"), { price: 7 }));
 });
 
+test("المستندات القانونية: الجميع يقرأ، ويعدّلها صاحب صلاحية الإعدادات فقط", async () => {
+  await seed((d) => setDoc(doc(d, "legal/privacy_policy"), { title: "سياسة الخصوصية", sections: [] }));
+  await assertSucceeds(getDoc(doc(env.unauthenticatedContext().firestore(), "legal/privacy_policy")));
+  await assertSucceeds(setDoc(doc(staff("admin1"), "legal/terms_conditions"), { title: "الشروط", sections: [] }));
+  await assertFails(setDoc(doc(staff("ordersAdmin"), "legal/privacy_policy"), { title: "x" }));
+  await assertFails(setDoc(doc(staff("kitchen1"), "legal/privacy_policy"), { title: "x" }));
+  await assertFails(setDoc(doc(guest("guest1"), "legal/privacy_policy"), { title: "x" }));
+});
+
+test("عميل الرقم (Custom Token): لا يرقّي نفسه ولا يقرأ إلا طلبه", async () => {
+  const customer = (uid) =>
+    env.authenticatedContext(uid, { firebase: { sign_in_provider: "custom" } }).firestore();
+  await seed((d) => setDoc(doc(d, "users/c_966500000000"), { role: "customer", name: "0500000000", phone: "0500000000" }));
+  const db = customer("c_966500000000");
+  await assertFails(updateDoc(doc(db, "users/c_966500000000"), { role: "admin" }));
+  await assertFails(updateDoc(doc(db, "users/c_966500000000"), { permissions: { users: true } }));
+  await assertFails(setDoc(doc(customer("c_966511111111"), "users/c_966511111111"), { role: "admin", name: "x" }));
+  await assertFails(getDoc(doc(db, "orders/o1")));
+  await assertFails(setDoc(doc(db, "legal/privacy_policy"), { title: "x" }));
+});
+
 test("توثيق الأرقام: للمطبخ والمدير فقط", async () => {
   const mark = (db) => setDoc(doc(db, "verified_phones/0500000000"), { verifiedBy: "x" });
   await assertSucceeds(mark(staff("kitchen1")));
