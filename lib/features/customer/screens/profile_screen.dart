@@ -163,7 +163,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               icon: Icons.support_agent_outlined,
               width: double.infinity,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
+
+            // Legal
+            _LegalRow(
+              label: 'سياسة الخصوصية',
+              icon: Icons.privacy_tip_outlined,
+              onTap: () => context.push('/legal/privacy_policy'),
+            ),
+            const SizedBox(height: 8),
+            _LegalRow(
+              label: 'الشروط والأحكام',
+              icon: Icons.gavel_outlined,
+              onTap: () => context.push('/legal/terms_conditions'),
+            ),
+            const SizedBox(height: 20),
 
             AppButton(
               label: 'تسجيل الخروج',
@@ -237,6 +251,39 @@ class _StatCard extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _LegalRow extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _LegalRow({required this.label, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.textSecondary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label, style: TextStyle(color: AppColors.textPrimary, fontSize: 14)),
+            ),
+            Icon(Icons.chevron_left, color: AppColors.textHint, size: 20),
+          ],
+        ),
       ),
     );
   }

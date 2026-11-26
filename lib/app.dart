@@ -25,6 +25,7 @@ import 'features/admin/admin_screens.dart' deferred as admin;
 import 'features/driver/screens/driver_screen.dart' deferred as driver;
 import 'shared/utils/kitchen_redirect.dart';
 import 'features/game/heart_dodge_game_screen.dart' deferred as game;
+import 'features/legal/screens/legal_screen.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _adminKey = GlobalKey<NavigatorState>();
@@ -64,6 +65,7 @@ final _routerProvider = Provider<GoRouter>((ref) {
           loc.startsWith('/orders') ||
           loc.startsWith('/support') ||
           loc.startsWith('/game') ||
+          loc.startsWith('/legal') ||
           loc == '/order-type';
 
       if (user == null) {
@@ -177,6 +179,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
           builder: () => game.HeartDodgeGameScreen(orderId: state.pathParameters['orderId']!),
         ),
       ),
+      GoRoute(
+        path: '/legal/:docId',
+        builder: (_, state) => LegalScreen(docId: state.pathParameters['docId']!),
+      ),
 
       // Admin - Shell route with sidebar
       ShellRoute(
@@ -248,6 +254,10 @@ final _routerProvider = Provider<GoRouter>((ref) {
             builder: (_, state) =>
                 _adminPage(() => admin.AdminSupportTicketScreen(ticketId: state.pathParameters['ticketId']!)),
           ),
+          GoRoute(
+            path: '/admin/legal',
+            builder: (_, __) => _adminPage(() => admin.AdminLegalScreen()),
+          ),
         ],
       ),
 
@@ -293,6 +303,7 @@ const Map<String, String> _adminRoutePermissions = {
   '/admin/support': Perm.support,
   '/admin/settings': Perm.settings,
   '/admin/clear-history': Perm.clearHistory,
+  '/admin/legal': Perm.settings,
   '/admin': Perm.dashboard,
 };
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/authentica_service.dart';
 import '../../../shared/widgets/app_button.dart';
@@ -166,6 +167,38 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
                 onPressed: _submit,
                 isLoading: _isSendingOtp,
               ),
+              if (!_isEditing) ...[
+                const SizedBox(height: 14),
+                Center(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    children: [
+                      Text(
+                        'بالمتابعة أنت توافق على ',
+                        style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.push('/legal/terms_conditions'),
+                        child: Text(
+                          'الشروط والأحكام',
+                          style: TextStyle(color: AppColors.purple, fontSize: 11, decoration: TextDecoration.underline),
+                        ),
+                      ),
+                      Text(
+                        ' و',
+                        style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.push('/legal/privacy_policy'),
+                        child: Text(
+                          'سياسة الخصوصية',
+                          style: TextStyle(color: AppColors.purple, fontSize: 11, decoration: TextDecoration.underline),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
         ),
