@@ -261,6 +261,13 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
     final phone = _phoneCtrl.text.trim();
     if (phone.isEmpty) return;
     setState(() { _isBusy = true; _error = null; });
+    // تحقق أولاً أن الرقم مسجّل كموظف قبل إرسال OTP
+    try {
+      await AuthService.checkStaffPhone(phone);
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString().replaceAll('Exception: ', ''); _isBusy = false; });
+      return;
+    }
     int retryAfter;
     try {
       retryAfter = await AuthenticaService.sendOtp(phone);

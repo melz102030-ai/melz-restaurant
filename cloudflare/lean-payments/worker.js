@@ -945,6 +945,36 @@ async function handleReclaimStaffAccount(request, env) {
 
 // إعادة تعيين كلمة مرور موظف بعد التحقق من رمز OTP من جهة الخادم — بلا جلسة Firebase،
 // فيُستخدَم عند نسيان كلمة المرور قبل تسجيل الدخول. OTP يُتحقق منه هنا لا من المتصفح.
+// يتحقق أن رقم الجوال مسجّل كموظف (قبل إرسال OTP) — لمنع إرسال رمز لأي رقم عشوائي
+async function handleCheckStaffPhone(request, env) {
+  let phone;
+  try {
+    ({ phone } = await request.json());
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  if (typeof phone !== "string" || phone.trim().length < 7) {
+    return json({ error: "invalid-body", message: "رقم الجوال مطلوب" }, 400);
+  }
+  phone = phone.trim();
+
+  const authToken = await getFirestoreAdminToken(env, AUTH_SCOPE);
+  const lookup = await authAdminCall(env, authToken, "lookup", { email: [`${phone}@meals.local`] });
+  if (!lookup.ok) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
+  const uid = (await lookup.json()).users?.[0]?.localId;
+  if (!uid) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
+
+  const adminToken = await getFirestoreAdminToken(env);
+  const profileRes = await fsFetch(env, adminToken, `/users/${uid}`);
+  if (!profileRes.ok) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
+  const profile = docFields((await profileRes.json()).fields);
+  if (profile.role === "customer") {
+    return json({ error: "not-a-staff-member", message: "هذا الرقم ليس حساب موظف" }, 403);
+  }
+
+  return json({ ok: true });
+}
+
 async function handleResetPasswordByOtp(request, env) {
   let phone, otp, newPassword;
   try {
@@ -1133,6 +1163,7 @@ export default {
     if (url.pathname === "/menu/option-availability") return handleOptionAvailability(request, env);
     if (url.pathname === "/staff/reset-password") return handleResetStaffPassword(request, env);
     if (url.pathname === "/staff/reset-password-otp") return handleResetPasswordByOtp(request, env);
+    if (url.pathname === "/staff/check-phone") return handleCheckStaffPhone(request, env);
     if (url.pathname === "/staff/delete") return handleDeleteUser(request, env);
     if (url.pathname === "/staff/reclaim") return handleReclaimStaffAccount(request, env);
     if (url.pathname === "/orders/acknowledge-unavailable") {

@@ -102,6 +102,20 @@ class AuthService {
   }
 
   // إعادة تعيين كلمة مرور موظف بعد التحقق من رمز OTP على جهة الخادم
+  static Future<void> checkStaffPhone(String phone) async {
+    final res = await http.post(
+      Uri.parse('$kWorkerUrl/staff/check-phone'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'phone': phone}),
+    );
+    if (res.statusCode == 404) throw Exception('الرقم غير مسجّل في النظام');
+    if (res.statusCode == 403) throw Exception('هذا الرقم ليس حساب موظف');
+    if (res.statusCode != 200) {
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      throw Exception(data['message'] ?? 'تعذّر التحقق من الرقم');
+    }
+  }
+
   static Future<void> resetPasswordByOtp({
     required String phone,
     required String otp,
