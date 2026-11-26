@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -54,10 +55,10 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
       }
       if (!mounted) return;
 
-      final verified = await showOtpVerifySheet(context, phone: phone, initialRetryAfter: retryAfter);
+      final otpCode = await showOtpVerifySheet(context, phone: phone, initialRetryAfter: retryAfter);
       if (!mounted) return;
 
-      if (!verified) {
+      if (otpCode == null) {
         await FirebaseAuth.instance.signOut();
         return;
       }
@@ -196,12 +197,212 @@ class _StaffLoginScreenState extends ConsumerState<StaffLoginScreen> {
                         icon: Icons.login,
                         width: double.infinity,
                       ).animate().fadeIn(delay: 200.ms),
+                      const SizedBox(height: 16),
+                      Center(
+                        child: TextButton(
+                          onPressed: () => showForgotPasswordSheet(context),
+                          child: Text(
+                            'نسيت كلمة المرور؟',
+                            style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── ورقة استعادة كلمة المرور ─────────────────────────────────────────────────
+
+Future<void> showForgotPasswordSheet(BuildContext context) {
+  return showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) => const _ForgotPasswordSheet(),
+  );
+}
+
+class _ForgotPasswordSheet extends StatefulWidget {
+  const _ForgotPasswordSheet();
+  @override
+  State<_ForgotPasswordSheet> createState() => _ForgotPasswordSheetState();
+}
+
+class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
+  // 0 = إدخال الجوال، 1 = كلمة مرور جديدة (بعد تحقق OTP)
+  int _step = 0;
+  final _phoneCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  final _pass2Ctrl = TextEditingController();
+  bool _obscure1 = true;
+  bool _obscure2 = true;
+  bool _isBusy = false;
+  String? _error;
+  String? _verifiedPhone;
+  String? _verifiedOtp;
+
+  @override
+  void dispose() {
+    _phoneCtrl.dispose();
+    _passCtrl.dispose();
+    _pass2Ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendOtp() async {
+    final phone = _phoneCtrl.text.trim();
+    if (phone.isEmpty) return;
+    setState(() { _isBusy = true; _error = null; });
+    int retryAfter;
+    try {
+      retryAfter = await AuthenticaService.sendOtp(phone);
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString().replaceAll('Exception: ', ''); _isBusy = false; });
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _isBusy = false);
+
+    // عرض ورقة OTP والانتظار حتى يتحقق المستخدم
+    final otpCode = await showOtpVerifySheet(context, phone: phone, initialRetryAfter: retryAfter);
+    if (!mounted || otpCode == null) return;
+
+    setState(() {
+      _verifiedPhone = AuthenticaService.normalizePhone(phone);
+      _verifiedOtp = otpCode;
+      _step = 1;
+    });
+  }
+
+  Future<void> _resetPassword() async {
+    final pass = _passCtrl.text.trim();
+    final pass2 = _pass2Ctrl.text.trim();
+    if (pass.length < 6) {
+      setState(() => _error = 'كلمة المرور يجب أن تكون 6 أحرف على الأقل');
+      return;
+    }
+    if (pass != pass2) {
+      setState(() => _error = 'كلمتا المرور غير متطابقتين');
+      return;
+    }
+    setState(() { _isBusy = true; _error = null; });
+    try {
+      await AuthService.resetPasswordByOtp(
+        phone: _verifiedPhone!,
+        otp: _verifiedOtp!,
+        newPassword: pass,
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('تم تعيين كلمة المرور الجديدة — سجّل دخولك الآن'),
+        backgroundColor: Colors.green,
+      ));
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString().replaceAll('Exception: ', ''); _isBusy = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 36, height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(color: AppColors.surfaceLight, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            Text(
+              _step == 0 ? 'استعادة كلمة المرور' : 'كلمة مرور جديدة',
+              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _step == 0
+                  ? 'أدخل رقم جوالك المسجّل لاستلام رمز التحقق'
+                  : 'تم التحقق — اختر كلمة مرور جديدة',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+
+            if (_step == 0) ...[
+              TextField(
+                controller: _phoneCtrl,
+                autofocus: true,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [LengthLimitingTextInputFormatter(20)],
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: const InputDecoration(
+                  labelText: 'رقم الجوال',
+                  hintText: '05XXXXXXXX',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+              ),
+            ] else ...[
+              TextField(
+                controller: _passCtrl,
+                autofocus: true,
+                obscureText: _obscure1,
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'كلمة المرور الجديدة',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscure1 ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setState(() => _obscure1 = !_obscure1),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _pass2Ctrl,
+                obscureText: _obscure2,
+                style: TextStyle(color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'تأكيد كلمة المرور',
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscure2 ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () => setState(() => _obscure2 = !_obscure2),
+                  ),
+                ),
+              ),
+            ],
+
+            if (_error != null) ...[
+              const SizedBox(height: 10),
+              Text(_error!, style: TextStyle(color: AppColors.error, fontSize: 13), textAlign: TextAlign.center),
+            ],
+
+            const SizedBox(height: 20),
+            AppButton(
+              label: _step == 0 ? 'إرسال رمز التحقق' : 'تعيين كلمة المرور',
+              icon: _step == 0 ? Icons.sms_outlined : Icons.check,
+              width: double.infinity,
+              onPressed: _step == 0 ? _sendOtp : _resetPassword,
+              isLoading: _isBusy,
+            ),
+          ],
         ),
       ),
     );

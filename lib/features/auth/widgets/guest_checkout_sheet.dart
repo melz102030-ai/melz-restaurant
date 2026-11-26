@@ -64,9 +64,9 @@ class _GuestCheckoutSheetContentState extends State<_GuestCheckoutSheetContent> 
     if (!mounted) return;
     setState(() => _isSendingOtp = false);
 
-    final verified = await showOtpVerifySheet(context, phone: phone, initialRetryAfter: retryAfter);
+    final otpCode = await showOtpVerifySheet(context, phone: phone, initialRetryAfter: retryAfter);
     if (!mounted) return;
-    if (verified) {
+    if (otpCode != null) {
       Navigator.pop(context, phone);
     }
   }

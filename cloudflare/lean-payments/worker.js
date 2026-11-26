@@ -943,6 +943,70 @@ async function handleReclaimStaffAccount(request, env) {
   }
 }
 
+// إعادة تعيين كلمة مرور موظف بعد التحقق من رمز OTP من جهة الخادم — بلا جلسة Firebase،
+// فيُستخدَم عند نسيان كلمة المرور قبل تسجيل الدخول. OTP يُتحقق منه هنا لا من المتصفح.
+async function handleResetPasswordByOtp(request, env) {
+  let phone, otp, newPassword;
+  try {
+    ({ phone, otp, newPassword } = await request.json());
+  } catch {
+    return json({ error: "invalid-body" }, 400);
+  }
+  if (typeof phone !== "string" || phone.trim().length < 7) {
+    return json({ error: "invalid-body", message: "رقم الجوال مطلوب" }, 400);
+  }
+  if (typeof otp !== "string" || otp.trim().length < 4) {
+    return json({ error: "invalid-body", message: "رمز التحقق مطلوب" }, 400);
+  }
+  if (typeof newPassword !== "string" || newPassword.length < 6 || newPassword.length > 128) {
+    return json({ error: "weak-password", message: "كلمة المرور يجب أن تكون 6 أحرف على الأقل" }, 400);
+  }
+  if (!env.AUTHENTICA_KEY) return json({ error: "otp-not-configured" }, 503);
+
+  phone = phone.trim();
+
+  // 1. التحقق من OTP من جهة الخادم — ليس من المتصفح
+  const otpRes = await fetch("https://api.authentica.sa/api/v2/verify-otp", {
+    method: "POST",
+    headers: {
+      "X-Authorization": env.AUTHENTICA_KEY,
+      "Accept": "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ phone, otp: otp.trim() }),
+  });
+  const otpData = await otpRes.json().catch(() => ({}));
+  if (otpData.status !== true) return json({ error: "otp-invalid", message: "رمز التحقق غير صحيح" }, 401);
+
+  // 2. البحث عن المستخدم في Firebase Auth بالجوال
+  const authToken = await getFirestoreAdminToken(env, AUTH_SCOPE);
+  const lookup = await authAdminCall(env, authToken, "lookup", { email: [`${phone}@meals.local`] });
+  if (!lookup.ok) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
+  const uid = (await lookup.json()).users?.[0]?.localId;
+  if (!uid) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
+
+  // 3. التأكد أن الحساب موظف (ليس عميلاً)
+  const adminToken = await getFirestoreAdminToken(env);
+  const profileRes = await fsFetch(env, adminToken, `/users/${uid}`);
+  if (!profileRes.ok) return json({ error: "user-not-found", message: "الرقم غير مسجّل في النظام" }, 404);
+  const profile = docFields((await profileRes.json()).fields);
+  if (profile.role === "customer") {
+    return json({ error: "not-a-staff-member", message: "هذا الرقم ليس حساب موظف" }, 403);
+  }
+
+  // 4. إعادة تعيين كلمة المرور وإبطال الجلسات المفتوحة
+  const update = await authAdminCall(env, authToken, "update", {
+    localId: uid,
+    password: newPassword,
+    validSince: String(Math.floor(Date.now() / 1000)),
+  });
+  if (!update.ok) {
+    console.error("reset-by-otp-failed", update.status, await update.text());
+    return json({ error: "reset-failed", message: "تعذّر تغيير كلمة المرور، حاول مجدداً" }, 502);
+  }
+  return json({ ok: true });
+}
+
 // ─── OTP عبر Authentica ───────────────────────────────────────────────────────
 // الطلبات تمر هنا بدل الاستدعاء المباشر من المتصفح لتفادي قيود CORS،
 // والمفتاح يُخزَّن سرّاً في Cloudflare ولا يُرسَل للعميل أبداً
@@ -1068,6 +1132,7 @@ export default {
     if (url.pathname === "/orders") return handleCreateOrder(request, env);
     if (url.pathname === "/menu/option-availability") return handleOptionAvailability(request, env);
     if (url.pathname === "/staff/reset-password") return handleResetStaffPassword(request, env);
+    if (url.pathname === "/staff/reset-password-otp") return handleResetPasswordByOtp(request, env);
     if (url.pathname === "/staff/delete") return handleDeleteUser(request, env);
     if (url.pathname === "/staff/reclaim") return handleReclaimStaffAccount(request, env);
     if (url.pathname === "/orders/acknowledge-unavailable") {

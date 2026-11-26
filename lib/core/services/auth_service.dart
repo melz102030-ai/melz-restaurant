@@ -101,6 +101,26 @@ class AuthService {
     await prefs.clear();
   }
 
+  // إعادة تعيين كلمة مرور موظف بعد التحقق من رمز OTP على جهة الخادم
+  static Future<void> resetPasswordByOtp({
+    required String phone,
+    required String otp,
+    required String newPassword,
+  }) async {
+    final res = await http.post(
+      Uri.parse('$kWorkerUrl/staff/reset-password-otp'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'phone': phone, 'otp': otp, 'newPassword': newPassword}),
+    );
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    if (res.statusCode == 404) throw Exception('الرقم غير مسجّل في النظام');
+    if (res.statusCode == 403) throw Exception('هذا الرقم ليس حساب موظف');
+    if (res.statusCode == 401) throw Exception('رمز التحقق غير صحيح');
+    if (res.statusCode != 200 || data['ok'] != true) {
+      throw Exception(data['message'] ?? 'تعذّر إعادة تعيين كلمة المرور');
+    }
+  }
+
   static Future<void> updateUserName(String userId, String name) async {
     // استخدم set+merge بدلاً من update حتى يعمل حتى لو لم يكن الـ document موجوداً
     await _db.collection(_colUsers).doc(userId).set(

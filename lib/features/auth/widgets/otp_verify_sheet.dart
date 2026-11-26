@@ -5,19 +5,19 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/services/authentica_service.dart';
 import '../../../shared/widgets/app_button.dart';
 
-/// تعرض ورقة أسفل الشاشة لإدخال رمز OTP. تُعيد true عند التحقق الناجح.
-Future<bool> showOtpVerifySheet(
+/// تعرض ورقة أسفل الشاشة لإدخال رمز OTP.
+/// تُعيد الكود المُدخَل عند التحقق الناجح، أو null عند الإغلاق/الإلغاء.
+Future<String?> showOtpVerifySheet(
   BuildContext context, {
   required String phone,
   int initialRetryAfter = 60,
-}) async {
-  final result = await showModalBottomSheet<bool>(
+}) {
+  return showModalBottomSheet<String?>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (_) => _OtpSheetContent(phone: phone, initialRetryAfter: initialRetryAfter),
   );
-  return result == true;
 }
 
 class _OtpSheetContent extends StatefulWidget {
@@ -116,7 +116,7 @@ class _OtpSheetContentState extends State<_OtpSheetContent> {
       final ok = await AuthenticaService.verifyOtp(widget.phone, code);
       if (!mounted) return;
       if (ok) {
-        Navigator.pop(context, true);
+        Navigator.pop(context, code);
       } else {
         setState(() => _error = 'الرمز غير صحيح، تحقق وأعد المحاولة');
         for (final c in _controllers) { c.clear(); }
