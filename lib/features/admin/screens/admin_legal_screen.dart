@@ -22,8 +22,6 @@ class _AdminLegalScreenState extends ConsumerState<AdminLegalScreen>
   void initState() {
     super.initState();
     _tab = TabController(length: 2, vsync: this);
-    // إنشاء المستندات في Firestore إن لم تكن موجودة
-    LegalService.seedIfMissing();
   }
 
   @override
@@ -36,7 +34,7 @@ class _AdminLegalScreenState extends ConsumerState<AdminLegalScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('المستندات القانونية'),
+        title: const Text('السياسات والشروط'),
         bottom: TabBar(
           controller: _tab,
           tabs: const [
@@ -76,9 +74,9 @@ class _DocEditorState extends State<_DocEditor> {
   List<_SectionEditor>? _editors;
   bool _saving = false;
 
-  void _loadEditors(LegalDocumentModel doc) {
+  void _loadEditors(LegalDocumentModel? doc) {
     if (_editors != null) return; // لا تُعيد التهيئة إذا كان المستخدم يعدّل
-    _editors = doc.sections
+    _editors = (doc?.sections ?? const <LegalSection>[])
         .map((s) => _SectionEditor(
               heading: TextEditingController(text: s.heading),
               body: TextEditingController(text: s.body),
@@ -138,20 +136,8 @@ class _DocEditorState extends State<_DocEditor> {
       loading: () => const Center(child: LoadingWidget()),
       error: (e, _) => Center(child: Text('$e')),
       data: (doc) {
-        if (doc == null) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('جاري إنشاء المستند...', style: TextStyle(color: AppColors.textSecondary)),
-                const SizedBox(height: 12),
-                const CircularProgressIndicator(),
-              ],
-            ),
-          );
-        }
         _loadEditors(doc);
-        return _buildForm(doc.title);
+        return _buildForm(doc?.title ?? LegalService.titles[widget.docId]!);
       },
     );
   }

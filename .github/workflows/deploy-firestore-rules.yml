@@ -10,6 +10,7 @@ on:
       - "firestore.rules"
       - "firestore_tests/**"
       - ".github/scripts/deploy-firestore-rules.mjs"
+      - ".github/scripts/seed-legal.mjs"
       - ".github/workflows/deploy-firestore-rules.yml"
 
 concurrency:
@@ -44,5 +45,10 @@ jobs:
       # نفس حساب الخدمة الذي يستخدمه خادم الدفع
       - name: Deploy rules
         run: node .github/scripts/deploy-firestore-rules.mjs
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+
+      - name: Seed privacy policy and terms (only if missing)
+        run: node .github/scripts/seed-legal.mjs
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}

@@ -86,7 +86,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       (icon: Icons.bar_chart_outlined,    label: 'التقارير',  route: '/admin/reports',  perm: Perm.reports),
       (icon: Icons.support_agent_outlined, label: 'الدعم الفني', route: '/admin/support', perm: Perm.support),
       (icon: Icons.settings_outlined,     label: 'الإعدادات', route: '/admin/settings', perm: Perm.settings),
-      (icon: Icons.gavel_outlined,        label: 'المستندات القانونية', route: '/admin/legal', perm: Perm.settings),
+      (icon: Icons.gavel_outlined,        label: 'السياسات والشروط', route: '/admin/legal', perm: Perm.settings),
       (icon: Icons.delete_sweep_outlined, label: 'مسح سجل الطلبات', route: '/admin/clear-history', perm: Perm.clearHistory),
     ]),
   ];

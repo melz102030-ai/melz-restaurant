@@ -5,9 +5,10 @@ import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/legal_document_model.dart';
 import '../../../core/providers/legal_provider.dart';
+import '../../../core/services/legal_service.dart';
 import '../../../shared/widgets/loading_widget.dart';
 
-/// شاشة عرض المستندات القانونية (سياسة الخصوصية / الشروط والأحكام)
+/// سياسة الخصوصية / الشروط والأحكام
 class LegalScreen extends ConsumerWidget {
   final String docId; // LegalService.privacyId | LegalService.termsId
 
@@ -25,7 +26,7 @@ class LegalScreen extends ConsumerWidget {
           icon: const Icon(Icons.arrow_back_ios),
           onPressed: () => context.canPop() ? context.pop() : context.go('/home'),
         ),
-        title: provider.whenOrNull(data: (d) => d != null ? Text(d.title) : null) ?? const SizedBox.shrink(),
+        title: Text(LegalService.titles[docId] ?? ''),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -34,14 +35,7 @@ class LegalScreen extends ConsumerWidget {
         error: (e, _) => Center(
           child: Text('تعذّر التحميل', style: TextStyle(color: AppColors.error)),
         ),
-        data: (doc) {
-          if (doc == null) {
-            return Center(
-              child: Text('المستند غير متاح حالياً', style: TextStyle(color: AppColors.textSecondary)),
-            );
-          }
-          return _DocBody(doc: doc);
-        },
+        data: (doc) => doc == null ? const SizedBox.shrink() : _DocBody(doc: doc),
       ),
     );
   }
@@ -56,16 +50,7 @@ class _DocBody extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 48),
       children: [
-        // العنوان وتاريخ التحديث
-        Text(
-          doc.title,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-        ),
         if (doc.updatedAt != null) ...[
-          const SizedBox(height: 4),
           Text(
             'آخر تحديث: ${DateFormat('dd/MM/yyyy').format(doc.updatedAt!)}',
             style: TextStyle(color: AppColors.textHint, fontSize: 12),
