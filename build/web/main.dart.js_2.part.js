@@ -1,15 +1,15 @@
 ((a,b)=>{a[b]=a[b]||{}})(self,"$__dart_deferred_initializers__")
 $__dart_deferred_initializers__.current=function(a,b,c,$){var J,A,C,D={
-bO6(d,e,f,g){return new D.CQ(f,d,g,e)},
-bWu(d){return new D.acf(d,null)},
+bOf(d,e,f,g){return new D.CQ(f,d,g,e)},
+bWC(d){return new D.aci(d,null)},
 CQ:function CQ(d,e,f,g){var _=this
 _.b=d
 _.c=e
 _.d=f
 _.e=g},
-acf:function acf(d,e){this.c=d
+aci:function aci(d,e){this.c=d
 this.a=e},
-aRg:function aRg(d,e){this.a=d
+aRk:function aRk(d,e){this.a=d
 this.b=e}},B,E,F
 J=c[1]
 A=c[0]
@@ -19,12 +19,12 @@ B=c[35]
 E=c[17]
 F=c[27]
 D.CQ.prototype={}
-D.acf.prototype={
-E(d){var x=null,w=E.xU(d,F.jc),v=w==null?x:w.a
-return new E.Iy(new A.e1(C.bx,x,C.bm,C.z,J.rf(new D.aRg(this,v==null?A.a3(A.Z("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
+D.aci.prototype={
+E(d){var x=null,w=E.xV(d,F.jc),v=w==null?x:w.a
+return new E.Iz(new A.dW(C.bt,x,C.bj,C.z,J.rf(new D.aRk(this,v==null?A.a3(A.Z("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
 var z=a.updateTypes(["x<lj>(m<CQ>)"])
-D.aRg.prototype={
-$1(d){return new A.hC(this.al1(d),y.l)},
+D.aRk.prototype={
+$1(d){return new A.hD(this.al1(d),y.l)},
 al1(d){var x=this
 return function(){var w=d
 var v=0,u=1,t=[],s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,a0,a1,a2,a3,a4,a5
@@ -60,19 +60,19 @@ case 4:return 0
 case 1:return a6.c=t.at(-1),3}}}},
 $S:z+0};(function inheritance(){var x=a.inherit
 x(D.CQ,A.A)
-x(D.acf,A.a0)
-x(D.aRg,A.hE)})()
-A.ne(b.typeUniverse,JSON.parse('{"acf":{"a0":[],"d":[]}}'))
-var y={n:A.a5("ca<D>"),l:A.a5("hC<lj>"),b:A.a5("D")};(function constants(){B.yP=new A.ah(61870,"MaterialIcons",null,!1)
-B.a4J=new A.I(1,1,0.9529411764705882,0.8784313725490196,C.m)
-B.a5v=new A.I(1,1,0.8784313725490196,0.6980392156862745,C.m)
-B.a61=new A.I(1,1,0.8,0.5019607843137255,C.m)
-B.a4h=new A.I(1,1,0.7176470588235294,0.30196078431372547,C.m)
-B.a4Z=new A.I(1,1,0.6549019607843137,0.14901960784313725,C.m)
-B.a5H=new A.I(1,0.984313725490196,0.5490196078431373,0,C.m)
-B.a4R=new A.I(1,0.9607843137254902,0.48627450980392156,0,C.m)
-B.a5G=new A.I(1,0.9372549019607843,0.4235294117647059,0,C.m)
-B.a4v=new A.I(1,0.9019607843137255,0.3176470588235294,0,C.m)
-B.arc=new A.cL([50,B.a4J,100,B.a5v,200,B.a61,300,B.a4h,400,B.a4Z,500,C.b_,600,B.a5H,700,B.a4R,800,B.a5G,900,B.a4v],A.a5("cL<l,I>"))
-B.zY=new A.t6(B.arc,1,1,0.596078431372549,0,C.m)})()};
-(a=>{a["c8DvZi6ukrKGsp/8aej7iyXOqiY="]=a.current})($__dart_deferred_initializers__);
+x(D.aci,A.a_)
+x(D.aRk,A.hF)})()
+A.nf(b.typeUniverse,JSON.parse('{"aci":{"a_":[],"d":[]}}'))
+var y={n:A.a6("ca<D>"),l:A.a6("hD<lj>"),b:A.a6("D")};(function constants(){B.yR=new A.ai(61870,"MaterialIcons",null,!1)
+B.a4L=new A.I(1,1,0.9529411764705882,0.8784313725490196,C.m)
+B.a5x=new A.I(1,1,0.8784313725490196,0.6980392156862745,C.m)
+B.a63=new A.I(1,1,0.8,0.5019607843137255,C.m)
+B.a4j=new A.I(1,1,0.7176470588235294,0.30196078431372547,C.m)
+B.a50=new A.I(1,1,0.6549019607843137,0.14901960784313725,C.m)
+B.a5J=new A.I(1,0.984313725490196,0.5490196078431373,0,C.m)
+B.a4T=new A.I(1,0.9607843137254902,0.48627450980392156,0,C.m)
+B.a5I=new A.I(1,0.9372549019607843,0.4235294117647059,0,C.m)
+B.a4x=new A.I(1,0.9019607843137255,0.3176470588235294,0,C.m)
+B.arf=new A.cL([50,B.a4L,100,B.a5x,200,B.a63,300,B.a4j,400,B.a50,500,C.b0,600,B.a5J,700,B.a4T,800,B.a5I,900,B.a4x],A.a6("cL<l,I>"))
+B.zZ=new A.t6(B.arf,1,1,0.596078431372549,0,C.m)})()};
+(a=>{a["j6bKyk++ft6MI/Cki3XozAaVP4U="]=a.current})($__dart_deferred_initializers__);
