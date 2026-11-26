@@ -165,23 +165,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 12),
 
-            // لا يوجد "تسجيل خروج" حقيقي بلا نظام حسابات — هذا يمسح فقط ربط
-            // سجل الطلبات بهذا الجهاز؛ الطلب القادم يبدأ سجلاً جديداً من الصفر
             AppButton(
-              label: 'نسيان بياناتي على هذا الجهاز',
+              label: 'تسجيل الخروج',
               onPressed: () async {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (ctx) => AlertDialog(
-                    title: const Text('نسيان بياناتي؟'),
+                    title: const Text('تسجيل الخروج'),
                     content: const Text(
-                        'سيُمسح ربط سجل طلباتك بهذا الجهاز، ولن تتمكن من رؤيتها هنا بعد ذلك.'),
+                        'سيُمسح سجل طلباتك من هذا الجهاز، ولن تتمكن من رؤيتها هنا بعد ذلك.'),
                     actions: [
                       TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
                       ElevatedButton(
                         onPressed: () => Navigator.pop(ctx, true),
                         style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-                        child: const Text('نسيان'),
+                        child: const Text('خروج'),
                       ),
                     ],
                   ),
