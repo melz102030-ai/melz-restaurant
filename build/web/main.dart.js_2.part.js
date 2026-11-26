@@ -1,13 +1,13 @@
 ((a,b)=>{a[b]=a[b]||{}})(self,"$__dart_deferred_initializers__")
 $__dart_deferred_initializers__.current=function(a,b,c,$){var J,A,C,D={
-bPe(d,e,f,g){return new D.CZ(f,d,g,e)},
-bXz(d){return new D.acp(d,null)},
+bPg(d,e,f,g){return new D.CZ(f,d,g,e)},
+bXA(d){return new D.acq(d,null)},
 CZ:function CZ(d,e,f,g){var _=this
 _.b=d
 _.c=e
 _.d=f
 _.e=g},
-acp:function acp(d,e){this.c=d
+acq:function acq(d,e){this.c=d
 this.a=e},
 aRJ:function aRJ(d,e){this.a=d
 this.b=e}},B,E,F
@@ -19,9 +19,9 @@ B=c[36]
 E=c[17]
 F=c[27]
 D.CZ.prototype={}
-D.acp.prototype={
+D.acq.prototype={
 E(d){var x=null,w=E.y_(d,F.jd),v=w==null?x:w.a
-return new E.IN(new A.dZ(C.bt,x,C.bj,C.z,J.rk(new D.aRJ(this,v==null?A.a3(A.Z("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
+return new E.IM(new A.dZ(C.bt,x,C.bj,C.z,J.rk(new D.aRJ(this,v==null?A.a3(A.Z("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
 var z=a.updateTypes(["x<ln>(n<CZ>)"])
 D.aRJ.prototype={
 $1(d){return new A.hD(this.al9(d),y.l)},
@@ -50,7 +50,7 @@ if(a4.a<=a5.a){a3=a3.b
 a0=a0.a
 a0=a3.a>=a0.a&&a4.b<=a5.b&&a3.b>=a0.b}else a0=!1
 if(!a0){v=3
-break}a0=r.gx3()
+break}a0=r.gx4()
 v=5
 return a6.b=new A.ln(a1-a0.a-g,a2-a0.b-f,null,null,k,i,l.c,null),1
 case 5:case 3:w.length===s||(0,A.L)(w),++m
@@ -60,10 +60,10 @@ case 4:return 0
 case 1:return a6.c=t.at(-1),3}}}},
 $S:z+0};(function inheritance(){var x=a.inherit
 x(D.CZ,A.A)
-x(D.acp,A.a_)
+x(D.acq,A.a_)
 x(D.aRJ,A.hF)})()
-A.ni(b.typeUniverse,JSON.parse('{"acp":{"a_":[],"d":[]}}'))
-var y={n:A.a7("cb<D>"),l:A.a7("hD<ln>"),b:A.a7("D")};(function constants(){B.yS=new A.ah(61870,"MaterialIcons",null,!1)
+A.ni(b.typeUniverse,JSON.parse('{"acq":{"a_":[],"d":[]}}'))
+var y={n:A.a9("cb<D>"),l:A.a9("hD<ln>"),b:A.a9("D")};(function constants(){B.yT=new A.ah(61870,"MaterialIcons",null,!1)
 B.a50=new A.J(1,1,0.9529411764705882,0.8784313725490196,C.m)
 B.a5N=new A.J(1,1,0.8784313725490196,0.6980392156862745,C.m)
 B.a6j=new A.J(1,1,0.8,0.5019607843137255,C.m)
@@ -73,6 +73,6 @@ B.a5Z=new A.J(1,0.984313725490196,0.5490196078431373,0,C.m)
 B.a58=new A.J(1,0.9607843137254902,0.48627450980392156,0,C.m)
 B.a5Y=new A.J(1,0.9372549019607843,0.4235294117647059,0,C.m)
 B.a4N=new A.J(1,0.9019607843137255,0.3176470588235294,0,C.m)
-B.arv=new A.cM([50,B.a50,100,B.a5N,200,B.a6j,300,B.a4z,400,B.a5g,500,C.b0,600,B.a5Z,700,B.a58,800,B.a5Y,900,B.a4N],A.a7("cM<l,J>"))
-B.A3=new A.ta(B.arv,1,1,0.596078431372549,0,C.m)})()};
-(a=>{a["fIcIqF51Gwafm2gp2d/VG0RA5z8="]=a.current})($__dart_deferred_initializers__);
+B.aru=new A.cM([50,B.a50,100,B.a5N,200,B.a6j,300,B.a4z,400,B.a5g,500,C.b0,600,B.a5Z,700,B.a58,800,B.a5Y,900,B.a4N],A.a9("cM<l,J>"))
+B.A4=new A.ta(B.aru,1,1,0.596078431372549,0,C.m)})()};
+(a=>{a["ai5Na6aRH3C8Nfgc1/58404WLto="]=a.current})($__dart_deferred_initializers__);
