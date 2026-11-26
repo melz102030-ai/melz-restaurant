@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -21,15 +20,6 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  bool _isEditingName = false;
-  final _nameController = TextEditingController();
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
@@ -77,59 +67,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ).animate().scale(duration: 500.ms, curve: Curves.elasticOut),
                   const SizedBox(height: 16),
 
-                  if (_isEditingName)
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _nameController..text = user.name,
-                            autofocus: true,
-                            inputFormatters: [LengthLimitingTextInputFormatter(60)],
-                            style: TextStyle(color: AppColors.textPrimary),
-                            decoration: const InputDecoration(
-                              labelText: 'الاسم',
-                            ),
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () async {
-                            final name = _nameController.text.trim();
-                            if (name.isNotEmpty) {
-                              await ref.read(authProvider.notifier).updateName(name);
-                            }
-                            setState(() => _isEditingName = false);
-                          },
-                          icon: Icon(Icons.check, color: AppColors.success),
-                        ),
-                        IconButton(
-                          onPressed: () => setState(() => _isEditingName = false),
-                          icon: Icon(Icons.close, color: AppColors.error),
-                        ),
-                      ],
-                    )
-                  else
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          user.name,
-                          style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => setState(() => _isEditingName = true),
-                          icon: Icon(Icons.edit, color: AppColors.textHint, size: 18),
-                        ),
-                      ],
-                    ),
-
-                  const SizedBox(height: 8),
                   Text(
                     user.phone,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'عميل مسجّل على هذا الجهاز',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                   ),
                 ],
               ),
@@ -238,7 +188,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 );
                 if (confirm != true) return;
                 await ref.read(authProvider.notifier).logout();
-                if (context.mounted) context.go('/home');
+                if (context.mounted) context.go('/order-type');
               },
               isOutlined: true,
               icon: Icons.logout,

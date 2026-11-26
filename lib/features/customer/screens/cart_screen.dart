@@ -1195,7 +1195,7 @@ class _QtyButton extends StatelessWidget {
   }
 }
 
-// اسم ورقم العميل المستخدمان في الطلب، حتى يراهما ويعدّلهما قبل الإرسال
+// رقم تواصل العميل المستخدم في الطلب، حتى يراه ويعدّله قبل الإرسال
 class _ContactCard extends StatelessWidget {
   final String name;
   final String phone;
@@ -1213,20 +1213,20 @@ class _ContactCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.person_outline, color: AppColors.purple, size: 20),
+          Icon(Icons.phone_outlined, color: AppColors.purple, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name,
+                Text('رقم التواصل',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                Text(phone,
+                    textDirection: TextDirection.ltr,
                     style: TextStyle(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
                         fontSize: 14)),
-                Text(phone,
-                    textDirection: TextDirection.ltr,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
               ],
             ),
           ),

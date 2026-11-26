@@ -90,7 +90,6 @@ class _WhatsappSupportView extends StatelessWidget {
                 width: double.infinity,
                 onPressed: () {
                   final lines = ['مرحباً، أحتاج مساعدة.'];
-                  if (userName.isNotEmpty) lines.add('الاسم: $userName');
                   if (userPhone.isNotEmpty) lines.add('الجوال: $userPhone');
                   final text = Uri.encodeComponent(lines.join('\n'));
                   launchUrl(Uri.parse('https://wa.me/$number?text=$text'), mode: LaunchMode.externalApplication);
