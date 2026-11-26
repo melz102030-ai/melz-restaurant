@@ -1,15 +1,15 @@
 ((a,b)=>{a[b]=a[b]||{}})(self,"$__dart_deferred_initializers__")
 $__dart_deferred_initializers__.current=function(a,b,c,$){var J,A,C,D={
-bPk(d,e,f,g){return new D.D_(f,d,g,e)},
-bXG(d){return new D.acs(d,null)},
-D_:function D_(d,e,f,g){var _=this
+bPe(d,e,f,g){return new D.CZ(f,d,g,e)},
+bXz(d){return new D.acp(d,null)},
+CZ:function CZ(d,e,f,g){var _=this
 _.b=d
 _.c=e
 _.d=f
 _.e=g},
-acs:function acs(d,e){this.c=d
+acp:function acp(d,e){this.c=d
 this.a=e},
-aRQ:function aRQ(d,e){this.a=d
+aRJ:function aRJ(d,e){this.a=d
 this.b=e}},B,E,F
 J=c[1]
 A=c[0]
@@ -18,13 +18,13 @@ D=a.updateHolder(c[12],D)
 B=c[36]
 E=c[17]
 F=c[27]
-D.D_.prototype={}
-D.acs.prototype={
-E(d){var x=null,w=E.y0(d,F.jd),v=w==null?x:w.a
-return new E.IO(new A.e_(C.bt,x,C.bj,C.z,J.rl(new D.aRQ(this,v==null?A.a3(A.Z("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
-var z=a.updateTypes(["x<lo>(n<D_>)"])
-D.aRQ.prototype={
-$1(d){return new A.hF(this.al9(d),y.l)},
+D.CZ.prototype={}
+D.acp.prototype={
+E(d){var x=null,w=E.y_(d,F.jd),v=w==null?x:w.a
+return new E.IN(new A.dZ(C.bt,x,C.bj,C.z,J.rk(new D.aRJ(this,v==null?A.a3(A.Z("`MapCamera.of()` should not be called outside a `FlutterMap` and its descendants")):v).$1(this.c)),x),x)}}
+var z=a.updateTypes(["x<ln>(n<CZ>)"])
+D.aRJ.prototype={
+$1(d){return new A.hD(this.al9(d),y.l)},
 al9(d){var x=this
 return function(){var w=d
 var v=0,u=1,t=[],s,r,q,p,o,n,m,l,k,j,i,h,g,f,e,a0,a1,a2,a3,a4,a5
@@ -40,10 +40,10 @@ g=k-j
 f=i-h
 e=o.u6(l.b,n)
 a0=r.x
-if(a0==null)a0=r.x=r.b3g(n)
+if(a0==null)a0=r.x=r.b3f(n)
 a1=e.a
 a2=e.b
-a3=E.rw(new A.cc(a1+j,a2-f,q),new A.cc(a1-g,a2+h,q),p)
+a3=E.rv(new A.cb(a1+j,a2-f,q),new A.cb(a1-g,a2+h,q),p)
 a4=a3.a
 a5=a0.b
 if(a4.a<=a5.a){a3=a3.b
@@ -52,27 +52,27 @@ a0=a3.a>=a0.a&&a4.b<=a5.b&&a3.b>=a0.b}else a0=!1
 if(!a0){v=3
 break}a0=r.gx3()
 v=5
-return a6.b=new A.lo(a1-a0.a-g,a2-a0.b-f,null,null,k,i,l.c,null),1
+return a6.b=new A.ln(a1-a0.a-g,a2-a0.b-f,null,null,k,i,l.c,null),1
 case 5:case 3:w.length===s||(0,A.L)(w),++m
 v=2
 break
 case 4:return 0
 case 1:return a6.c=t.at(-1),3}}}},
 $S:z+0};(function inheritance(){var x=a.inherit
-x(D.D_,A.A)
-x(D.acs,A.a_)
-x(D.aRQ,A.hG)})()
-A.nj(b.typeUniverse,JSON.parse('{"acs":{"a_":[],"d":[]}}'))
-var y={n:A.a6("cc<D>"),l:A.a6("hF<lo>"),b:A.a6("D")};(function constants(){B.yT=new A.ah(61870,"MaterialIcons",null,!1)
-B.a5_=new A.J(1,1,0.9529411764705882,0.8784313725490196,C.m)
-B.a5M=new A.J(1,1,0.8784313725490196,0.6980392156862745,C.m)
-B.a6i=new A.J(1,1,0.8,0.5019607843137255,C.m)
-B.a4y=new A.J(1,1,0.7176470588235294,0.30196078431372547,C.m)
-B.a5f=new A.J(1,1,0.6549019607843137,0.14901960784313725,C.m)
-B.a5Y=new A.J(1,0.984313725490196,0.5490196078431373,0,C.m)
-B.a57=new A.J(1,0.9607843137254902,0.48627450980392156,0,C.m)
-B.a5X=new A.J(1,0.9372549019607843,0.4235294117647059,0,C.m)
-B.a4M=new A.J(1,0.9019607843137255,0.3176470588235294,0,C.m)
-B.art=new A.cM([50,B.a5_,100,B.a5M,200,B.a6i,300,B.a4y,400,B.a5f,500,C.b1,600,B.a5Y,700,B.a57,800,B.a5X,900,B.a4M],A.a6("cM<l,J>"))
-B.A4=new A.tb(B.art,1,1,0.596078431372549,0,C.m)})()};
-(a=>{a["bzuYAd79HOhC1pf8fwa3G/4d1zs="]=a.current})($__dart_deferred_initializers__);
+x(D.CZ,A.A)
+x(D.acp,A.a_)
+x(D.aRJ,A.hF)})()
+A.ni(b.typeUniverse,JSON.parse('{"acp":{"a_":[],"d":[]}}'))
+var y={n:A.a7("cb<D>"),l:A.a7("hD<ln>"),b:A.a7("D")};(function constants(){B.yS=new A.ah(61870,"MaterialIcons",null,!1)
+B.a50=new A.J(1,1,0.9529411764705882,0.8784313725490196,C.m)
+B.a5N=new A.J(1,1,0.8784313725490196,0.6980392156862745,C.m)
+B.a6j=new A.J(1,1,0.8,0.5019607843137255,C.m)
+B.a4z=new A.J(1,1,0.7176470588235294,0.30196078431372547,C.m)
+B.a5g=new A.J(1,1,0.6549019607843137,0.14901960784313725,C.m)
+B.a5Z=new A.J(1,0.984313725490196,0.5490196078431373,0,C.m)
+B.a58=new A.J(1,0.9607843137254902,0.48627450980392156,0,C.m)
+B.a5Y=new A.J(1,0.9372549019607843,0.4235294117647059,0,C.m)
+B.a4N=new A.J(1,0.9019607843137255,0.3176470588235294,0,C.m)
+B.arv=new A.cM([50,B.a50,100,B.a5N,200,B.a6j,300,B.a4z,400,B.a5g,500,C.b0,600,B.a5Z,700,B.a58,800,B.a5Y,900,B.a4N],A.a7("cM<l,J>"))
+B.A3=new A.ta(B.arv,1,1,0.596078431372549,0,C.m)})()};
+(a=>{a["fIcIqF51Gwafm2gp2d/VG0RA5z8="]=a.current})($__dart_deferred_initializers__);
