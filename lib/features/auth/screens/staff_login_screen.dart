@@ -272,7 +272,14 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
     setState(() => _isBusy = false);
 
     // عرض ورقة OTP والانتظار حتى يتحقق المستخدم
-    final otpCode = await showOtpVerifySheet(context, phone: phone, initialRetryAfter: retryAfter);
+    // skipVerification=true: الـ Worker هو من يتحقق من الكود مع Authentica
+    // لمنع استهلاكه مرتين (مرة هنا ومرة في الخادم)
+    final otpCode = await showOtpVerifySheet(
+      context,
+      phone: phone,
+      initialRetryAfter: retryAfter,
+      skipVerification: true,
+    );
     if (!mounted || otpCode == null) return;
 
     setState(() {
