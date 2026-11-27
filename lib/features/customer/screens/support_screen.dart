@@ -14,6 +14,7 @@ import '../../../core/services/support_service.dart';
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/gradient_container.dart';
 import '../../../shared/widgets/loading_widget.dart';
+import '../../auth/widgets/guest_checkout_sheet.dart';
 
 const List<String> _supportCategories = ['استفسار عام', 'مشكلة بطلب', 'شكوى', 'اقتراح'];
 
@@ -30,8 +31,7 @@ class SupportScreen extends ConsumerWidget {
         title: const Text('الدعم الفني'),
         leading: IconButton(icon: Icon(Icons.arrow_back_ios), onPressed: () => context.pop()),
       ),
-      // وضع واتساب لا يحتاج أي طلب سابق — متاح دائماً. وضع التذاكر داخل
-      // التطبيق يحتاج هوية (تُنشأ تلقائياً فقط بعد أول طلب فعلي)
+      // وضع واتساب متاح دائماً، ووضع التذاكر داخل التطبيق يحتاج تسجيل الدخول
       body: settings.isWhatsappSupportMode
           ? _WhatsappSupportView(
               settings: settings,
@@ -39,9 +39,19 @@ class SupportScreen extends ConsumerWidget {
               userPhone: user?.phone ?? '',
             )
           : user == null
-              ? const EmptyState(
-                  message: 'اطلب مرة واحدة على الأقل أولاً حتى تقدر تفتح تذكرة دعم',
-                  icon: Icons.info_outline,
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: AppButton(
+                      label: 'تسجيل الدخول',
+                      icon: Icons.login,
+                      width: double.infinity,
+                      onPressed: () async {
+                        final loggedIn = await showCustomerLoginSheet(context);
+                        if (loggedIn != null) await ref.read(authProvider.notifier).login(loggedIn);
+                      },
+                    ),
+                  ),
                 )
               : _TicketListView(userId: user.id, userName: user.name, userPhone: user.phone),
     );
